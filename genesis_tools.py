@@ -1,15 +1,18 @@
 # -*- coding: iso-8859-1 -*-
 
 """ 
+
+
+ Adapted from: 
  Joe Duris / jduris@slac.stanford.edu / 2018-07-31
  
- forbidden_fruit - Genesis 1.3 v2 interface for Python
+ Genesis - Genesis 1.3 v2 interface for Python
  Grants (dubious?) knowledge of the FEL.
  Manages Genesis simulations
  
- serpent - controller of the forbidden_fruit
+ serpent - controller of the Genesis
  Named after the manipulating serpent in the book of Genesis.
- Manages forbidden_fruit to execute and clean Genesis sims.
+ Manages Genesis to execute and clean Genesis sims.
  Also allows optimizing the detuning for time independent sims.
  
  TODO: parallelize serpent routines
@@ -20,6 +23,32 @@
 
 import os, errno, random, string, subprocess, copy
 import numpy as np
+import subprocess
+
+
+def execute(cmd):
+    """
+    
+    Constantly print Subprocess output while process is running
+    from: https://stackoverflow.com/questions/4417546/constantly-print-subprocess-output-while-process-is-running
+    
+    # Example usage:
+        for path in execute(["locate", "a"]):
+        print(path, end="")
+        
+    Useful in Jupyter notebook
+    
+    """
+    popen = subprocess.Popen(cmd, stdout=subprocess.PIPE, universal_newlines=True)
+    for stdout_line in iter(popen.stdout.readline, ""):
+        yield stdout_line 
+    popen.stdout.close()
+    return_code = popen.wait()
+    if return_code:
+        raise subprocess.CalledProcessError(return_code, cmd)
+
+
+
 
 def mkdir_p(path):
     try:
@@ -34,310 +63,28 @@ def randomword(length):
    letters = string.ascii_letters + string.digits
    return ''.join(random.choice(letters) for i in range(length))
 
-class serpent():
-    """ This class allows us to control Genesis runs."""
-    
-    def __init__(self):
-        # list of sims
-        self.forbidden_fruits = []
-        
-        # input lattice
-        # quads are gradients in Tesla/meter (use a negative gradient to defocus)
-        #self.quad_half_length_xlamd_units = 5 # multiply by 2*xlamd for full quad length
-        self.quad_grads = [12.84,-12.64,12.84,-12.64,12.84,-12.64,12.84,-12.64,12.84,-12.64,12.84,-12.64] # 6 FODO
-        # Ks are the list of peak undulator strengths (NOT RMS) since epics gives us peak
-        self.und_Ks = [np.sqrt(2.) * K for K in [2.473180,2.473180,2.473180,2.473180,2.473180,2.473180,2.473180,2.473180,2.473180,2.473180,2.473180,2.473180]]
-        
-        # input params for the sims
-        # param descriptions here http://genesis.web.psi.ch/download/documentation/genesis_manual.pdf
-        self.input_params = {'aw0'   :  2.473180,
-                            'xkx'   :  0.000000E+00,
-                            'xky'   :  1.000000E+00,
-                            'wcoefz':  [7.500000E-01,   0.000000E+00,   1.000000E+00],
-                            'xlamd' :  3.000000E-02,
-                            'fbess0':  0.000000E+00,
-                            'delaw' :  0.000000E+00,
-                            'iertyp':    0,
-                            'iwityp':    0,
-                            'awd'   :  2.473180,
-                            'awx'   :  0.000000E+00,
-                            'awy'   :  0.000000E+00,
-                            'iseed' :   10,
-                            'npart' :   2048,
-                            'gamma0':  6.586752E+03,
-                            'delgam':  2.600000E+00,
-                            'rxbeam':  2.846500E-05,
-                            'rybeam':  1.233100E-05,
-                            'alphax':  0,
-                            'alphay': -0,
-                            'emitx' :  4.000000E-07,
-                            'emity' :  4.000000E-07,
-                            'xbeam' :  0.000000E+00,
-                            'ybeam' :  0.000000E+00,
-                            'pxbeam':  0.000000E+00,
-                            'pybeam':  0.000000E+00,
-                            'conditx' :  0.000000E+00,
-                            'condity' :  0.000000E+00,
-                            'bunch' :  0.000000E+00,
-                            'bunchphase' :  0.000000E+00,
-                            'emod' :  0.000000E+00,
-                            'emodphase' :  0.000000E+00,
-                            'xlamds':  2.472300E-09,
-                            'prad0' :  2.000000E-04,
-                            'pradh0':  0.000000E+00,
-                            'zrayl' :  3.000000E+01,
-                            'zwaist':  0.000000E+00,
-                            'ncar'  :  251,
-                            'lbc'   :    0,
-                            'rmax0' :  1.100000E+01,
-                            'dgrid' :  7.500000E-04,
-                            'nscr'  :    1,
-                            'nscz'  :    0,
-                            'nptr'  :   40,
-                            'nwig'  :  112,
-                            'zsep'  :  1.000000E+00,
-                            'delz'  :  1.000000E+00,
-                            'nsec'  :    1,
-                            'iorb'  :    0,
-                            'zstop' :  3.195000E+11, # note: this is huge
-                            'magin' :    1,
-                            'magout':    0,
-                            'quadf' :  1.667000E+01,
-                            'quadd' : -1.667000E+01,
-                            'fl'    :  8.000000E+00,
-                            'dl'    :  8.000000E+00,
-                            'drl'   :  1.120000E+02,
-                            'f1st'  :  0.000000E+00,
-                            'qfdx'  :  0.000000E+00,
-                            'qfdy'  :  0.000000E+00,
-                            'solen' :  0.000000E+00,
-                            'sl'    :  0.000000E+00,
-                            'ildgam':    9,
-                            'ildpsi':    1,
-                            'ildx'  :    2,
-                            'ildy'  :    3,
-                            'ildpx' :    5,
-                            'ildpy' :    7,
-                            'itgaus':    1,
-                            'nbins' :    8,
-                            'igamgaus' :    1,
-                            'inverfc' :    1,
-                            'lout'  : [1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 1],
-                            'iphsty':    1,
-                            'ishsty':    1,
-                            'ippart':    0,
-                            'ispart':    2,
-                            'ipradi':    0,
-                            'isradi':    0,
-                            'idump' :    0,
-                            'iotail':    1,
-                            'nharm' :    1,
-                            'iallharm' :    1,
-                            'iharmsc' :    0,
-                            'curpeak':  4.500000E+03,
-                            'curlen':  0.000000E+00,
-                            'ntail' :    0,
-                            'nslice': 4129,
-                            'shotnoise':  1.000000E+00,
-                            'isntyp':    1,
-                            'iall'  :    1,
-                            'itdp'  :    0,
-                            'ipseed':    1,
-                            'iscan' :    0,
-                            'nscan' :    3,
-                            'svar'  :  1.000000E-02,
-                            'isravg':    0,
-                            'isrsig':    1,
-                            'cuttail': -1.000000E+00,
-                            'eloss' :  0.000000E+00,
-                            'version':  1.000000E-01,
-                            'ndcut' :  150,
-                            'idmpfld':    0,
-                            'idmppar':    0,
-                            'ilog'  :    0,
-                            'ffspec':    1,
-                            'convharm':    1,
-                            'ibfield':  0.000000E+00,
-                            'imagl':    0.000000E+00,
-                            'idril':    0.000000E+00,
-                            'alignradf':    0,
-                            'offsetradf':    0,
-                            'multconv':    0,
-                            'igamref':  0.000000E+00,
-                            'rmax0sc':  0.000000E+00,
-                            'iscrkup':    0,
-                            'trama':    0,
-                            'itram11':  1.000000E+00,
-                            'itram12':  0.000000E+00,
-                            'itram13':  0.000000E+00,
-                            'itram14':  0.000000E+00,
-                            'itram15':  0.000000E+00,
-                            'itram16':  0.000000E+00,
-                            'itram21':  0.000000E+00,
-                            'itram22':  1.000000E+00,
-                            'itram23':  0.000000E+00,
-                            'itram24':  0.000000E+00,
-                            'itram25':  0.000000E+00,
-                            'itram26':  0.000000E+00,
-                            'itram31':  0.000000E+00,
-                            'itram32':  0.000000E+00,
-                            'itram33':  1.000000E+00,
-                            'itram34':  0.000000E+00,
-                            'itram35':  0.000000E+00,
-                            'itram36':  0.000000E+00,
-                            'itram41':  0.000000E+00,
-                            'itram42':  0.000000E+00,
-                            'itram43':  0.000000E+00,
-                            'itram44':  1.000000E+00,
-                            'itram45':  0.000000E+00,
-                            'itram46':  0.000000E+00,
-                            'itram51':  0.000000E+00,
-                            'itram52':  0.000000E+00,
-                            'itram53':  0.000000E+00,
-                            'itram54':  0.000000E+00,
-                            'itram55':  1.000000E+00,
-                            'itram56':  0.000000E+00,
-                            'itram61':  0.000000E+00,
-                            'itram62':  0.000000E+00,
-                            'itram63':  0.000000E+00,
-                            'itram64':  0.000000E+00,
-                            'itram65':  0.000000E+00,
-                            'itram66':  1.000000E+00,
-                            'outputfile' : 'genesis.out',
-                            'maginfile' : 'genesis.lat',
-                            'distfile': None,
-                            'filetype':'ORIGINAL'}
-        #self.input_params = None # if we want to use defaults..
-        
-    # stub - fcn to calculate the twiss given a lattice
-    def matched_twiss(self):
-        pass
-    
-    def input_twiss(self):
-        
-        betax = self.input_params['rxbeam']**2 * self.input_params['gamma0'] / self.input_params['emitx']
-        betay = self.input_params['rybeam']**2 * self.input_params['gamma0'] / self.input_params['emity']
-        alphax = self.input_params['alphax']
-        alphay = self.input_params['alphay']
-        
-        return {'betax':betax, 'betay':betay, 'alphax':alphax, 'alphay':alphay} 
-    
-    def run_genesis_for_twiss(self, betax=None, betay=None, alphax=None, alphay=None):
-        
-        ff = forbidden_fruit()
-        
-        ff.input_params = copy.deepcopy(self.input_params)
-        ff.quad_grads = copy.deepcopy(self.quad_grads) # quads are gradients in Tesla/meter (use a negative gradient to defocus)
-        ff.und_Ks = copy.deepcopy(self.und_Ks) # Ks are the list of peak undulator strengths (NOT RMS) since epics gives us peak
-        
-        #########################################################################
-        ## WARNING: this should be changed:
-        #ff.input_params['zstop'] = 30.6
-        #########################################################################
-                
-        gamma0 = ff.input_params['gamma0'] # beam energy
-        emitx = ff.input_params['emitx'] # normalized emit
-        emity = ff.input_params['emity']
-        
-        if type(betax) is not type(None):
-            ff.input_params['rxbeam'] = np.sqrt(betax * emitx / gamma0)
-        
-        if type(betay) is not type(None):
-            ff.input_params['rybeam'] = np.sqrt(betay * emity / gamma0)
-        
-        if type(alphax) is not type(None):
-            ff.input_params['alphax'] = alphax
-            
-        if type(alphay) is not type(None):
-            ff.input_params['alphay'] = alphay
-        
-        # return tuple of lists (zs, powers)
-        ffout = ff.run_genesis_and_read_output()
-        
-        #del ff
-        
-        return ffout
-        
-        #self.forbidden_fruits += [ff]
-        
-    # when running time independent sims (itdp=0), need to optimize detuning
-    def optimize_detuning(self, relative_range = 0.05, nsteps = 21):
-        
-        # calculate with the resonance condition (ignoring emittance) # should also add angular spread prob.
-        xlamds_guess = self.input_params['xlamd'] / 2. / self.input_params['gamma0']**2 * (1. + 0.5 * self.und_Ks[0]**2)
-        
-        xlamds_list = xlamds_guess * (1. + relative_range*np.linspace(-1,1,nsteps)) # list of xlamds to try
-        maxps = []
-        
-        for xlamds in xlamds_list:
-        
-            ff = forbidden_fruit()
-            
-            ff.input_params = copy.deepcopy(self.input_params)
-            ff.quad_grads = copy.deepcopy(self.quad_grads) # quads are gradients in Tesla/meter (use a negative gradient to defocus)
-            ff.und_Ks = copy.deepcopy(self.und_Ks) # Ks are the list of peak undulator strengths (NOT RMS) since epics gives us peak
-            
-            ff.input_params['xlamds'] = xlamds
-            ff.input_params['zstop'] = 4. # ~1 undulator just for the detuning optimization
-            
-            (zs, ps) = ff.run_genesis_and_read_output()
-            
-            maxps += [ps[-1]]
-            
-            del ff
-            
-        # interpolate to find maximum
-        
-        maxps = np.array(maxps) # convert to numpy array
-        
-        #print (xlamds_list,maxps) # maybe try to make a plot of the scan result (print to a file; not to a window)
-        #from matplotlib import pyplot as plt
-        
-        from scipy import interpolate
-        
-        interp = interpolate.interp1d(xlamds_list, maxps, kind='cubic')
-        
-        xlamds_list_finer = xlamds_guess * (1. + relative_range*np.linspace(-1,1,nsteps*100+1))
-        maxps_finer = np.array([interp(x) for x in xlamds_list_finer])
-        
-        xlamds_best = xlamds_list_finer[maxps_finer == max(maxps_finer)]
-        
-        xlamds0 = self.input_params['xlamds'] # save old xlamds
-        
-        self.input_params['xlamds'] = xlamds_best # automatically overwrite xlamds with the optimum
-        
-        print 'Guessed resonant wavelength of ', xlamds_guess, ' m. Changed xlamds from ', xlamds0, ' m to ', xlamds_best, ' m'
-        
-        return xlamds_best
-        
-    # stub 
-    def hessian(self):
-        pass
-        
-    # gradient 
-    def gradient(self):
-        pass
+#genesis_bin = 'genesis' # genesis command
+#genesis_bin = '~/jduris/bin/genesis' # genesis command works from OPIs
+#genesis_bin = '~jduris/bin/genesis_single' # genesis command works from AFS
+MY_GENESIS_BIN = '~/Code/genesis/bin/genesis'
+MY_WORKDIR = '~/Code/genesis/work/'
 
-class forbidden_fruit():
+class Genesis:
     """ This class allows us to write inputs, run genesis, return data, and clean up genesis junk."""
     
     def __del__(self):
         self.clean() # clean the crap before deleting
         
-    def __init__(self):
-        self.class_name = 'forbidden_fruit'
-        
-        #self.genesis_bin = 'genesis' # genesis command
-        #self.genesis_bin = '~/jduris/bin/genesis' # genesis command works from OPIs
-        self.genesis_bin = '~jduris/bin/genesis_single' # genesis command works from AFS
-        
-        self.init_dir = os.getcwd() # save initial directory to return to once cleaned
+    def __init__(self, genesis_bin=MY_GENESIS_BIN):
+        self.class_name = 'Genesis'
+
+        self.genesis_bin = genesis_bin
+        #self.init_dir = os.getcwd() # save initial directory to return to once cleaned
         
         # make simulation directory
         self.sim_id = 'genesis_run_' + randomword(10)
-        self.sim_path = '/dev/shm/' + self.sim_id + '/'
+        self.sim_path =  MY_WORKDIR + self.sim_id + '/'
         mkdir_p(self.sim_path)
-        os.chdir(self.sim_path)
         
         # some file paths (more in self.input_params just below)
         self.sim_input_file = 'genesis.in'
@@ -345,169 +92,13 @@ class forbidden_fruit():
         
         # input lattice
         # quads are gradients in Tesla/meter (use a negative gradient to defocus)
-        self.quad_grads = [12.84,-12.64,12.84,-12.64,12.84,-12.64,12.84,-12.64,12.84,-12.64,12.84,-12.64] # 6 FODO
+        self.quad_grads = DEFAULT_QUAD_GRADS #= 6*[12.84,-12.64] # 6 FODO
         # Ks are the list of peak undulator strengths (NOT RMS) since epics gives us peak
-        self.und_Ks = [np.sqrt(2.) * K for K in [2.473180,2.473180,2.473180,2.473180,2.473180,2.473180,2.473180,2.473180,2.473180,2.473180,2.473180,2.473180]]
+        self.und_Ks = DEFAULT_UND_Ks #= 2*[np.sqrt(2.) * 2.473180]
         
         # input params
         # param descriptions here http://genesis.web.psi.ch/download/documentation/genesis_manual.pdf
-        self.input_params = {'aw0'   :  2.473180,
-                            'xkx'   :  0.000000E+00,
-                            'xky'   :  1.000000E+00,
-                            'wcoefz':  [7.500000E-01,   0.000000E+00,   1.000000E+00],
-                            'xlamd' :  3.000000E-02,
-                            'fbess0':  0.000000E+00,
-                            'delaw' :  0.000000E+00,
-                            'iertyp':    0,
-                            'iwityp':    0,
-                            'awd'   :  2.473180,
-                            'awx'   :  0.000000E+00,
-                            'awy'   :  0.000000E+00,
-                            'iseed' :   10,
-                            'npart' :   2048,
-                            'gamma0':  6.586752E+03,
-                            'delgam':  2.600000E+00,
-                            'rxbeam':  2.846500E-05,
-                            'rybeam':  1.233100E-05,
-                            'alphax':  0,
-                            'alphay': -0,
-                            'emitx' :  4.000000E-07,
-                            'emity' :  4.000000E-07,
-                            'xbeam' :  0.000000E+00,
-                            'ybeam' :  0.000000E+00,
-                            'pxbeam':  0.000000E+00,
-                            'pybeam':  0.000000E+00,
-                            'conditx' :  0.000000E+00,
-                            'condity' :  0.000000E+00,
-                            'bunch' :  0.000000E+00,
-                            'bunchphase' :  0.000000E+00,
-                            'emod' :  0.000000E+00,
-                            'emodphase' :  0.000000E+00,
-                            'xlamds':  2.472300E-09,
-                            'prad0' :  2.000000E-04,
-                            'pradh0':  0.000000E+00,
-                            'zrayl' :  3.000000E+01,
-                            'zwaist':  0.000000E+00,
-                            'ncar'  :  251,
-                            'lbc'   :    0,
-                            'rmax0' :  1.100000E+01,
-                            'dgrid' :  7.500000E-04,
-                            'nscr'  :    1,
-                            'nscz'  :    0,
-                            'nptr'  :   40,
-                            'nwig'  :  112,
-                            'zsep'  :  1.000000E+00,
-                            'delz'  :  1.000000E+00,
-                            'nsec'  :    1,
-                            'iorb'  :    0,
-                            'zstop' :  3.195000E+11, # note: this is huge
-                            'magin' :    1,
-                            'magout':    0,
-                            'quadf' :  1.667000E+01,
-                            'quadd' : -1.667000E+01,
-                            'fl'    :  8.000000E+00,
-                            'dl'    :  8.000000E+00,
-                            'drl'   :  1.120000E+02,
-                            'f1st'  :  0.000000E+00,
-                            'qfdx'  :  0.000000E+00,
-                            'qfdy'  :  0.000000E+00,
-                            'solen' :  0.000000E+00,
-                            'sl'    :  0.000000E+00,
-                            'ildgam':    9,
-                            'ildpsi':    1,
-                            'ildx'  :    2,
-                            'ildy'  :    3,
-                            'ildpx' :    5,
-                            'ildpy' :    7,
-                            'itgaus':    1,
-                            'nbins' :    8,
-                            'igamgaus' :    1,
-                            'inverfc' :    1,
-                            'lout'  : [1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 1],
-                            'iphsty':    1,
-                            'ishsty':    1,
-                            'ippart':    0,
-                            'ispart':    2,
-                            'ipradi':    0,
-                            'isradi':    0,
-                            'idump' :    0,
-                            'iotail':    1,
-                            'nharm' :    1,
-                            'iallharm' :    1,
-                            'iharmsc' :    0,
-                            'curpeak':  4.500000E+03,
-                            'curlen':  0.000000E+00,
-                            'ntail' :    0,
-                            'nslice': 4129,
-                            'shotnoise':  1.000000E+00,
-                            'isntyp':    1,
-                            'iall'  :    1,
-                            'itdp'  :    0,
-                            'ipseed':    1,
-                            'iscan' :    0,
-                            'nscan' :    3,
-                            'svar'  :  1.000000E-02,
-                            'isravg':    0,
-                            'isrsig':    1,
-                            'cuttail': -1.000000E+00,
-                            'eloss' :  0.000000E+00,
-                            'version':  1.000000E-01,
-                            'ndcut' :  150,
-                            'idmpfld':    0,
-                            'idmppar':    0,
-                            'ilog'  :    0,
-                            'ffspec':    1,
-                            'convharm':    1,
-                            'ibfield':  0.000000E+00,
-                            'imagl':    0.000000E+00,
-                            'idril':    0.000000E+00,
-                            'alignradf':    0,
-                            'offsetradf':    0,
-                            'multconv':    0,
-                            'igamref':  0.000000E+00,
-                            'rmax0sc':  0.000000E+00,
-                            'iscrkup':    0,
-                            'trama':    0,
-                            'itram11':  1.000000E+00,
-                            'itram12':  0.000000E+00,
-                            'itram13':  0.000000E+00,
-                            'itram14':  0.000000E+00,
-                            'itram15':  0.000000E+00,
-                            'itram16':  0.000000E+00,
-                            'itram21':  0.000000E+00,
-                            'itram22':  1.000000E+00,
-                            'itram23':  0.000000E+00,
-                            'itram24':  0.000000E+00,
-                            'itram25':  0.000000E+00,
-                            'itram26':  0.000000E+00,
-                            'itram31':  0.000000E+00,
-                            'itram32':  0.000000E+00,
-                            'itram33':  1.000000E+00,
-                            'itram34':  0.000000E+00,
-                            'itram35':  0.000000E+00,
-                            'itram36':  0.000000E+00,
-                            'itram41':  0.000000E+00,
-                            'itram42':  0.000000E+00,
-                            'itram43':  0.000000E+00,
-                            'itram44':  1.000000E+00,
-                            'itram45':  0.000000E+00,
-                            'itram46':  0.000000E+00,
-                            'itram51':  0.000000E+00,
-                            'itram52':  0.000000E+00,
-                            'itram53':  0.000000E+00,
-                            'itram54':  0.000000E+00,
-                            'itram55':  1.000000E+00,
-                            'itram56':  0.000000E+00,
-                            'itram61':  0.000000E+00,
-                            'itram62':  0.000000E+00,
-                            'itram63':  0.000000E+00,
-                            'itram64':  0.000000E+00,
-                            'itram65':  0.000000E+00,
-                            'itram66':  1.000000E+00,
-                            'outputfile' : 'genesis.out',
-                            'maginfile' : 'genesis.lat',
-                            'distfile': None,
-                            'filetype':'ORIGINAL'}
+        self.input_params =DFEAULT_INPUT_PARAMS
     
     def input_twiss(self):
         
@@ -528,7 +119,7 @@ class forbidden_fruit():
         #else:
             #print self.class_name + ' - ERROR: Could not remove directory ' + self.sim_path
         os.system('rm -rf ' + self.sim_path)
-        os.chdir(self.init_dir)
+        # os.chdir(self.init_dir)
         
     def write_input(self):
         
@@ -539,7 +130,7 @@ class forbidden_fruit():
         import numbers # so many numbers, so list time
         
         # parse
-        for key, value in self.input_params.iteritems():
+        for key, value in self.input_params.items():
             #if type(value) == type(1) or type(value) == type(1.): # numbers
             if isinstance(value,numbers.Number): # numbers
                 f.write(key + ' = ' + str(value) + '\n')
@@ -588,7 +179,7 @@ class forbidden_fruit():
                 f.write("QF " + str(quads[i+1]) + " 10 120" + '\n\n')
             except:
                 #if i >= nund-1:  # this will never be true
-                print self.class_name + '.write_lattice - WARNING: ran out of quads for lattice...'
+                print(self.class_name + '.write_lattice - WARNING: ran out of quads for lattice...')
                 break
         
         f.close()
@@ -600,20 +191,34 @@ class forbidden_fruit():
         return self.read_output(column)
         
     def run_genesis(self, waitQ=True):
-        
+        # Save init dir
+        init_dir = os.getcwd()
+        os.chdir(self.sim_path)
+        # Debugging
+        print('running genesis in '+os.getcwd())
         self.write_input()
         
         self.write_lattice()
 
-        cmd = self.genesis_bin + ' ' + self.sim_input_file + ' > genesis.log'
-        os.system(cmd)
+        runscript = [self.genesis_bin, self.sim_input_file]
+        log = []
+        for path in execute(runscript):
+            print(path, end="")
+            log.append(path)
+        with open('genesis.log', 'w') as f:
+            for line in log:
+                f.write(line)
+        
+        # Return to init_dir
+        os.chdir(init_dir)
+        
 
     # based on https://raw.githubusercontent.com/archman/felscripts/master/calpulse/calpulse.py
     def read_output(self, column=0, stat=np.max):
         # column => columns of genesis.out; column 0 is power
 
         #filename1 = self.outputfilename # TDP output filename defined by external parameter
-        filename1 = self.input_params['outputfile']
+        filename1 = self.sim_path+self.input_params['outputfile']
         #slicetoshow = int(sys.argv[2]) # slice number to show as picture
         #zrecordtoshow = int(sys.argv[2])# z-record num
         idx = column
@@ -657,12 +262,12 @@ class forbidden_fruit():
         #raw_input()
 
         #cmd1 = "/bin/grep -m1 sepe " + filename1 + " | awk '{print $1}'"
-        cmd2 = "/bin/grep xlamd "    + filename1 + " | /bin/grep -v xlamds | awk -F'=' '{print $NF}' | sed 's/[D,d]/e/g'"
-        cmd3 = "/bin/grep delz "     + filename1 + " | awk -F'=' '{print $NF}' | sed 's/[D,d]/e/g'"
-        cmd4 = "/bin/grep zsep "     + filename1 + " | awk -F'=' '{print $NF}' | sed 's/[D,d]/e/g'"
-        cmd5 = "/bin/grep iphsty "     + filename1 + " | awk -F'=' '{print $NF}' | sed 's/[D,d]/e/g'"
-        cmd6 = "/bin/grep ishsty "     + filename1 + " | awk -F'=' '{print $NF}' | sed 's/[D,d]/e/g'"
-        cmd7 = "/bin/grep xlamds "     + filename1 + " | awk -F'=' '{print $NF}' | sed 's/[D,d]/e/g'"
+        cmd2 = "grep xlamd "    + filename1 + " | grep -v xlamds | awk -F'=' '{print $NF}' | sed 's/[D,d]/e/g'"
+        cmd3 = "grep delz "     + filename1 + " | awk -F'=' '{print $NF}' | sed 's/[D,d]/e/g'"
+        cmd4 = "grep zsep "     + filename1 + " | awk -F'=' '{print $NF}' | sed 's/[D,d]/e/g'"
+        cmd5 = "grep iphsty "     + filename1 + " | awk -F'=' '{print $NF}' | sed 's/[D,d]/e/g'"
+        cmd6 = "grep ishsty "     + filename1 + " | awk -F'=' '{print $NF}' | sed 's/[D,d]/e/g'"
+        cmd7 = "grep xlamds "     + filename1 + " | awk -F'=' '{print $NF}' | sed 's/[D,d]/e/g'"
 
         try:
             import subprocess
@@ -741,3 +346,295 @@ class forbidden_fruit():
         
         return self.output
         
+        
+        
+class serpent():
+    """ This class allows us to control Genesis runs."""
+    
+    def __init__(self):
+        # list of sims
+        self.Genesiss = []
+        
+        # input lattice
+        # quads are gradients in Tesla/meter (use a negative gradient to defocus)
+        #self.quad_half_length_xlamd_units = 5 # multiply by 2*xlamd for full quad length
+        self.quad_grads = [12.84,-12.64,12.84,-12.64,12.84,-12.64,12.84,-12.64,12.84,-12.64,12.84,-12.64] # 6 FODO
+        # Ks are the list of peak undulator strengths (NOT RMS) since epics gives us peak
+        self.und_Ks = [np.sqrt(2.) * K for K in [2.473180,2.473180,2.473180,2.473180,2.473180,2.473180,2.473180,2.473180,2.473180,2.473180,2.473180,2.473180]]
+        
+        # input params for the sims
+        # param descriptions here http://genesis.web.psi.ch/download/documentation/genesis_manual.pdf
+        self.input_params = DFEAULT_INPUT_PARAMS 
+
+        #self.input_params = None # if we want to use defaults..
+        
+    # stub - fcn to calculate the twiss given a lattice
+    def matched_twiss(self):
+        pass
+    
+    def input_twiss(self):
+        
+        betax = self.input_params['rxbeam']**2 * self.input_params['gamma0'] / self.input_params['emitx']
+        betay = self.input_params['rybeam']**2 * self.input_params['gamma0'] / self.input_params['emity']
+        alphax = self.input_params['alphax']
+        alphay = self.input_params['alphay']
+        
+        return {'betax':betax, 'betay':betay, 'alphax':alphax, 'alphay':alphay} 
+    
+    def run_genesis_for_twiss(self, betax=None, betay=None, alphax=None, alphay=None):
+        
+        ff = Genesis()
+        
+        ff.input_params = copy.deepcopy(self.input_params)
+        ff.quad_grads = copy.deepcopy(self.quad_grads) # quads are gradients in Tesla/meter (use a negative gradient to defocus)
+        ff.und_Ks = copy.deepcopy(self.und_Ks) # Ks are the list of peak undulator strengths (NOT RMS) since epics gives us peak
+        
+        #########################################################################
+        ## WARNING: this should be changed:
+        #ff.input_params['zstop'] = 30.6
+        #########################################################################
+                
+        gamma0 = ff.input_params['gamma0'] # beam energy
+        emitx = ff.input_params['emitx'] # normalized emit
+        emity = ff.input_params['emity']
+        
+        if type(betax) is not type(None):
+            ff.input_params['rxbeam'] = np.sqrt(betax * emitx / gamma0)
+        
+        if type(betay) is not type(None):
+            ff.input_params['rybeam'] = np.sqrt(betay * emity / gamma0)
+        
+        if type(alphax) is not type(None):
+            ff.input_params['alphax'] = alphax
+            
+        if type(alphay) is not type(None):
+            ff.input_params['alphay'] = alphay
+        
+        # return tuple of lists (zs, powers)
+        ffout = ff.run_genesis_and_read_output()
+        
+        #del ff
+        
+        return ffout
+        
+        #self.Genesiss += [ff]
+        
+    # when running time independent sims (itdp=0), need to optimize detuning
+    def optimize_detuning(self, relative_range = 0.05, nsteps = 21):
+        
+        # calculate with the resonance condition (ignoring emittance) # should also add angular spread prob.
+        xlamds_guess = self.input_params['xlamd'] / 2. / self.input_params['gamma0']**2 * (1. + 0.5 * self.und_Ks[0]**2)
+        
+        xlamds_list = xlamds_guess * (1. + relative_range*np.linspace(-1,1,nsteps)) # list of xlamds to try
+        maxps = []
+        
+        for xlamds in xlamds_list:
+        
+            ff = Genesis()
+            
+            ff.input_params = copy.deepcopy(self.input_params)
+            ff.quad_grads = copy.deepcopy(self.quad_grads) # quads are gradients in Tesla/meter (use a negative gradient to defocus)
+            ff.und_Ks = copy.deepcopy(self.und_Ks) # Ks are the list of peak undulator strengths (NOT RMS) since epics gives us peak
+            
+            ff.input_params['xlamds'] = xlamds
+            ff.input_params['zstop'] = 4. # ~1 undulator just for the detuning optimization
+            
+            (zs, ps) = ff.run_genesis_and_read_output()
+            
+            maxps += [ps[-1]]
+            
+            del ff
+            
+        # interpolate to find maximum
+        
+        maxps = np.array(maxps) # convert to numpy array
+        
+        #print (xlamds_list,maxps) # maybe try to make a plot of the scan result (print to a file; not to a window)
+        #from matplotlib import pyplot as plt
+        
+        from scipy import interpolate
+        
+        interp = interpolate.interp1d(xlamds_list, maxps, kind='cubic')
+        
+        xlamds_list_finer = xlamds_guess * (1. + relative_range*np.linspace(-1,1,nsteps*100+1))
+        maxps_finer = np.array([interp(x) for x in xlamds_list_finer])
+        
+        xlamds_best = xlamds_list_finer[maxps_finer == max(maxps_finer)]
+        
+        xlamds0 = self.input_params['xlamds'] # save old xlamds
+        
+        self.input_params['xlamds'] = xlamds_best # automatically overwrite xlamds with the optimum
+        
+        print('Guessed resonant wavelength of ', xlamds_guess, ' m. Changed xlamds from ', xlamds0, ' m to ', xlamds_best, ' m')
+        
+        return xlamds_best
+        
+    # stub 
+    def hessian(self):
+        pass
+        
+    # gradient 
+    def gradient(self):
+        pass
+  
+DEFAULT_QUAD_GRADS = 6*[12.84,-12.64] # 6 FODO  
+  
+DEFAULT_UND_Ks = 2*[np.sqrt(2.) * 2.473180]    
+    
+DFEAULT_INPUT_PARAMS = {'aw0'   :  2.473180,
+    'xkx'   :  0.000000E+00,
+    'xky'   :  1.000000E+00,
+    'wcoefz':  [7.500000E-01,   0.000000E+00,   1.000000E+00],
+    'xlamd' :  3.000000E-02,
+    'fbess0':  0.000000E+00,
+    'delaw' :  0.000000E+00,
+    'iertyp':    0,
+    'iwityp':    0,
+    'awd'   :  2.473180,
+    'awx'   :  0.000000E+00,
+    'awy'   :  0.000000E+00,
+    'iseed' :   10,
+    'npart' :   2048,
+    'gamma0':  6.586752E+03,
+    'delgam':  2.600000E+00,
+    'rxbeam':  2.846500E-05,
+    'rybeam':  1.233100E-05,
+    'alphax':  0,
+    'alphay': -0,
+    'emitx' :  4.000000E-07,
+    'emity' :  4.000000E-07,
+    'xbeam' :  0.000000E+00,
+    'ybeam' :  0.000000E+00,
+    'pxbeam':  0.000000E+00,
+    'pybeam':  0.000000E+00,
+    'conditx' :  0.000000E+00,
+    'condity' :  0.000000E+00,
+    'bunch' :  0.000000E+00,
+    'bunchphase' :  0.000000E+00,
+    'emod' :  0.000000E+00,
+    'emodphase' :  0.000000E+00,
+    'xlamds':  2.472300E-09,
+    'prad0' :  2.000000E-04,
+    'pradh0':  0.000000E+00,
+    'zrayl' :  3.000000E+01,
+    'zwaist':  0.000000E+00,
+    'ncar'  :  251,
+    'lbc'   :    0,
+    'rmax0' :  1.100000E+01,
+    'dgrid' :  7.500000E-04,
+    'nscr'  :    1,
+    'nscz'  :    0,
+    'nptr'  :   40,
+    'nwig'  :  112,
+    'zsep'  :  1.000000E+00,
+    'delz'  :  1.000000E+00,
+    'nsec'  :    1,
+    'iorb'  :    0,
+    'zstop' :  3.195000E+11, # note: this is huge
+    'magin' :    1,
+    'magout':    0,
+    'quadf' :  1.667000E+01,
+    'quadd' : -1.667000E+01,
+    'fl'    :  8.000000E+00,
+    'dl'    :  8.000000E+00,
+    'drl'   :  1.120000E+02,
+    'f1st'  :  0.000000E+00,
+    'qfdx'  :  0.000000E+00,
+    'qfdy'  :  0.000000E+00,
+    'solen' :  0.000000E+00,
+    'sl'    :  0.000000E+00,
+    'ildgam':    9,
+    'ildpsi':    1,
+    'ildx'  :    2,
+    'ildy'  :    3,
+    'ildpx' :    5,
+    'ildpy' :    7,
+    'itgaus':    1,
+    'nbins' :    8,
+    'igamgaus' :    1,
+    'inverfc' :    1,
+    'lout'  : [1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 1],
+    'iphsty':    1,
+    'ishsty':    1,
+    'ippart':    0,
+    'ispart':    2,
+    'ipradi':    0,
+    'isradi':    0,
+    'idump' :    0,
+    'iotail':    1,
+    'nharm' :    1,
+    'iallharm' :    1,
+    'iharmsc' :    0,
+    'curpeak':  4.500000E+03,
+    'curlen':  0.000000E+00,
+    'ntail' :    0,
+    'nslice': 4129,
+    'shotnoise':  1.000000E+00,
+    'isntyp':    1,
+    'iall'  :    1,
+    'itdp'  :    0,
+    'ipseed':    1,
+    'iscan' :    0,
+    'nscan' :    3,
+    'svar'  :  1.000000E-02,
+    'isravg':    0,
+    'isrsig':    1,
+    'cuttail': -1.000000E+00,
+    'eloss' :  0.000000E+00,
+    'version':  1.000000E-01,
+    'ndcut' :  150,
+    'idmpfld':    0,
+    'idmppar':    0,
+    'ilog'  :    0,
+    'ffspec':    1,
+    'convharm':    1,
+    'ibfield':  0.000000E+00,
+    'imagl':    0.000000E+00,
+    'idril':    0.000000E+00,
+    'alignradf':    0,
+    'offsetradf':    0,
+    'multconv':    0,
+    'igamref':  0.000000E+00,
+    'rmax0sc':  0.000000E+00,
+    'iscrkup':    0,
+    'trama':    0,
+    'itram11':  1.000000E+00,
+    'itram12':  0.000000E+00,
+    'itram13':  0.000000E+00,
+    'itram14':  0.000000E+00,
+    'itram15':  0.000000E+00,
+    'itram16':  0.000000E+00,
+    'itram21':  0.000000E+00,
+    'itram22':  1.000000E+00,
+    'itram23':  0.000000E+00,
+    'itram24':  0.000000E+00,
+    'itram25':  0.000000E+00,
+    'itram26':  0.000000E+00,
+    'itram31':  0.000000E+00,
+    'itram32':  0.000000E+00,
+    'itram33':  1.000000E+00,
+    'itram34':  0.000000E+00,
+    'itram35':  0.000000E+00,
+    'itram36':  0.000000E+00,
+    'itram41':  0.000000E+00,
+    'itram42':  0.000000E+00,
+    'itram43':  0.000000E+00,
+    'itram44':  1.000000E+00,
+    'itram45':  0.000000E+00,
+    'itram46':  0.000000E+00,
+    'itram51':  0.000000E+00,
+    'itram52':  0.000000E+00,
+    'itram53':  0.000000E+00,
+    'itram54':  0.000000E+00,
+    'itram55':  1.000000E+00,
+    'itram56':  0.000000E+00,
+    'itram61':  0.000000E+00,
+    'itram62':  0.000000E+00,
+    'itram63':  0.000000E+00,
+    'itram64':  0.000000E+00,
+    'itram65':  0.000000E+00,
+    'itram66':  1.000000E+00,
+    'outputfile' : 'genesis.out',
+    'maginfile' : 'genesis.lat',
+    'distfile': None,
+    'filetype':'ORIGINAL'}    
