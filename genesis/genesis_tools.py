@@ -66,8 +66,8 @@ def randomword(length):
 #genesis_bin = 'genesis' # genesis command
 #genesis_bin = '~/jduris/bin/genesis' # genesis command works from OPIs
 #genesis_bin = '~jduris/bin/genesis_single' # genesis command works from AFS
-MY_GENESIS_BIN = '~/Code/genesis/bin/genesis'
-MY_WORKDIR = '~/Code/genesis/work/'
+MY_GENESIS_BIN = os.path.expandvars('$HOME/Code/genesis/bin/genesis')
+MY_WORKDIR = os.path.expandvars('$HOME/Code/genesis/work/')
 
 class Genesis:
     """ This class allows us to write inputs, run genesis, return data, and clean up genesis junk."""
@@ -75,7 +75,7 @@ class Genesis:
     def __del__(self):
         self.clean() # clean the crap before deleting
         
-    def __init__(self, genesis_bin=MY_GENESIS_BIN):
+    def __init__(self, genesis_bin=MY_GENESIS_BIN, workdir=MY_WORKDIR):
         self.class_name = 'Genesis'
 
         self.genesis_bin = genesis_bin
@@ -83,7 +83,7 @@ class Genesis:
         
         # make simulation directory
         self.sim_id = 'genesis_run_' + randomword(10)
-        self.sim_path =  MY_WORKDIR + self.sim_id + '/'
+        self.sim_path =  workdir + self.sim_id + '/'
         mkdir_p(self.sim_path)
         
         # some file paths (more in self.input_params just below)
@@ -192,6 +192,7 @@ class Genesis:
         
     def run_genesis(self, waitQ=True):
         # Save init dir
+        print('init dir: ', os.getcwd())
         init_dir = os.getcwd()
         os.chdir(self.sim_path)
         # Debugging
@@ -479,7 +480,7 @@ class serpent():
   
 DEFAULT_QUAD_GRADS = 6*[12.84,-12.64] # 6 FODO  
   
-DEFAULT_UND_Ks = 2*[np.sqrt(2.) * 2.473180]    
+DEFAULT_UND_Ks = 12*[np.sqrt(2.) * 2.473180]    
     
 DFEAULT_INPUT_PARAMS = {'aw0'   :  2.473180,
     'xkx'   :  0.000000E+00,
