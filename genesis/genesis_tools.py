@@ -21,6 +21,7 @@
  
 """
 
+from __future__ import print_function # python 2.7 compatibility
 import os, errno, random, string, subprocess, copy
 import numpy as np
 import subprocess
@@ -64,10 +65,12 @@ def randomword(length):
    return ''.join(random.choice(letters) for i in range(length))
 
 #genesis_bin = 'genesis' # genesis command
-#genesis_bin = '~/jduris/bin/genesis' # genesis command works from OPIs
-#genesis_bin = '~jduris/bin/genesis_single' # genesis command works from AFS
-MY_GENESIS_BIN = os.path.expandvars('$HOME/Code/genesis/bin/genesis')
-MY_WORKDIR = os.path.expandvars('$HOME/Code/genesis/work/')
+#genesis_bin = '/u/ra/jduris/bin/genesis'        # genesis command works from OPIs
+#genesis_bin = '/u/ra/jduris/bin/genesis_single' # genesis command works from AFS
+
+
+MY_GENESIS_BIN = os.path.expandvars('$HOME/bin/genesis')
+MY_WORKDIR = os.path.expandvars('$HOME/work/')
 
 class Genesis:
     """ This class allows us to write inputs, run genesis, return data, and clean up genesis junk."""
