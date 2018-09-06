@@ -76,7 +76,8 @@ class Genesis:
     """ This class allows us to write inputs, run genesis, return data, and clean up genesis junk."""
     
     def __del__(self):
-        self.clean() # clean the crap before deleting
+        if  self.auto_cleanup:
+            self.clean() # clean the crap before deleting
         
     def __init__(self, genesis_bin=MY_GENESIS_BIN, workdir=MY_WORKDIR):
         self.class_name = 'Genesis'
@@ -92,6 +93,9 @@ class Genesis:
         # some file paths (more in self.input_params just below)
         self.sim_input_file = 'genesis.in'
         self.sim_log_file = 'genesis.log'
+  
+        # Option for cleaning on exit
+        self.auto_cleanup = True
         
         # input lattice
         # quads are gradients in Tesla/meter (use a negative gradient to defocus)
