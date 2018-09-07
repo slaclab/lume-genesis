@@ -2,7 +2,7 @@
 
 from collections import OrderedDict as odict
 import re
-
+import numpy as np
 
 
 
@@ -39,10 +39,11 @@ def parse_inputfile(rawtext):
     input_parameters = odict()
     for line in text.split('\n')[1:-1]:
         x = line.split('=')
+        key = x[0].strip()
         if len(x[1].split()) == 1:
-            input_parameters[x[0]] = number(x[1])
+            input_parameters[key] = number(x[1])
         else:
-            input_parameters[x[0]] = [number(z) for z in x[1].split()]
+            input_parameters[key] = [number(z) for z in x[1].split()]
     return input_parameters
     
     
@@ -93,7 +94,7 @@ def parse_slice(slicetext):
     
     
 #-------------------------------------------------
-# Slices
+# Full .out file
  
     
 def parse_genesis_out(fname):
@@ -115,3 +116,73 @@ def parse_genesis_out(fname):
     d['slice_data'] = [parse_slice(s) for s in slices]
         
     return d    
+    
+    
+    
+    
+    
+#-------------------------------------------------
+#.dfl file
+#    Dump file at the end
+#    complex numbers, output in a loop over nslices, nx, ny
+    
+def parse_genesis_dfl(fname, nx):
+    """
+    fname: filename
+    nx: grid size in x and y. Same as Genesis 'ncar'
+    
+    returns grid  [z, x, y]
+    
+    """
+    dat = np.fromfile(fname, dtype=np.complex).astype(np.complex)
+    npoints = dat.shape[0] 
+    
+    # Determine number of slices
+    nz =  npoints / nx /nx
+    assert (nz % 1 == 0) # 
+    nz = int(nz)   
+    dat = dat.reshape(nz, nx, nx)    
+    
+    
+    return dat
+    
+
+
+#-------------------------------------------------
+#.fld file
+#    history file
+#    output in a loop over histories, nslices, real/imaginary, nx, ny
+    
+def parse_genesis_fld(fname, nx, nz):
+    """
+    fname: filename
+    ncar: grid size in x and y
+    nx: grid size in x and y. Same as Genesis 'ncar'  
+    nz: number of slices
+    
+    The number of histories can be computed from these. Returns array:
+    
+    [history, z, x, y]
+    
+    """
+  
+    # Real and imaginary parts are separated
+    dat = np.fromfile(fname, dtype=np.float).astype(float)
+    npoints = dat.shape[0]
+    # Determine number of slices
+    nhistories =  npoints / nz / 2 / nx / nx # 
+    assert (nhistories % 1 == 0) # 
+    nhistories = int(nhistories)   
+    
+    # real and imaginary parts are written separately. 
+    dat = dat.reshape(nhistories, nz, 2,  nx, nx) # 
+    dat =  np.moveaxis(dat, 2, 4) # Move complex indices to the end
+    # Reform complex numbers:
+    dat = 1j*dat[:,:,:,:,1] + dat[:,:,:,:,0]
+
+    
+    return dat        
+    
+    
+    
+    
