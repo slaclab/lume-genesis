@@ -105,7 +105,7 @@ class Genesis:
         
         # input params
         # param descriptions here http://genesis.web.psi.ch/download/documentation/genesis_manual.pdf
-        self.input_params =DFEAULT_INPUT_PARAMS
+        self.input_params =DEFAULT_INPUT_PARAMS
     
     def input_twiss(self):
         
@@ -489,7 +489,7 @@ DEFAULT_QUAD_GRADS = 6*[12.84,-12.64] # 6 FODO
   
 DEFAULT_UND_Ks = 12*[np.sqrt(2.) * 2.473180]    
     
-DFEAULT_INPUT_PARAMS = {'aw0'   :  2.473180,
+DEFAULT_INPUT_PARAMS = {'aw0'   :  2.473180,
     'xkx'   :  0.000000E+00,
     'xky'   :  1.000000E+00,
     'wcoefz':  [7.500000E-01,   0.000000E+00,   1.000000E+00],
