@@ -31,7 +31,8 @@ def number(x):
     if isfloat(z):
         val =  try_int(float(z))
     else:
-        val = x
+        # must be a string. Strip quotes.
+        val = x.strip('\'').strip('\"')
     return val
 
 def parse_inputfile(rawtext):
@@ -124,7 +125,7 @@ def parse_genesis_out(fname):
 #-------------------------------------------------
 #.dfl file
 #    Dump file at the end
-#    complex numbers, output in a loop over nslices, nx, ny
+#    complex numbers, output in a loop over nslices, ny, nx
     
 def parse_genesis_dfl(fname, nx):
     """
@@ -152,7 +153,7 @@ def parse_genesis_dfl(fname, nx):
 #-------------------------------------------------
 #.fld file
 #    history file
-#    output in a loop over histories, nslices, real/imaginary, nx, ny
+#    output in a loop over histories, nslices, real/imaginary, ny, nx
     
 def parse_genesis_fld(fname, nx, nz):
     """
