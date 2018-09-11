@@ -138,11 +138,12 @@ def parse_genesis_dfl(fname, nx):
     npoints = dat.shape[0] 
     
     # Determine number of slices
-    nz =  npoints / nx /nx
+    ny = nx
+    nz =  npoints / ny /nx
     assert (nz % 1 == 0) # 
     nz = int(nz)   
-    dat = dat.reshape(nz, nx, nx)    
-    
+    dat = dat.reshape(nz, ny, nx)    
+    dat = np.moveaxis(dat, [1,2], [2,1]) # exchange x and y 
     
     return dat
     
@@ -170,13 +171,16 @@ def parse_genesis_fld(fname, nx, nz):
     dat = np.fromfile(fname, dtype=np.float).astype(float)
     npoints = dat.shape[0]
     # Determine number of slices
-    nhistories =  npoints / nz / 2 / nx / nx # 
+    ny = nx
+    
+    nhistories =  npoints / nz / 2 / ny / nx # 
     assert (nhistories % 1 == 0) # 
     nhistories = int(nhistories)   
     
     # real and imaginary parts are written separately. 
-    dat = dat.reshape(nhistories, nz, 2,  nx, nx) # 
+    dat = dat.reshape(nhistories, nz, 2,  ny, nx) # 
     dat =  np.moveaxis(dat, 2, 4) # Move complex indices to the end
+    dat =  np.moveaxis(dat, [2,3], [3,2]) # exchange x and y
     # Reform complex numbers:
     dat = 1j*dat[:,:,:,:,1] + dat[:,:,:,:,0]
 
