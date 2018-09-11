@@ -40,7 +40,7 @@ def parse_inputfile(rawtext):
     input_parameters = odict()
     for line in text.split('\n')[1:-1]:
         x = line.split('=')
-        key = x[0].strip()
+        key = x[0].strip().lower() # force all keys to be lower case
         if len(x[1].split()) == 1:
             input_parameters[key] = number(x[1])
         else:
@@ -56,7 +56,7 @@ def parse_inputfile(rawtext):
 # Lattice
 
 
-def parse_lattice(latticetext):
+def parse_outfile_lattice(latticetext):
     lines = latticetext.split('\n')
     lines = [x.split() for x in lines if len(x.strip())>0] # Remove empty lines
     rdat = [map(float, x) for x in lines] # Cast to floats
@@ -113,7 +113,7 @@ def parse_genesis_out(fname):
     slices = sdat[1:]
     
     d['input_parameters'] = parse_inputfile(header)
-    d['lattice'] = parse_lattice(latticetext)
+    d['lattice'] = parse_outfile_lattice(latticetext)
     d['slice_data'] = [parse_slice(s) for s in slices]
         
     return d    
