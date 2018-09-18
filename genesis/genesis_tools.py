@@ -118,12 +118,10 @@ class Genesis:
         """
         loads an original Genesis-style lattice into a standard_lattice
         """
-    
-        with open(filePath, 'r') as f:
-            lines = f.readlines()
-            eles, params = parsers.parse_genesis_lat(lines)
+
+        eles, params = parsers.parse_genesis_lattice(filePath)
         
-        self.lattice = standard_lattice_from_eles(eles)
+        self.lattice = lattice.standard_lattice_from_eles(eles)
         self.lattice_params = params
 
     def write_lattice(self):
