@@ -118,8 +118,84 @@ def parse_genesis_out(fname):
         
     return d    
     
+
+#-------------------------------------------------
+# .lat file
+def parse_genesis_lattice(filePath):
+    """
+    
+    """
+    with open(filePath, 'r') as f:
+        lines = f.readlines()
+        eles, params = parse_genesis_lattice_lines(lines)
+    return eles, params  
     
     
+def parse_genesis_lattice_lines(lines):
+    """
+    Parses a Genesis style into a list of ele dicts
+    Will unfold loops 
+    
+    returns 
+    eles: list of elements, as dicts with keys: type, strength, L, d   
+    params: parameter dicts identifed with ? <key> = <value>
+    """
+    commentchar =  '#'
+    inLoop = False
+    eles = []
+    params = {}
+    
+    for line in lines:
+        x = line.strip()
+        if len(x) ==0:
+            continue
+        # Parameter
+        if x[0] == '?':
+            a = x[1:].split('=')
+            params[a[0].strip().lower()] = a[1]
+            continue
+        # Comment line
+        if x[0] == commentchar:
+            ele = {'type':'comment', 'text':line.strip('\n'), 'zend':0}
+            eles.append(ele)
+            continue    
+            
+        # Loop commands: ! LOOP = <integer>, and ! ENDLOOP
+        if x[0] == '!':
+            command = x[1:].split('=')
+            if command[0].strip().upper()=='LOOP':
+                nloop = int(command[1])
+                inLoop = True
+                loopeles = []
+            elif command[0].strip().upper() == 'ENDLOOP':
+                inLoop = False
+                for e in nloop*loopeles:
+                    eles.append(e.copy())
+            continue
+        
+        # must be an ele
+        ele = {}
+           
+        # Look for inline comment
+        y = x.split('#', 1)
+        if len(y) > 1:
+            ele['comment'] =  y[1]
+            
+        # element: type, strength, L, d
+        x = x.split()
+        ele['type'] = x[0].upper()
+        ele['strength'] = float(x[1])
+        ele['L'] = float(x[2])
+        ele['d'] = float(x[3]) 
+        
+        if inLoop:
+            loopeles.append(ele)
+        else:
+            eles.append(ele)
+            
+    return eles, params
+
+
     
     
 #-------------------------------------------------

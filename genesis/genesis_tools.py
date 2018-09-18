@@ -20,11 +20,14 @@
  TODO: read in/out particle distributions and radiation files
  
 """
-
 from __future__ import print_function # python 2.7 compatibility
+from genesis import parsers, lattice
+
+
 import os, errno, random, string, subprocess, copy
 import numpy as np
 import subprocess
+
 
 
 def execute(cmd):
@@ -90,6 +93,9 @@ class Genesis:
         self.sim_path =  workdir + self.sim_id + '/'
         mkdir_p(self.sim_path)
         
+        
+        self.lattice = None
+        
         # some file paths (more in self.input_params just below)
         self.sim_input_file = 'genesis.in'
         self.sim_log_file = 'genesis.log'
@@ -105,7 +111,35 @@ class Genesis:
         
         # input params
         # param descriptions here http://genesis.web.psi.ch/download/documentation/genesis_manual.pdf
-        self.input_params =DEFAULT_INPUT_PARAMS
+        self.input_params = DEFAULT_INPUT_PARAMS
+    
+    
+    def load_lattice(self, filePath):
+        """
+        loads an original Genesis-style lattice into a standard_lattice
+        """
+    
+        with open(filePath, 'r') as f:
+            lines = f.readlines()
+            eles, params = parsers.parse_genesis_lat(lines)
+        
+        self.lattice = standard_lattice_from_eles(eles)
+        self.lattice_params = params
+
+    def new_write_lattice(self):
+    
+        if not self.lattice:
+            # use old routine
+            self.old_write_lattice()
+    
+        else:
+            unitlength = self.lattice_params['unitlength']
+            lines = lattice.genesis_lattice_from_standard_lattice(self.lattice, unitlength=unitlength)
+            with open(self.sim_path + self.input_params['maginfile'], "w") as f:
+                for l in lines:
+                    f.write(l+'\n')
+            
+
     
     def input_twiss(self):
         
@@ -155,6 +189,9 @@ class Genesis:
         f.write("$end\n")
         
         f.close()
+    
+    
+
     
     # write the magnetic lattice file for Genesis 1.3 v2
     def write_lattice(self):
@@ -487,7 +524,8 @@ class serpent():
   
 DEFAULT_QUAD_GRADS = 6*[12.84,-12.64] # 6 FODO  
   
-DEFAULT_UND_Ks = 12*[np.sqrt(2.) * 2.473180]    
+DEFAULT_UND_Ks = 12*[np.sqrt(2.) * 2.473180]     
+    
     
 DEFAULT_INPUT_PARAMS = {'aw0'   :  2.473180,
     'xkx'   :  0.000000E+00,
