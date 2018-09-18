@@ -35,7 +35,14 @@ def number(x):
         val = x.strip('\'').strip('\"')
     return val
 
-def parse_inputfile(rawtext):
+
+def parse_inputfile(filePath):
+    with open('default.in') as f:
+      rawtext = f.read()
+    return parse_input(rawtext)
+
+
+def parse_input(rawtext):
     text = re.search(r'\$newrun\n.*?\$end', rawtext, re.DOTALL).group()
     input_parameters = odict()
     for line in text.split('\n')[1:-1]:
@@ -112,7 +119,7 @@ def parse_genesis_out(fname):
     latticetext = sdat[0]
     slices = sdat[1:]
     
-    d['input_parameters'] = parse_inputfile(header)
+    d['input_parameters'] = parse_input(header)
     d['lattice'] = parse_outfile_lattice(latticetext)
     d['slice_data'] = [parse_slice(s) for s in slices]
         
