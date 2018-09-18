@@ -126,7 +126,7 @@ class Genesis:
         self.lattice = standard_lattice_from_eles(eles)
         self.lattice_params = params
 
-    def new_write_lattice(self):
+    def write_lattice(self):
     
         if not self.lattice:
             # use old routine
@@ -194,7 +194,7 @@ class Genesis:
 
     
     # write the magnetic lattice file for Genesis 1.3 v2
-    def write_lattice(self):
+    def old_write_lattice(self):
         # quads are gradients in Tesla/meter (use a negative gradient to defocus)
         # Ks are the list of peak undulator strengths (NOT RMS) since epics gives us peak
         
