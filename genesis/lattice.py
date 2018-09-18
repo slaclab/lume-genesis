@@ -134,6 +134,13 @@ def genesis_lattice_from_standard_lattice(lat, unitlength = 1, version = '1.0', 
     return outlines
 
 
+def write_lattice(filePath, standard_lattice, unitlength):
+    lines = genesis_lattice_from_standard_lattice(standard_lattice, unitlength=unitlength)
+    with open(filePath, 'w') as f:
+        for l in lines:
+            f.write(l+'\n')
+
+
 
     
     
