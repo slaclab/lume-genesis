@@ -14,6 +14,23 @@ def ele_types(eles):
     """
     return list(set([e['type'] for e in eles] ))
 
+def eles_by_type(eles):
+    """
+    Separated eles by type, returns a dict of:
+    <type>:[<eles>]
+    """
+    tlist = ele_types(eles) 
+    tlat = {}
+     # initialize
+    for t in tlist:
+        tlat[t] = []
+    for e in eles:
+        t = e['type']
+        tlat[t].append(e)
+    
+    return tlat
+
+
 def s0(ele):
     # Returns beginning s-position of an element
     return ele['s'] - ele['L']
@@ -26,7 +43,7 @@ def zsort(eles):
     return sorted(eles, key = lambda e: e['s'])
 
 
-def standard_lattice_from_eles(eles):
+def standard_lattice_from_eles(eles, remove_zero_strengths=True):
     """
     Converts raw ele dicts to an ordered list of elements, with absolute positions s
     s is at the end of the element
@@ -42,6 +59,9 @@ def standard_lattice_from_eles(eles):
         t = e['type']
         if t == 'comment': 
             continue
+        if remove_zero_strengths and e['strength'] == 0.0:
+            continue    
+            
         zbeg = z0[t] + e['d']
         zend = e['L']+zbeg
         z0[t] = zend
@@ -64,14 +84,19 @@ def create_names(lat):
         ele['name'] = ele['type']+'_'+str(counter[t])
 
 
-def make_drifts(lat):
+def make_dummies_for_single_type(eles, smax):
     """
-    Finds the gaps in a lattice and makes drifts
-    
-    returns a list of 'drift' elements
+    Finds the gaps in a lattice and makes dummy (zero-strength) elements
     """   
+    
+    types = ele_types(eles)
+    assert len(types) == 1, 'Only one type of element allowed'
+    my_type = types[0]
+    
+    lat = zsort(eles)
+    
     ref = lat[0] # End of previous ele
-    drifts = []
+    dummies = []
     for i in range(1, len(lat)):
         # next ele
         ele = lat[i]
@@ -79,24 +104,54 @@ def make_drifts(lat):
         zbeg = ref['s']
         zend = s0(ele)
         L = zend - zbeg
-        if L < 0 :
-            print('Warning , overlapping eles!', ref['name'], 'overlaps', ele['name'], 'by ', L)
+        assert L >= 0, 'Overlapping eles!'# + ref['name']+' overlaps '+ele['name']+' by '+str(L)
                 
-        drift = {'type': 'drift', 'strength':0, 'L':L, 's':zend}
-        drifts.append(drift)
+        dummy = {'type': my_type, 'strength':0, 'L':L, 's':zend}
+        dummies.append(dummy)
         
         # next z
         ref = ele
 
-    return [d for d in drifts if d['L'] != 0]
+    if ele['s'] < smax:
+        # Make final dummy
+        L = smax - ele['s']
+        dummy = {'type': my_type, 'strength':0, 'L':L, 's':smax}
+        dummies.append(dummy)
+        
+    return dummies
+
+def lattice_dummies(lat):
+    """
+    Makes dummy elements to fill in gaps
+    """
+    # Separate by types
+    tlat = eles_by_type(lat)
+    smax  = max([e['s'] for e in lat
+                if e['type'] not in ['comment']])
+    print(smax)
+    dummies = []
+    for t in tlat:
+        eles = tlat[t]
+        dummies.extend(make_dummies_for_single_type(eles, smax))
+    return dummies
+        
     
-    
-def genesis_lattice_from_standard_lattice(lat, unitlength = 1, version = '1.0', include_name=False, include_comment=False):
+def genesis_lattice_from_standard_lattice(standard_lattice, unitlength = 1, version = '1.0', include_name=False, include_comment=False):
     """
     Forms lines of a Genesis lattice file from a standard lattice
     
+    Pads all types with zero strength dummy elements
+    
     """
+    # Make copy
+    lat = [e.copy() for e in standard_lattice]
+    
     tlist = ele_types(lat)
+    # Add dummies    
+    lat = lat + lattice_dummies(lat)
+    
+    # Sort 
+    
     lat = zsort(lat)
     # Separate lattice by types
     glat = {} # lattice
