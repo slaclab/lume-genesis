@@ -195,7 +195,15 @@ def write_lattice(filePath, standard_lattice, unitlength):
         for l in lines:
             f.write(l+'\n')
 
+def join_lattice(lat1, lat2):
 
+    zlist = [e['s'] for e in lat1]
+    zmax = max(zlist)
+    for ele in lat2:
+        ele['s'] += zmax
+    merged = lat1 + lat2
+
+    return merged
 
     
     
