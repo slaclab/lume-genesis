@@ -25,6 +25,7 @@ class Genesis:
         
     def __init__(self, genesis_bin=MY_GENESIS_BIN, workdir=MY_WORKDIR):
         self.genesis_bin = genesis_bin
+        self.binary_prefixes = [] # mpirun, -n, 1
         
         # make simulation directory
         self.sim_id = 'genesis_run_' + randomword(10)
@@ -124,7 +125,13 @@ class Genesis:
         
         self.write_lattice()
 
+
         runscript = [self.genesis_bin, self.sim_input_file]
+
+        # Allow for MPI commands
+        if len(self.binary_prefixes) > 0:
+            runscript = self.binary_prefixes + runscript
+    
         log = []
         for path in execute(runscript):
             print(path, end="")
