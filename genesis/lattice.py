@@ -6,6 +6,7 @@
 
 
 
+#-------------------------------------------------
 # Helper functions
 
 def ele_types(eles):
@@ -42,6 +43,8 @@ def zsort(eles):
     """
     return sorted(eles, key = lambda e: e['s'])
 
+#-------------------------------------------------
+# Standard lattice
 
 def standard_lattice_from_eles(eles, remove_zero_strengths=True):
     """
@@ -70,7 +73,10 @@ def standard_lattice_from_eles(eles, remove_zero_strengths=True):
         lat.append(e) 
     return zsort(lat )
     
-    
+
+
+#-------------------------------------------------
+# Utilities  
 def create_names(lat):
     """
     Invents names for elements
@@ -135,6 +141,9 @@ def lattice_dummies(lat):
         dummies.extend(make_dummies_for_single_type(eles, smax))
     return dummies
         
+
+#-------------------------------------------------
+# Export genesis lattice
     
 def genesis_lattice_from_standard_lattice(standard_lattice, unitlength = 1, version = '1.0', include_name=False, include_comment=False):
     """
@@ -195,6 +204,40 @@ def write_lattice(filePath, standard_lattice, unitlength):
         for l in lines:
             f.write(l+'\n')
 
+#-------------------------------------------------
+# Print
+
+def print_ele(e):
+    line = ''
+    if e['type']=='comment':
+        c = e['comment']
+        if c == '!':
+            print('')
+        else:
+            #pass
+            print(c)
+        return
+    
+    if 'name' in e:
+        name = e
+    else:
+        name = ''
+    
+    line = name+': '+e['type']
+    l = len(line)
+    for key in e:
+        if key in ['s', 'name', 'type', 'original']: 
+            continue
+        val = str(e[key])
+        s =  key+'='+val
+        l += len(s)
+        if l > 100:
+            append = ',\n      '+s
+            l = len(append)
+        else:
+            append = ', '+s
+        line = line + append
+    print(line)
 
 
     
