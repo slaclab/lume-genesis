@@ -25,7 +25,7 @@ class Genesis:
         
     def __init__(self, genesis_bin=MY_GENESIS_BIN, workdir=MY_WORKDIR):
         self.genesis_bin = genesis_bin
-        self.binary_prefixes = [] # mpirun, -n, 1
+        self.binary_prefixes = [] #  For example, ['mpirun', '-n', '2']
         
         # make simulation directory
         self.sim_id = 'genesis_run_' + randomword(10)
