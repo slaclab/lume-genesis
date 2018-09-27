@@ -1,6 +1,6 @@
 
 
-from collections import OrderedDict as odict
+from collections import OrderedDict
 import re
 import numpy as np
 
@@ -32,20 +32,25 @@ def number(x):
         val =  try_int(float(z))
     else:
         # must be a string. Strip quotes.
-        val = x.strip('\'').strip('\"')
+        val = x.strip().strip('\'').strip('\"')
     return val
 
 
 def parse_inputfile(filePath):
-    with open('default.in') as f:
-      rawtext = f.read()
+    with open(filePath) as f:
+        rawtext = f.read()
     return parse_input(rawtext)
 
 
+
 def parse_input(rawtext):
-    text = re.search(r'\$newrun\n.*?\$end', rawtext, re.DOTALL).group()
-    input_parameters = odict()
-    for line in text.split('\n')[1:-1]:
+    # Look for text between $newrun and $end
+    text = re.search(r'\$((?i)newrun)\n.*?\$((?i)end)', rawtext, re.DOTALL).group()
+    input_parameters = OrderedDict() # Maintain order for readability
+    # Split on newline: \n and comma: 
+    for line in re.split('\n|,',text)[1:-1]:
+        if line.strip() =='':
+            continue
         x = line.split('=')
         key = x[0].strip().lower() # force all keys to be lower case
         if len(x[1].split()) == 1:
@@ -53,7 +58,6 @@ def parse_input(rawtext):
         else:
             input_parameters[key] = [number(z) for z in x[1].split()]
     return input_parameters
-    
     
     
     
@@ -105,11 +109,12 @@ def parse_slice(slicetext):
 # Full .out file
  
     
-def parse_genesis_out(fname):
+def parse_genesis_out(fname, save_raw=False):
     with open(fname, 'r') as f:
         rawdat = f.read()  
     d = {}
-    d['raw'] = rawdat # Save this just in case something was missed
+    if save_raw:
+        d['raw'] = rawdat # Save this just in case something was missed
     
     # magic strings to search for
     s1 = '    z[m]          aw            qfld '
@@ -159,7 +164,7 @@ def parse_genesis_lattice_lines(lines):
         # Parameter
         if x[0] == '?':
             a = x[1:].split('=')
-            params[a[0].strip().lower()] = a[1]
+            params[a[0].strip().lower()] = number(a[1])
             continue
         # Comment line
         if x[0] == commentchar:
@@ -215,7 +220,9 @@ def parse_genesis_dfl(fname, nx):
     fname: filename
     nx: grid size in x and y. Same as Genesis 'ncar'
     
-    returns grid  [z, x, y]
+    returnsReturns numpy.array:
+    
+    [z, x, y]
     
     """
     dat = np.fromfile(fname, dtype=np.complex).astype(np.complex)
@@ -245,7 +252,7 @@ def parse_genesis_fld(fname, nx, nz):
     nx: grid size in x and y. Same as Genesis 'ncar'  
     nz: number of slices
     
-    The number of histories can be computed from these. Returns array:
+    The number of histories can be computed from these. Returns numpy.array:
     
     [history, z, x, y]
     

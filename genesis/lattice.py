@@ -62,14 +62,16 @@ def standard_lattice_from_eles(eles, remove_zero_strengths=True):
         t = e['type']
         if t == 'comment': 
             continue
-        if remove_zero_strengths and e['strength'] == 0.0:
-            continue    
-            
+   
         zbeg = z0[t] + e['d']
         zend = e['L']+zbeg
         z0[t] = zend
         e['s'] = zend
         e.pop('d') # Remove d
+        
+        if remove_zero_strengths and e['strength'] == 0.0:
+            continue 
+            
         lat.append(e) 
     return zsort(lat )
     

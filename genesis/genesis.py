@@ -23,37 +23,68 @@ class Genesis:
         if  self.auto_cleanup:
             self.clean() # clean directory before deleting
         
-    def __init__(self, genesis_bin=MY_GENESIS_BIN, workdir=MY_WORKDIR):
+    def __init__(self, genesis_bin=MY_GENESIS_BIN, workdir=MY_WORKDIR, input_filePath=None):
         self.genesis_bin = genesis_bin
         self.binary_prefixes = [] #  For example, ['mpirun', '-n', '2']
+        self.finished = False
         
-        # make simulation directory
-        self.sim_id = 'genesis_run_' + randomword(10)
-        self.sim_path =  workdir + self.sim_id + '/'
-        mkdir_p(self.sim_path)
+        # For loading an existing input file
+        if input_filePath:
+            # Separate path and filename
+            self.sim_path, self.sim_input_file = os.path.split(input_filePath)
+            self.load_inputfile(input_filePath)
+            
+            self.load_lattice()
+            self.load_outputfile()
+            self.finished = True
+            self.auto_cleanup = False          
+        else:
+            self.sim_id = 'genesis_run_' + randomword(10)
+            self.sim_path =  workdir + self.sim_id + '/'
+            mkdir_p(self.sim_path)
+
+            # input params
+            # param descriptions here http://genesis.web.psi.ch/download/documentation/genesis_manual.pdf
+            self.input_params = DEFAULT_INPUT_PARAMS        
         
-        self.lattice = None
-        self.output = None
+            # some file paths (more in self.input_params just below)
+            self.sim_input_file = 'genesis.in'
         
-        
-        # some file paths (more in self.input_params just below)
-        self.sim_input_file = 'genesis.in'
-        self.sim_log_file = 'genesis.log'
+            self.lattice = None
+            self.output = None
+            self.auto_cleanup = True
+            self.sim_log_file = 'genesis.log'
   
         # Option for cleaning on exit
-        self.auto_cleanup = True
+       
         
-        # input params
-        # param descriptions here http://genesis.web.psi.ch/download/documentation/genesis_manual.pdf
-        self.input_params = DEFAULT_INPUT_PARAMS
+
+    def load_outputfile(self, filePath=None):
+        if not filePath:
+            fname = os.path.join(self.sim_path,self.input_params['outputfile'])
+        else:
+            fname = filePath
+        self.output = parsers.parse_genesis_out(fname)    
+
+    def load_inputfile(self, filePath):
+        """
+        Loads an inputfile. 
+        
+        """
+        self.input_params = parsers.parse_inputfile(filePath)    
+        
     
-    
-    def load_lattice(self, filePath):
+    def load_lattice(self, filePath=None, verbose=False):
         """
         loads an original Genesis-style lattice into a standard_lattice
         """
-
-        eles, params = parsers.parse_genesis_lattice(filePath)
+        if not filePath:
+            fname = os.path.join(self.sim_path, self.input_params['maginfile'])
+        else:
+            fname = filePath
+            
+        if verbose: print('loading lattice: ', fname)    
+        eles, params = parsers.parse_genesis_lattice(fname)
         
         self.lattice = lattice.standard_lattice_from_eles(eles)
         self.lattice_params = params
@@ -65,7 +96,7 @@ class Genesis:
             self.old_write_lattice()
     
         else:
-            filePath = self.sim_path + self.input_params['maginfile']
+            filePath = os.path.join(self.sim_path, self.input_params['maginfile'])
             lattice.write_lattice(filePath, self.lattice, self.lattice_params['unitlength'])
             
                
@@ -136,13 +167,16 @@ class Genesis:
         for path in execute(runscript):
             print(path, end="")
             log.append(path)
-        with open('genesis.log', 'w') as f:
+        with open(self.sim_log_file, 'w') as f:
             for line in log:
                 f.write(line)
     
         if parseOutput:
-            fname = self.sim_path+self.input_params['outputfile']
-            self.output = parsers.parse_genesis_out(fname)
+            self.load_outputfile()
+
+
+        self.finished = True
+        
         
         # Return to init_dir
         os.chdir(init_dir)
