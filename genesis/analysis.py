@@ -19,7 +19,6 @@ def power_spectrum(slices):
     Z0 = 120 * np.pi
     power = np.asarray([s['data']['p_mid'][-1] for s in slices])
     phi_mid = np.asarray([s['data']['phi_mid'][-1] for s in slices])
-    #field = np.sqrt(Z0/2.0/np.pi/sigmar/sigmar*power)  * np.exp(1j*phi_mid)
     field = np.sqrt(power) * np.exp(1j*phi_mid)
     power_fft = np.abs(np.fft.fftshift(np.fft.fft(field)))**2
 
