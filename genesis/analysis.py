@@ -1,5 +1,6 @@
 import numpy as np
 from scipy.optimize import curve_fit
+from scipy.special import *
 from genesis import parsers
 
 
@@ -59,6 +60,13 @@ def FWHM(power_fft,omega):
     print ('Fitted FWHM = ', FWHM)
 
     return coeff, FWHM
+
+def calculate_JJ(K):
+
+    J_arg = K**2 / (1.0 + K**2) / 2.0
+    JJ = j0(J_arg) - j1(J_arg)
+
+    return JJ
 
 #slices, zsep, Nslice, xlamds = load_slices('/home/alex/Desktop/pyGENT/genesis_run_150MW_tdp/mod_620.out')
 #power_fft = power_spectrum(slices)
