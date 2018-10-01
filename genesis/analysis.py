@@ -1,7 +1,7 @@
 import numpy as np
 from scipy.optimize import curve_fit
 from scipy.special import *
-from genesis import parsers
+import parsers
 
 
 def load_slices(fname):
