@@ -14,6 +14,28 @@ def load_slices(fname):
    
     return slices, zsep, Nslice, xlamds
 
+def power(slices):
+
+    power = np.asarray([s['data']['power'][:] for s in slices])
+    
+    return power
+
+def espread(slices):
+
+    espread = np.asarray([s['data']['e-spread'][:] for s in slices])
+
+    return espread
+
+def bunching(slices):
+
+    bunching = np.asarray([s['data']['bunching'][:] for s in slices])
+
+    return bunching
+
+def current_profile(slices):
+    current = np.asarray([s['current'] for s in slices])
+
+    return current
 
 def power_spectrum(slices):
 
