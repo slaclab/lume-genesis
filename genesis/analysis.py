@@ -90,14 +90,21 @@ def calculate_JJ(K):
 
     return JJ
 
-def calculate_gamma_res(g, Kvalues):
+def calculate_gamma_res(g, K):
 
     lambdau = g.input_params['xlamd']
     lambdas = g.input_params['xlamds']
-    gamma_r2 = (lambdau/(2.0 * lambdas)) * (1.0 + Kvalues**2 )
+    gamma_r2 = (lambdau/(2.0 * lambdas)) * (1.0 + K**2 )
     gamma_res = np.sqrt(gamma_r2)
 
     return gamma_res
+
+def calculate_AD(K, Ngap):
+
+    NP = np.ceil(Ngap/(1 + K**2))
+    AD = np.sqrt( (1 + K**2 - Ngap/NP) / (Ngap/NP)  )
+
+    return AD
 
 #slices, zsep, Nslice, xlamds = load_slices('/home/alex/Desktop/pyGENT/genesis_run_150MW_tdp/mod_620.out')
 #power_fft = power_spectrum(slices)
