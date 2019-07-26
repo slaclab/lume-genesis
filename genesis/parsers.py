@@ -281,3 +281,20 @@ def parse_genesis_fld(fname, nx, nz):
     
     
     
+    
+def parse_gensis_dpa(fname, npart):
+    """
+    Parses .dpa and .par files
+    
+    
+    """
+    pdat = np.fromfile(fname, dtype=np.float64) #.astype(float)
+    nbunch = int(len(pdat)/6/npart)
+    
+    # gamma, phase, x, y, px/mc, py/mc
+    # .par file: phase = psi  = kw*z + field_phase
+    # .dpa file: phase = kw*z 
+    
+    
+    bunch = pdat.reshape(nbunch,6,npart)
+    return bunch    

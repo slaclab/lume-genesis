@@ -64,7 +64,8 @@ class Genesis:
             fname = os.path.join(self.sim_path,self.input_params['outputfile'])
         else:
             fname = filePath
-        self.output = parsers.parse_genesis_out(fname)    
+        if os.path.exists(fname):
+            self.output = parsers.parse_genesis_out(fname)    
 
     def load_inputfile(self, filePath):
         """
