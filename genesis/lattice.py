@@ -136,7 +136,7 @@ def lattice_dummies(lat):
     tlat = eles_by_type(lat)
     smax  = max([e['s'] for e in lat
                 if e['type'] not in ['comment']])
-    print(smax)
+    #print(smax)
     dummies = []
     for t in tlat:
         eles = tlat[t]

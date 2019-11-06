@@ -1,280 +1,332 @@
 """ 
-Genesis wrapper for use in LUME
+LUME-Genesis primary class
 
  
 """
-from __future__ import print_function # python 2.7 compatibility
-from genesis import parsers, lattice
+from genesis import tools, parsers, lattice
+import tempfile
+from time import time
+import os
 
 
-import os, errno, random, string, subprocess, copy
-import numpy as np
-import subprocess
-import numbers
-
-
-MY_GENESIS_BIN = os.path.expandvars('$HOME/bin/genesis')
-MY_WORKDIR = os.path.expandvars('$HOME/work/')
 
 class Genesis:
-    """ This class allows us to write inputs, run genesis, return data, and clean up genesis junk."""
+    """
+    LUME-Genesis class to parse input, run genesis, and parse output.
     
-    def __del__(self):
-        if  self.auto_cleanup:
-            self.clean() # clean directory before deleting
+    By default, a temporary directory is created for working.
+    
+    """
+    
         
-    def __init__(self, genesis_bin=MY_GENESIS_BIN, workdir=MY_WORKDIR, input_filePath=None):
+    def __init__(self, input_file=None, 
+                 genesis_bin='$GENESIS_BIN', 
+                 use_tempdir=True,
+                 workdir=None,
+                 verbose=False
+                ):
+        
+        # Save init
+        self.original_input_file = input_file
+        self.use_tempdir = use_tempdir
+        self.workdir = workdir
+        if workdir:
+            assert os.path.exists(workdir), 'workdir does not exist: '+workdir           
+        self.verbose=verbose
+        
         self.genesis_bin = genesis_bin
         self.binary_prefixes = [] #  For example, ['mpirun', '-n', '2']
         self.finished = False
         
-        # For loading an existing input file
-        if input_filePath:
-            # Separate path and filename
-            self.sim_path, self.sim_input_file = os.path.split(input_filePath)
-            self.load_inputfile(input_filePath)
-            
-            self.load_lattice()
-            self.load_outputfile()
-            self.finished = True
-            self.auto_cleanup = False          
-        else:
-            self.sim_id = 'genesis_run_' + randomword(10)
-            self.sim_path =  workdir + self.sim_id + '/'
-            mkdir_p(self.sim_path)
+        # 
+        self.output = {}
+        
+        #
+        self.timeout = None
+        
+        # Run control
+        self.finished = False
+        self.configured = False
+        
+        if input_file:
+            self.load_input(input_file)
 
+        else:
+            # Load a default for testing
             # input params
             # param descriptions here http://genesis.web.psi.ch/download/documentation/genesis_manual.pdf
-            self.input_params = DEFAULT_INPUT_PARAMS        
-        
-            # some file paths (more in self.input_params just below)
-            self.sim_input_file = 'genesis.in'
-        
-            self.lattice = None
-            self.output = None
-            self.auto_cleanup = True
-            self.sim_log_file = 'genesis.log'
-  
-        # Option for cleaning on exit
-       
+            self.input = DEFAULT_INPUT_PARAMS        
+            self.original_input_file = 'genesis.in'
+            self.lattice = DEFAULT_LATTICE
+            self.lattice_params = DEFAULT_LATTICE_PARMS
+            self.finished = False
+            
+        # Call configure
+        self.configure()
+
+    
+    def configure(self):
+        self.configure_genesis(workdir=self.workdir)        
         
 
-    def load_outputfile(self, filePath=None):
+    def configure_genesis(self, input_filePath=None, workdir=None):
+        """
+        Configures working directory. 
+        """
+        
+        if input_filePath:
+            self.load_input(input_filePath)
+        
+        # Set paths
+        if self.use_tempdir:
+            # Need to attach this to the object. Otherwise it will go out of scope.
+            self.tempdir = tempfile.TemporaryDirectory(dir=self.workdir)
+            self.path = self.tempdir.name
+        else:
+            # Work in place
+            self.path = self.original_path        
+     
+        # Make full path
+        self.input_file = os.path.join(self.path, self.original_input_file)    
+        
+        self.vprint('Configured to run in:', self.path)
+        
+        self.configured = True
+        
+
+    def load_input(self, filePath):
+        """
+        Loads existing input file, with lattice
+        
+        """
+        f = tools.full_path(filePath)
+        self.original_path, _ = os.path.split(f) # Get original path
+        self.input = parsers.parse_inputfile(f) 
+        
+        # Lattice
+        latfile =  self.input['maginfile']
+        if not os.path.isabs(latfile):
+            latfile = os.path.join(self.original_path, latfile)
+        
+
+    def load_output(self, filePath=None):
         if not filePath:
-            fname = os.path.join(self.sim_path,self.input_params['outputfile'])
+            fname = os.path.join(self.path, self.input['outputfile'])
         else:
             fname = filePath
         if os.path.exists(fname):
             self.output = parsers.parse_genesis_out(fname)    
-
-    def load_inputfile(self, filePath):
-        """
-        Loads an inputfile. 
+            self.vprint('Loaded output:', fname)      
         
-        """
-        self.input_params = parsers.parse_inputfile(filePath)    
-        
-    
     def load_lattice(self, filePath=None, verbose=False):
         """
         loads an original Genesis-style lattice into a standard_lattice
         """
         if not filePath:
-            fname = os.path.join(self.sim_path, self.input_params['maginfile'])
+            fname = os.path.join(self.path, self.input['maginfile'])
         else:
             fname = filePath
             
-        if verbose: print('loading lattice: ', fname)    
+        self.vprint('loading lattice: ', fname)    
         eles, params = parsers.parse_genesis_lattice(fname)
         
         self.lattice = lattice.standard_lattice_from_eles(eles)
         self.lattice_params = params
-
+    
+        
     def write_lattice(self):
     
         if not self.lattice:
-            # use old routine
-            self.old_write_lattice()
+            print('Error, no lattice to write')
+            return
     
         else:
-            filePath = os.path.join(self.sim_path, self.input_params['maginfile'])
+            filePath = os.path.join(self.path, self.input['maginfile'])
             lattice.write_lattice(filePath, self.lattice, self.lattice_params['unitlength'])
-            
-               
-    def input_twiss(self):
-        
-        betax = self.input_params['rxbeam']**2 * self.input_params['gamma0'] / self.input_params['emitx']
-        betay = self.input_params['rybeam']**2 * self.input_params['gamma0'] / self.input_params['emity']
-        alphax = self.input_params['alphax']
-        alphay = self.input_params['alphay']
-        
-        return {'betax':betax, 'betay':betay, 'alphax':alphax, 'alphay':alphay} 
-    
-    def clean(self):
-        os.system('rm -rf ' + self.sim_path)
     
     
-      
-    def write_input(self):
+    def write_input_file(self):
         """
         Write parameters to main .in file
         
         """    
-        with open(self.sim_path + self.sim_input_file, "w") as f:
-            f.write("$newrun\n")
-         
-            # parse
-            for key, value in self.input_params.items():
-                #if type(value) == type(1) or type(value) == type(1.): # numbers
-                if isinstance(value,numbers.Number): # numbers
-                    f.write(key + ' = ' + str(value) + '\n')
-                elif type(value) == type([]): # lists
-                    liststr = ''
-                    for item in value:
-                        liststr += str(item) + ' '
-                    f.write(key + ' = ' + liststr + '\n')
-                elif type(value) == type('a'): # strings
-                    f.write(key + ' = ' + "'" + value + "'" + '\n') # genesis input may need apostrophes
-                else:
-                    #print 'skipped: key, value = ', key, value
-                    pass
+        lines = tools.namelist_lines(self.input, start='$newrun', end='$end')
+        
+        with open(self.input_file, 'w') as f:
+            for line in lines:
+                f.write(line+'\n')
             
-            f.write("$end\n")
-            
-            f.close()
-    
-
+    def get_run_script(self, write_to_path=True):
+        """
+        Assembles the run script. Optionally writes a file 'run' with this line to path.
+        """
         
+        _, infile = os.path.split(self.input_file)
         
-    def run_genesis(self, parseOutput=True):
-        # Save init dir
-        print('init dir: ', os.getcwd())
-        init_dir = os.getcwd()
-        os.chdir(self.sim_path)
-        # Debugging
-        print('running genesis in '+os.getcwd())
-        self.write_input()
-        
-        self.write_lattice()
-
-
-        runscript = [self.genesis_bin, self.sim_input_file]
+        runscript = [self.genesis_bin, infile]
 
         # Allow for MPI commands
         if len(self.binary_prefixes) > 0:
             runscript = self.binary_prefixes + runscript
+            
+        if write_to_path:
+            with open(os.path.join(self.path, 'run'), 'w') as f:
+                f.write(' '.join(runscript))
+            
+        return runscript
+        
+            
+    def run(self):
+        if not self.configured:
+            print('not configured to run')
+            return
+        self.run_genesis(verbose=self.verbose, timeout=self.timeout)    
+
+        
+    def run_genesis(self, verbose=False, parse_output=True, timeout=None):
+        
+        # Check that binary exists
+        self.genesis_bin = tools.full_path(self.genesis_bin)
+        assert os.path.exists(self.genesis_bin), 'Genesis binary does not exist: '+ self.genesis_bin
+        
+        run_info = {}
+        t1 = time()
+        run_info['start_time'] = t1
+        
+        # Move to local directory
+
+        # Save init dir
+        init_dir = os.getcwd()
+        self.vprint('init dir: ', init_dir)
+        
+        os.chdir(self.path)
+        # Debugging
+        self.vprint('running genesis in '+os.getcwd())
+
+        # Write input file from internal dict
+        self.write_input_file()
+        self.write_lattice()
+        
+        runscript = self.get_run_script()
     
-        log = []
-        for path in execute(runscript):
-            print(path, end="")
-            log.append(path)
-        with open(self.sim_log_file, 'w') as f:
-            for line in log:
-                f.write(line)
+        try:
+            if timeout:
+                res = tools.execute2(runscript, timeout=timeout)
+                log = res['log']
+                self.error = res['error']
+                run_info['why_error'] = res['why_error']    
+            else:
+                # Interactive output, for Jupyter
+                log = []
+                for path in tools.execute(runscript):
+                    self.vprint(path, end="")
+                    log.append(path)
     
-        if parseOutput:
-            self.load_outputfile()
+            self.log = log
+            self.error = False   
 
+            if parse_output:
+                self.load_output()
+                
+        except Exception as ex:
+            print('Run Aborted', ex)
+            self.error = True
+            run_info['why_error'] = str(ex)
+            
+        finally:
+            run_info['run_time'] = time() - t1
+            run_info['run_error'] = self.error
+            
+            # Add run_info
+            self.output.update(run_info)
+            
+            # Return to init_dir
+            os.chdir(init_dir)                        
+        
+        self.finished = True        
 
-        self.finished = True
         
-        
-        # Return to init_dir
-        os.chdir(init_dir)
-        
-
-
-#------------------------------------
-# To deprecate :
-
-
-    # write the magnetic lattice file for Genesis 1.3 v2
-    def old_write_lattice(self):
-        # quads are gradients in Tesla/meter (use a negative gradient to defocus)
-        # Ks are the list of peak undulator strengths (NOT RMS) since epics gives us peak
-        
-        #self.quad_grads, self.und_Ks
-        
-        # input lattice
-        # quads are gradients in Tesla/meter (use a negative gradient to defocus)
-        quad_grads = DEFAULT_QUAD_GRADS #= 6*[12.84,-12.64] # 6 FODO
-        # Ks are the list of peak undulator strengths (NOT RMS) since epics gives us peak
-        und_Ks = DEFAULT_UND_Ks #= 2*[np.sqrt(2.) * 2.473180]
-        
+    def fingerprint(self):
+        """
+        Data fingerprint using the input. 
+        """
+        return tools.fingerprint(self.input)        
     
+    def vprint(self, *args, **kwargs):
+        # Verbose print
+        if self.verbose:
+            print(*args, **kwargs)   
+           
         
-        quads =quad_grads
-        Ks = und_Ks / np.sqrt(2.) # change peak to rms
+    def input_twiss(self):
         
-        nquad = len(quads)
-        nund = len(Ks)
-        nund = min(nquad,nund)
+        betax = self.input['rxbeam']**2 * self.input['gamma0'] / self.input['emitx']
+        betay = self.input['rybeam']**2 * self.input['gamma0'] / self.input['emity']
+        alphax = self.input['alphax']
+        alphay = self.input['alphay']
         
-        f = open(self.sim_path + self.input_params['maginfile'], "w")
-        
-        f.write("? VERSION = 1.0" + '\n')
-        f.write("? UNITLENGTH = " + str(self.input_params['xlamd']) + '\n')
-        f.write('\n')
-        f.write("QF " + str(quads[0]) + " 5 0" + '\n') # half of first quad
-        f.write('\n')
-        
-        # parse
-        for i in range(nund):
-            f.write("AW " + str(Ks[i]) + " 110 20" + '\n')
-            f.write("AD " + str(0.29) + " 20 110" + '\n')
-            try:
-                f.write("QF " + str(quads[i+1]) + " 10 120" + '\n\n')
-            except:
-                #if i >= nund-1:  # this will never be true
-                print(str(self.__class__) + '.write_lattice - WARNING: ran out of quads for lattice...')
-                break
-        
-        f.close()        
-        
-#----------------
-# Helper routines
-
-
-def execute(cmd):
-    """
+        return {'betax':betax, 'betay':betay, 'alphax':alphax, 'alphay':alphay}   
     
-    Constantly print Subprocess output while process is running
-    from: https://stackoverflow.com/questions/4417546/constantly-print-subprocess-output-while-process-is-running
     
-    # Example usage:
-        for path in execute(["locate", "a"]):
-        print(path, end="")
-        
-    Useful in Jupyter notebook
-    
-    """
-    popen = subprocess.Popen(cmd, stdout=subprocess.PIPE, universal_newlines=True)
-    for stdout_line in iter(popen.stdout.readline, ""):
-        yield stdout_line 
-    popen.stdout.close()
-    return_code = popen.wait()
-    if return_code:
-        raise subprocess.CalledProcessError(return_code, cmd)
-
-
-def mkdir_p(path):
-    try:
-        os.makedirs(path)
-    except OSError as exc:  # Python >2.5
-        if exc.errno == errno.EEXIST and os.path.isdir(path):
-            pass
+    def __str__(self):
+        path = self.path
+        s = ''
+        if self.finished:
+            s += 'Genesis finished in '+path
+        elif self.configured:
+            s += 'Genesis configured in '+path
         else:
-            raise
+            s += 'Genesis not configured.'
+        return s    
+    
+    
+# Defaults for testing    
 
-def randomword(length):
-   letters = string.ascii_letters + string.digits
-   return ''.join(random.choice(letters) for i in range(length))
-
-
-  
-DEFAULT_QUAD_GRADS = 6*[12.84,-12.64] # 6 FODO  
-  
-DEFAULT_UND_Ks = 12*[np.sqrt(2.) * 2.473180]     
+DEFAULT_LATTICE_PARMS = {'version': 1, 'unitlength': 0.03}    
+    
+DEFAULT_LATTICE = [{'type': 'QF', 'strength': 12.84, 'L': 5.0, 's': 5.0},
+     {'type': 'AW', 'strength': 2.47318, 'L': 110.0, 's': 130.0},
+     {'type': 'AD', 'strength': 0.29, 'L': 20.0, 's': 130.0},
+     {'type': 'QF', 'strength': -12.64, 'L': 10.0, 's': 135.0},
+     {'type': 'AW', 'strength': 2.47318, 'L': 110.0, 's': 260.0},
+     {'type': 'AD', 'strength': 0.29, 'L': 20.0, 's': 260.0},
+     {'type': 'QF', 'strength': 12.84, 'L': 10.0, 's': 265.0},
+     {'type': 'AW', 'strength': 2.47318, 'L': 110.0, 's': 390.0},
+     {'type': 'AD', 'strength': 0.29, 'L': 20.0, 's': 390.0},
+     {'type': 'QF', 'strength': -12.64, 'L': 10.0, 's': 395.0},
+     {'type': 'AW', 'strength': 2.47318, 'L': 110.0, 's': 520.0},
+     {'type': 'AD', 'strength': 0.29, 'L': 20.0, 's': 520.0},
+     {'type': 'QF', 'strength': 12.84, 'L': 10.0, 's': 525.0},
+     {'type': 'AW', 'strength': 2.47318, 'L': 110.0, 's': 650.0},
+     {'type': 'AD', 'strength': 0.29, 'L': 20.0, 's': 650.0},
+     {'type': 'QF', 'strength': -12.64, 'L': 10.0, 's': 655.0},
+     {'type': 'AW', 'strength': 2.47318, 'L': 110.0, 's': 780.0},
+     {'type': 'AD', 'strength': 0.29, 'L': 20.0, 's': 780.0},
+     {'type': 'QF', 'strength': 12.84, 'L': 10.0, 's': 785.0},
+     {'type': 'AW', 'strength': 2.47318, 'L': 110.0, 's': 910.0},
+     {'type': 'AD', 'strength': 0.29, 'L': 20.0, 's': 910.0},
+     {'type': 'QF', 'strength': -12.64, 'L': 10.0, 's': 915.0},
+     {'type': 'AW', 'strength': 2.47318, 'L': 110.0, 's': 1040.0},
+     {'type': 'AD', 'strength': 0.29, 'L': 20.0, 's': 1040.0},
+     {'type': 'QF', 'strength': 12.84, 'L': 10.0, 's': 1045.0},
+     {'type': 'AW', 'strength': 2.47318, 'L': 110.0, 's': 1170.0},
+     {'type': 'AD', 'strength': 0.29, 'L': 20.0, 's': 1170.0},
+     {'type': 'QF', 'strength': -12.64, 'L': 10.0, 's': 1175.0},
+     {'type': 'AW', 'strength': 2.47318, 'L': 110.0, 's': 1300.0},
+     {'type': 'AD', 'strength': 0.29, 'L': 20.0, 's': 1300.0},
+     {'type': 'QF', 'strength': 12.84, 'L': 10.0, 's': 1305.0},
+     {'type': 'AW', 'strength': 2.47318, 'L': 110.0, 's': 1430.0},
+     {'type': 'AD', 'strength': 0.29, 'L': 20.0, 's': 1430.0},
+     {'type': 'QF', 'strength': -12.64, 'L': 10.0, 's': 1435.0},
+     {'type': 'AW', 'strength': 2.47318, 'L': 110.0, 's': 1560.0},
+     {'type': 'AD', 'strength': 0.29, 'L': 20.0, 's': 1560.0}]    
+    
+    
+    
+    
+    
+    
+# Defaults for testing 
     
     
 DEFAULT_INPUT_PARAMS = {'aw0'   :  2.473180,
@@ -434,3 +486,44 @@ DEFAULT_INPUT_PARAMS = {'aw0'   :  2.473180,
     'maginfile' : 'genesis.lat',
     'distfile': None,
     'filetype':'ORIGINAL'}    
+
+   
+
+DEFAULT_LATTICE_PARMS = {'version': 1, 'unitlength': 0.03}    
+    
+DEFAULT_LATTICE = [{'type': 'QF', 'strength': 12.84, 'L': 5.0, 's': 5.0},
+     {'type': 'AW', 'strength': 2.47318, 'L': 110.0, 's': 130.0},
+     {'type': 'AD', 'strength': 0.29, 'L': 20.0, 's': 130.0},
+     {'type': 'QF', 'strength': -12.64, 'L': 10.0, 's': 135.0},
+     {'type': 'AW', 'strength': 2.47318, 'L': 110.0, 's': 260.0},
+     {'type': 'AD', 'strength': 0.29, 'L': 20.0, 's': 260.0},
+     {'type': 'QF', 'strength': 12.84, 'L': 10.0, 's': 265.0},
+     {'type': 'AW', 'strength': 2.47318, 'L': 110.0, 's': 390.0},
+     {'type': 'AD', 'strength': 0.29, 'L': 20.0, 's': 390.0},
+     {'type': 'QF', 'strength': -12.64, 'L': 10.0, 's': 395.0},
+     {'type': 'AW', 'strength': 2.47318, 'L': 110.0, 's': 520.0},
+     {'type': 'AD', 'strength': 0.29, 'L': 20.0, 's': 520.0},
+     {'type': 'QF', 'strength': 12.84, 'L': 10.0, 's': 525.0},
+     {'type': 'AW', 'strength': 2.47318, 'L': 110.0, 's': 650.0},
+     {'type': 'AD', 'strength': 0.29, 'L': 20.0, 's': 650.0},
+     {'type': 'QF', 'strength': -12.64, 'L': 10.0, 's': 655.0},
+     {'type': 'AW', 'strength': 2.47318, 'L': 110.0, 's': 780.0},
+     {'type': 'AD', 'strength': 0.29, 'L': 20.0, 's': 780.0},
+     {'type': 'QF', 'strength': 12.84, 'L': 10.0, 's': 785.0},
+     {'type': 'AW', 'strength': 2.47318, 'L': 110.0, 's': 910.0},
+     {'type': 'AD', 'strength': 0.29, 'L': 20.0, 's': 910.0},
+     {'type': 'QF', 'strength': -12.64, 'L': 10.0, 's': 915.0},
+     {'type': 'AW', 'strength': 2.47318, 'L': 110.0, 's': 1040.0},
+     {'type': 'AD', 'strength': 0.29, 'L': 20.0, 's': 1040.0},
+     {'type': 'QF', 'strength': 12.84, 'L': 10.0, 's': 1045.0},
+     {'type': 'AW', 'strength': 2.47318, 'L': 110.0, 's': 1170.0},
+     {'type': 'AD', 'strength': 0.29, 'L': 20.0, 's': 1170.0},
+     {'type': 'QF', 'strength': -12.64, 'L': 10.0, 's': 1175.0},
+     {'type': 'AW', 'strength': 2.47318, 'L': 110.0, 's': 1300.0},
+     {'type': 'AD', 'strength': 0.29, 'L': 20.0, 's': 1300.0},
+     {'type': 'QF', 'strength': 12.84, 'L': 10.0, 's': 1305.0},
+     {'type': 'AW', 'strength': 2.47318, 'L': 110.0, 's': 1430.0},
+     {'type': 'AD', 'strength': 0.29, 'L': 20.0, 's': 1430.0},
+     {'type': 'QF', 'strength': -12.64, 'L': 10.0, 's': 1435.0},
+     {'type': 'AW', 'strength': 2.47318, 'L': 110.0, 's': 1560.0},
+     {'type': 'AD', 'strength': 0.29, 'L': 20.0, 's': 1560.0}]    

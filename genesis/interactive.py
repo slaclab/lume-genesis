@@ -9,7 +9,7 @@ from bokeh.models.widgets import Slider
 from bokeh.layouts import column
 
 import numpy as np
-
+import os
 
 
 pal = palettes.Viridis[256]
@@ -64,7 +64,7 @@ def genesis_interactive_field_history(doc, genesis=None):
     """
     
     # Parameters
-    p = genesis.input_params
+    p = genesis.input
     
     # Check for time dependence
     if p['itdp'] == 0:
@@ -72,7 +72,7 @@ def genesis_interactive_field_history(doc, genesis=None):
     else:
         nslice = p['nslice']
     
-    fld_fname = genesis.sim_path+p['outputfile']+'.fld'
+    fld_fname = os.path.join(genesis.path, p['outputfile']+'.fld')
     my_fld =  parsers.parse_genesis_fld(fld_fname, p['ncar'], nslice)
     
     return interactive_field_history(doc, fld=my_fld, slice=0, dgrid=p['dgrid'] )  

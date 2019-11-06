@@ -1,0 +1,25 @@
+# BasicLCLS Lattice
+? VERSION = 1.0
+? UNITLENGTH = 3e-2
+# Total undulator length is 129.36m with this lattice
+#
+#       Undulator Field
+#
+AW       2.4749      112.000       00.00000
+! LOOP = 12
+AW       2.4749      112.000       16.00000
+AW       2.4749      112.000       32.00000
+AW       2.4749      112.000       16.00000
+! ENDLOOP
+#
+#       Quadrupole Field
+#
+! LOOP = 7
+QF      -17.500      8.00000      120.00000
+QF       17.500      8.00000      120.00000
+QF      -17.500      8.00000      136.00000
+QF       17.500      8.00000      120.00000
+QF      -17.500      8.00000      120.00000
+QF       17.500      8.00000      136.00000
+! ENDLOOP
+
