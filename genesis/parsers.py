@@ -282,7 +282,7 @@ def parse_genesis_fld(fname, nx, nz):
     
     
     
-def parse_gensis_dpa(fname, npart):
+def parse_genesis_dpa(fname, npart):
     """
     Parses .dpa and .par files
     
