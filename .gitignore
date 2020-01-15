@@ -3,6 +3,7 @@ __pycache__/
 *.py[cod]
 *$py.class
 
+# devel directory
 devel/*
 
 # C extensions
@@ -104,7 +105,4 @@ venv.bak/
 
 # mypy
 .mypy_cache/
-
-# Ignore Mac DS_Store files
 .DS_Store
-
