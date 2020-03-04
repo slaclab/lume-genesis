@@ -99,7 +99,7 @@ def parse_slice(slicetext):
     data = {}
     # Populate column data
     for i in range(len(header)):
-        data[header[i]] = rdat[i]
+        data[header[i]] = np.array(rdat[i])
     d['data'] = data
 
     return d
