@@ -108,6 +108,8 @@ class Genesis:
         if not os.path.isabs(latfile):
             latfile = os.path.join(self.original_path, latfile)
         
+        self.load_lattice(filePath=latfile, verbose=self.verbose)
+        
 
     def load_output(self, filePath=None):
         if not filePath:
