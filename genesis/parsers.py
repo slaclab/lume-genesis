@@ -211,6 +211,109 @@ def parse_genesis_lattice_lines(lines):
     
     
 #-------------------------------------------------
+# beam file
+#    Beam Description File
+    
+    
+
+VALID_BEAM_COLUMNS = {'zpos',
+ 'tpos',
+ 'gamma0',
+ 'delgam',
+ 'emitx',
+ 'emity',
+ 'rxbeam',
+ 'betax',
+ 'rybeam',
+ 'betay',
+ 'xbeam',
+ 'ybeam',
+ 'pxbeam',
+ 'pybeam',
+ 'alphax',
+ 'alphay',
+ 'curpeak',
+ 'eloss'}
+
+
+#LINES = open().readlines()
+
+def parse_beam_file_header(fname):
+    """
+    Parses a Genesis beam file header. 
+    
+    Helper routine for parse_beam_file
+    """
+    
+    params = {}
+    with open(fname) as f:
+        i = 0
+        for line in f:
+            i += 1
+            x = line.strip()
+            # Skip comments
+            if x.startswith('#') or x == '':
+                continue
+            # parameter 
+            
+            if x.startswith('?'):
+                x = x[1:].strip()
+                if '=' in x:
+                    a = x.split('=')
+                    params[a[0].strip().lower()] = a[1].strip()
+                else:
+                    # Should be columns
+                    col = [a.lower() for a in x.split()]
+                    assert col[0] == 'columns', f'Unknown parameter: {x}'
+                    params['columns'] = col[1:]
+            else:
+                #print(x)
+                # Finished. 
+                params['n_headerlines'] = i-1
+                if 'size' in params:
+                    params['size'] = int(params['size'])
+                return params
+            
+def parse_beam_file(fname):
+    """
+    Parses a Gensis beam file. 
+    
+    Asserts that the version is 1.0.
+    
+    SIZE is optional, but will check.
+    
+    Returns a dict of the columns.
+    
+    See: genesis.writers.write_beam_file
+    
+    """
+    
+    params = parse_beam_file_header(fname)
+    
+    
+    
+    dat = np.loadtxt(fname, skiprows=params['n_headerlines'])
+    
+    size = dat.shape[0]
+    
+    # Check version
+    if 'version' in params:
+        v = float(params['version'])
+        assert v == 1.0 # This is the only version allowed
+    
+    # Check size
+    if 'size' in params:
+        assert size == params['size'], f"Mismatch with SIZE = {params['size']} and found column size {size}"   
+    
+    cdat = {}
+    for i, name in enumerate(params['columns']):
+        assert name in  VALID_BEAM_COLUMNS, f'{name} is not a valid beam column'
+            
+        cdat[name] = dat[:, i]
+    
+    return cdat    
+    
+#-------------------------------------------------
 #.dfl file
 #    Dump file at the end
 #    complex numbers, output in a loop over nslices, ny, nx
