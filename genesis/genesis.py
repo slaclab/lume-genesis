@@ -13,7 +13,6 @@ import os
 
 
 
-
 class Genesis:
     """
     LUME-Genesis class to parse input, run genesis, and parse output.
@@ -138,8 +137,7 @@ class Genesis:
         else:
             main['lattice'] = None
 
-        
-        
+
     def load_output(self, filePath=None):
         if not filePath:
             fname = os.path.join(self.path, self.param['outputfile'])
@@ -148,6 +146,39 @@ class Genesis:
         if os.path.exists(fname):
             self.output.update(parsers.parse_genesis_out(fname))
             self.vprint('Loaded output:', fname)      
+            
+            
+        # Final field    
+        dflfile = fname+'.dfl'
+        if os.path.exists(dflfile):
+            self.output['data']['dfl'] = parsers.parse_genesis_dfl(dflfile, self.param['ncar'])
+            self.vprint('Loaded dfl:', dflfile)
+            
+        # Field history
+        fldfile = fname+'.fld'
+        if os.path.exists(fldfile):
+            # Time independent is just one slice
+            if self['itdp'] == 0:
+                nslice = 1
+            else:
+                nslice = self.param['nslice']
+            self.output['data']['fld'] = parsers.parse_genesis_fld(fldfile, self.param['ncar'], nslice)
+            self.vprint('Loaded fld:', fldfile)            
+            
+        # Final particles    
+        dpafile = fname+'.dpa'
+        if os.path.exists(dpafile):
+            self.output['data']['dpa'] = parsers.parse_genesis_dpa(dpafile, self.param['npart'])
+            self.vprint('Loaded dpa:', dpafile)            
+            
+        # Particle history
+        parfile = fname+'.par'
+        if os.path.exists(parfile):
+            self.output['data']['par'] = parsers.parse_genesis_dpa(parfile, self.param['npart'])
+            self.vprint('Loaded par:', parfile)                   
+            
+            
+        #    
         
     def load_lattice(self, filePath=None, verbose=False):
         """

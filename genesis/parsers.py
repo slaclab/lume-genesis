@@ -536,7 +536,7 @@ def parse_genesis_fld(fname, nx, nz):
     ny = nx
     
     nhistories =  npoints / nz / 2 / ny / nx # 
-    assert (nhistories % 1 == 0) # 
+    assert (nhistories % 1 == 0), f'Number {npoints} {nhistories}'
     nhistories = int(nhistories)   
     
     # real and imaginary parts are written separately. 
@@ -558,14 +558,16 @@ def parse_genesis_dpa(fname, npart):
     Parses .dpa and .par files
     
     
+     gamma, phase, x, y, px/mc, py/mc
+     .par file: phase = psi  = kw*z + field_phase
+     .dpa file: phase = kw*z     
+    
+    [bunch, var, list of points]
+    
     """
     pdat = np.fromfile(fname, dtype=np.float64) #.astype(float)
+
     nbunch = int(len(pdat)/6/npart)
-    
-    # gamma, phase, x, y, px/mc, py/mc
-    # .par file: phase = psi  = kw*z + field_phase
-    # .dpa file: phase = kw*z 
-    
     
     bunch = pdat.reshape(nbunch,6,npart)
     return bunch    
