@@ -46,7 +46,7 @@ def zsort(eles):
 #-------------------------------------------------
 # Standard lattice
 
-def standard_lattice_from_eles(eles, remove_zero_strengths=True):
+def standard_eles_from_eles(eles, remove_zero_strengths=True):
     """
     Converts raw ele dicts to an ordered list of elements, with absolute positions s
     s is at the end of the element
@@ -79,14 +79,14 @@ def standard_lattice_from_eles(eles, remove_zero_strengths=True):
 
 #-------------------------------------------------
 # Utilities  
-def create_names(lat):
+def create_names(eles):
     """
     Invents names for elements
     """
     counter = {}
-    for t in ele_types(lat):
+    for t in ele_types(eles):
         counter[t] = 0
-    for ele in lat:
+    for ele in eles:
         t = ele['type']
         counter[t] = counter[t]+1
         ele['name'] = ele['type']+'_'+str(counter[t])
@@ -128,42 +128,46 @@ def make_dummies_for_single_type(eles, smax):
         
     return dummies
 
-def lattice_dummies(lat):
+def lattice_dummies(eles):
     """
     Makes dummy elements to fill in gaps
     """
     # Separate by types
-    tlat = eles_by_type(lat)
-    smax  = max([e['s'] for e in lat
+    tlat = eles_by_type(eles)
+    smax  = max([e['s'] for e in eles
                 if e['type'] not in ['comment']])
     #print(smax)
     dummies = []
     for t in tlat:
-        eles = tlat[t]
-        dummies.extend(make_dummies_for_single_type(eles, smax))
+        eles2 = tlat[t]
+        dummies.extend(make_dummies_for_single_type(eles2, smax))
     return dummies
         
 
 #-------------------------------------------------
 # Export genesis lattice
     
-def genesis_lattice_from_standard_lattice(standard_lattice, unitlength = 1, version = '1.0', include_name=False, include_comment=False):
+def genesis_lattice_from_standard_lattice(standard_lattice,include_name=False, include_comment=False):
     """
     Forms lines of a Genesis lattice file from a standard lattice
     
     Pads all types with zero strength dummy elements
     
     """
-    # Make copy
-    lat = [e.copy() for e in standard_lattice]
     
-    tlist = ele_types(lat)
+    unitlength = standard_lattice['param']['unitlength']
+    version = standard_lattice['param']['version']
+    
+    # Make copy
+    eles = [e.copy() for e in standard_lattice['eles']]
+    
+    tlist = ele_types(eles)
     # Add dummies    
-    lat = lat + lattice_dummies(lat)
+    eles = eles + lattice_dummies(eles)
     
     # Sort 
     
-    lat = zsort(lat)
+    eles = zsort(eles)
     # Separate lattice by types
     glat = {} # lattice
     z = {}    # z at end of each type
@@ -172,7 +176,7 @@ def genesis_lattice_from_standard_lattice(standard_lattice, unitlength = 1, vers
         glat[t] = []
         z[t] = 0
     
-    for ele in lat:
+    for ele in eles:
         t = ele['type']
         if t in ['comment', 'drift']: # Skip these
             continue
@@ -200,8 +204,8 @@ def genesis_lattice_from_standard_lattice(standard_lattice, unitlength = 1, vers
     return outlines
 
 
-def write_lattice(filePath, standard_lattice, unitlength):
-    lines = genesis_lattice_from_standard_lattice(standard_lattice, unitlength=unitlength)
+def write_lattice(filePath, standard_lattice):
+    lines = genesis_lattice_from_standard_lattice(standard_lattice)
     with open(filePath, 'w') as f:
         for l in lines:
             f.write(l+'\n')
@@ -242,14 +246,14 @@ def print_ele(e):
         line = line + append
     print(line)
 
-def join_lattice(lat1, lat2):
+def join_eles(eles1, eles2):
 
 
-    zlist = [e['s'] for e in lat1]
+    zlist = [e['s'] for e in eles1]
     zmax = max(zlist)
-    for ele in lat2:
+    for ele in eles2:
         ele['s'] += zmax
-    merged = lat1 + lat2
+    merged = eles1 + eles2
 
     return merged
 

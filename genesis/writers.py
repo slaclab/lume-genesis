@@ -2,7 +2,7 @@ import numpy as np
 
 
 
-def write_beam_file(fname, beam_columns):
+def write_beam_file(fname, beam_columns, verbose=False):
     """
     Writes a beam file, using a dict beam_columns
     
@@ -25,6 +25,9 @@ def write_beam_file(fname, beam_columns):
     
     dat = np.array([beam_columns[name] for name in names]).T
 
-    np.savetxt(fname, dat, header=header, comments='')
+    np.savetxt(fname, dat, header=header, comments='', fmt='%1.8e') # Genesis can't read format %1.16e - lines are too long?
+    
+    if verbose:
+        print('Beam written:', fname)
     
     return header

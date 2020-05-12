@@ -3,10 +3,11 @@
 
  
 """
-
+import numpy as np
 from hashlib import blake2b
 from numbers import Number
 import subprocess
+import datetime
 import json
 import os
 
@@ -58,6 +59,16 @@ def full_path(path):
     """
     return os.path.abspath(os.path.expandvars(path))
 
+
+
+def make_executable(path):
+    """
+    https://stackoverflow.com/questions/12791997/how-do-you-do-a-simple-chmod-x-from-within-python
+    """
+    mode = os.stat(path).st_mode
+    mode |= (mode & 0o444) >> 2    # copy R bits to X
+    os.chmod(path, mode)
+
 class NpEncoder(json.JSONEncoder):
     """
     See: https://stackoverflow.com/questions/50916422/python-typeerror-object-of-type-int64-is-not-json-serializable/50916741
@@ -105,9 +116,34 @@ def namelist_lines(namelist_dict, start='&name', end='/'):
         elif type(value) == type('a'): # strings
             line = key + ' = ' + "'" + value.strip("''") + "'"  # input may need apostrophes
         else:
-            #print 'skipped: key, value = ', key, value
-            pass
+            # Skip
+            #print('skipped: key, value = ', key, value)
+            continue
         lines.append(line)
     
     lines.append(end)
     return lines
+
+
+
+def fstr(s):
+    """
+    Makes a fixed string for h5 files
+    """
+    return np.string_(s)
+
+
+
+def native_type(value):
+    """
+    Converts a numpy type to a native python type.
+    See:
+    https://stackoverflow.com/questions/9452775/converting-numpy-dtypes-to-native-python-types/11389998
+    """
+    return getattr(value, 'tolist', lambda: value)()    
+
+
+"""UTC to ISO 8601 with Local TimeZone information without microsecond"""
+def isotime():
+    return datetime.datetime.utcnow().replace(tzinfo=datetime.timezone.utc).astimezone().replace(microsecond=0).isoformat()    
+    
