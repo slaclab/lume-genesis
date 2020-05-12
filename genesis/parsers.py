@@ -492,9 +492,8 @@ def parse_genesis_dfl(fname, nx):
     fname: filename
     nx: grid size in x and y. Same as Genesis 'ncar'
     
-    returnsReturns numpy.array:
-    
-    [z, x, y]
+    Returns 3d numpy.array with indices as:
+        [z, x, y]
     
     """
     dat = np.fromfile(fname, dtype=np.complex).astype(np.complex)

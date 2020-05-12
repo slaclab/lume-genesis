@@ -77,8 +77,12 @@ class Genesis:
             self.tempdir = tempfile.TemporaryDirectory(dir=self.workdir)
             self.path = self.tempdir.name
         else:
-            # Work in place
-            self.path = self.original_path        
+            if workdir:
+                self.path = workdir
+                self.tempdir = None
+            else:
+                # Work in place
+                self.path = self.original_path      
      
         # Make full path
         self.input_file = os.path.join(self.path, 'genesis.in')    
