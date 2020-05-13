@@ -493,7 +493,7 @@ def parse_genesis_dfl(fname, nx):
     nx: grid size in x and y. Same as Genesis 'ncar'
     
     Returns 3d numpy.array with indices as:
-        [z, x, y]
+        [x, y, z]
     
     """
     dat = np.fromfile(fname, dtype=np.complex).astype(np.complex)
@@ -502,10 +502,10 @@ def parse_genesis_dfl(fname, nx):
     # Determine number of slices
     ny = nx
     nz =  npoints / ny /nx
-    assert (nz % 1 == 0) # 
+    assert (nz % 1 == 0), f'Confused shape {nx} {ny} {nz}' 
     nz = int(nz)   
     dat = dat.reshape(nz, ny, nx)    
-    dat = np.moveaxis(dat, [1,2], [2,1]) # exchange x and y 
+    dat = np.moveaxis(dat, [0,1,2], [2,1,0]) # z, y, x to x, y, z
     
     return dat
     
@@ -513,8 +513,6 @@ def parse_genesis_dfl(fname, nx):
 
 #-------------------------------------------------
 #.fld file
-#    history file
-#    output in a loop over histories, nslices, real/imaginary, ny, nx
     
 def parse_genesis_fld(fname, nx, nz):
     """
@@ -523,9 +521,13 @@ def parse_genesis_fld(fname, nx, nz):
     nx: grid size in x and y. Same as Genesis 'ncar'  
     nz: number of slices
     
-    The number of histories can be computed from these. Returns numpy.array:
+    The .fld file is written by Genesis in a loop over:
+        histories, nslices, real/imaginary, ny, nx
     
-    [history, z, x, y]
+    The number of histories can be computed from these. 
+    
+    Returns 4D numpy.array of complex numbers with indices:
+        [x, y, z, history] 
     
     """
   
@@ -542,7 +544,7 @@ def parse_genesis_fld(fname, nx, nz):
     # real and imaginary parts are written separately. 
     dat = dat.reshape(nhistories, nz, 2,  ny, nx) # 
     dat =  np.moveaxis(dat, 2, 4) # Move complex indices to the end
-    dat =  np.moveaxis(dat, [2,3], [3,2]) # exchange x and y
+    dat =  np.moveaxis(dat, [0,1,2,3], [3,2,1,0]) # exchange history, z, y, x to x, y, z, history
     # Reform complex numbers:
     dat = 1j*dat[:,:,:,:,1] + dat[:,:,:,:,0]
 
