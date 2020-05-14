@@ -14,7 +14,7 @@ import os
 
 pal = palettes.Viridis[256]
 
-def interactive_field_history(doc, fld=None, slice=0, dgrid=0):
+def interactive_field_history(doc, fld=None, islice=0, dgrid=0):
     """         
     
     Use with code similar to:
@@ -32,11 +32,11 @@ def interactive_field_history(doc, fld=None, slice=0, dgrid=0):
     """
     
     
-    nhist = len(fld)
+    nhist = fld.shape[3]
     
     ihist = nhist-1
     
-    fdat = fld[ihist][slice]
+    fdat = fld[:, :, islice, ihist]
     
     d = np.angle(fdat)
     ds = ColumnDataSource(data=dict(image=[d]))
@@ -50,9 +50,9 @@ def interactive_field_history(doc, fld=None, slice=0, dgrid=0):
     slider = Slider(start=0, end=nhist-1, value=ihist, step=1, title='History')
 
     def handler(attr, old, new):
-        fdat = fld[new][slice]
+        fdat = fld[:, :, islice, new]
         d = np.angle(fdat)
-        ds.data = ColumnDataSource(data=dict(image=[d])).data
+        ds.data = dict(ColumnDataSource(data=dict(image=[d])).data)
     
     slider.on_change('value', handler)
 
@@ -64,16 +64,17 @@ def genesis_interactive_field_history(doc, genesis=None):
     """
     
     # Parameters
-    p = genesis.input
-    
+    p = genesis.input['param']
+    fld = genesis.output['data']['fld']
+    print(fld.shape)
     # Check for time dependence
     if p['itdp'] == 0:
         nslice = 1
     else:
         nslice = p['nslice']
     
-    fld_fname = os.path.join(genesis.path, p['outputfile']+'.fld')
-    my_fld =  parsers.parse_genesis_fld(fld_fname, p['ncar'], nslice)
+    #fld_fname = os.path.join(genesis.path, p['outputfile']+'.fld')
+    #my_fld =  parsers.parse_genesis_fld(fld_fname, p['ncar'], nslice)
     
-    return interactive_field_history(doc, fld=my_fld, slice=0, dgrid=p['dgrid'] )  
+    return interactive_field_history(doc, fld=fld, islice=0, dgrid=p['dgrid'] )  
     

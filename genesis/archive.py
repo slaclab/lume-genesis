@@ -210,7 +210,7 @@ def read_input_h5(h5):
 
 
 
-def write_output_h5(h5, output, name='output'):
+def write_output_h5(h5, output, name='output', verbose=False):
     """
     Writes all output to an open h5 handle.
     
@@ -221,30 +221,53 @@ def write_output_h5(h5, output, name='output'):
         g = h5    
     
     
-
-    write_attrs_h5(g, output['param'], name='param')
-    write_datasets_h5(g, output['data'], name='data')
+    found = []
+    if 'param' in output:
+        found.append('param')
+        write_attrs_h5(g, output['param'], name='param')
+    
+    if 'data' in output:
+        found.append('data')
+        write_datasets_h5(g, output['data'], name='data')
     
     if 'run_info' in output:
+        found.append('run_info')
         write_attrs_h5(g, output['run_info'], name='run_info')
+        
+    if verbose:
+        if len(found) > 0:
+            print('Archived output: '+', '.join(found))
+        else:
+            print('Warning: no output found to archive')
     
-    
-def read_output_h5(h5):
+def read_output_h5(h5, verbose=False):
     """
     Read all output from h5 handle.
     
     Returns a dict of:
         param
         data
-    
-    
     """
     
     d = {}
-    d['param'] = read_attrs_h5(h5['param'])
-    d['data'] = read_datasets_h5(h5['data'])
+    
+    found = []
+    if 'param' in h5:
+        found.append('param')
+        d['param'] = read_attrs_h5(h5['param'])
+   
+    if 'data' in h5:
+        found.append('data')
+        d['data'] = read_datasets_h5(h5['data'])
     
     if 'run_info' in h5:
-         d['run_info'] = read_attrs_h5(h5['run_info'])
+        found.append('run_info')
+        d['run_info'] = read_attrs_h5(h5['run_info'])
+    
+    if verbose:
+        if len(found) > 0:
+            print('Read output from archive: '+', '.join(found))
+        else:
+            print('Warning: no output found in archive h5')
     
     return d

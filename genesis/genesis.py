@@ -13,6 +13,7 @@ import os
 
 
 
+
 class Genesis:
     """
     LUME-Genesis class to parse input, run genesis, and parse output.
@@ -242,6 +243,28 @@ class Genesis:
             lattice.write_lattice(filePath, self.lattice)
             self.vprint('Lattice written:', filePath)
             
+            
+    def write_wavefront(self, h5=None):
+        """
+        Write an openPMD wavefront from the dfl
+        """
+        
+        if not h5:
+            h5 = 'genesis_wavefront_'+self.fingerprint()+'.h5'
+         
+        if isinstance(h5, str):
+            fname = os.path.expandvars(h5)
+            g = h5py.File(fname, 'w')
+            self.vprint(f'Writing wavefront (dfl data) to file {fname}')
+        else:
+            g = h5        
+        
+        dfl = self.output['data']['dfl']
+        param = self.output['param']
+        writers.write_openpmd_wavefront_h5(g, dfl=dfl, param=param)        
+        
+        return h5
+            
     def get_run_script(self, write_to_path=True):
         """
         Assembles the run script. Optionally writes a file 'run' with this line to path.
@@ -382,7 +405,7 @@ class Genesis:
         archive.write_input_h5(g, self.input, name='input')
 
         # All output
-        archive.write_output_h5(g, self.output, name='output') 
+        archive.write_output_h5(g, self.output, name='output', verbose=self.verbose) 
         
         return h5
 
@@ -414,7 +437,7 @@ class Genesis:
             g = h5
         
         self.input  = archive.read_input_h5(g['input'])
-        self.output = archive.read_output_h5(g['output'])   
+        self.output = archive.read_output_h5(g['output'], verbose=self.verbose)
 
         self.vprint('Loaded from archive. Note: Must reconfigure to run again.')
         self.configured = False     
