@@ -444,7 +444,7 @@ def parse_beam_file_header(fname):
             
 def parse_beam_file(fname, verbose=False):
     """
-    Parses a Gensis beam file. 
+    Parses a Genesis beam file. 
     
     Asserts that the version is 1.0.
     

@@ -125,7 +125,13 @@ def write_wavefront_meshes_h5(h5, dfl, param, name=None):
     assert ny == param['ncar']
     
     # x grid (y is the same)
-    dx = param['dgrid']
+    # grid goes from [-dgrid, dgrid]
+        
+    dx = 2*param['dgrid']/(nx-1)
+    if dx == 0:
+        raise ValueError('dgrid zero!!!')
+        # TODO
+        
     xoffset = -dx * (nx-1)/2
     
     #z grid
