@@ -132,7 +132,7 @@ def write_wavefront_meshes_h5(h5, dfl, param, name=None):
         raise ValueError('dgrid zero!!!')
         # TODO
         
-    xoffset = -dx * (nx-1)/2
+    xoffset = -param['dgrid']
     
     #z grid
     dz = param['xlamds']*param['zsep']
