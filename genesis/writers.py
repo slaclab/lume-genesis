@@ -110,6 +110,11 @@ def write_wavefront_meshes_h5(h5, dfl, param, name=None):
         zsep
     to write the appropriate metadata.
     
+    Note that the dfl file is in units of sqrt(W), 
+    and needs to be divided by the grid spacing to get the openPMD-wavefront unit.
+    This factor is inclueded in the unitSI factor as:
+        h5['/path/to/E_real/x'].attrs['unitSI'] = 1/dx
+    so that raw dfl data is not changed when writing to hdf5.
     
     """
     if name:
@@ -173,7 +178,7 @@ def write_wavefront_meshes_h5(h5, dfl, param, name=None):
         E_re.attrs[k] = v    
     # components
     E_re['x'] = np.real(dfl)
-    E_re['x'].attrs['unitSI'] = 1.0
+    E_re['x'].attrs['unitSI'] = 1/dx # sqrt(W) -> sqrt(W)/m
     
 
     # E_imag (similar to above)
@@ -187,7 +192,7 @@ def write_wavefront_meshes_h5(h5, dfl, param, name=None):
         E_im.attrs[k] = v    
     # components
     E_im['x'] = np.imag(dfl)
-    E_im['x'].attrs['unitSI'] = 1.0        
+    E_im['x'].attrs['unitSI'] = 1/dx # sqrt(W) -> sqrt(W)/m     
     
     
 def write_openpmd_wavefront_h5(h5, dfl=None, param=None):
