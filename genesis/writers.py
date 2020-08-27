@@ -98,7 +98,7 @@ def pmd_wavefront_init(h5, photon_energy=0):
         
         
         
-def write_wavefront_meshes_h5(h5, dfl, param, name=None):
+def write_wavefront_meshes_h5(h5, dfl, param, name=None, legacy=False):
     """
     Write genesis dfd data to an open H5 handle.
     
@@ -158,6 +158,8 @@ def write_wavefront_meshes_h5(h5, dfl, param, name=None):
     frequency = speed_of_light/param['xlamds']
     photon_energy_eV =  Planck_eV * frequency
     
+    Z0 = np.pi*119.9169832 # V^2/W exactly
+    
 
     grid_attrs['frequency'] = frequency
     grid_attrs['frequencyUnitSI'] = 1.0
@@ -167,42 +169,60 @@ def write_wavefront_meshes_h5(h5, dfl, param, name=None):
     grid_attrs['photonEnergyUnitSI'] = elementary_charge # eV -> J
     grid_attrs['photonEnergyUnitDimension'] = (2,1,-2,0,0,0,0) # J
     
-    # E_real
-    #--------
-    # Record
-    E_re = g.create_group('E_real')
-    E_re.attrs['unitDimension'] = (0., 0.5, -1.5, 0., 0., 0., 0.) # (W^{1/2} / m = (kg / s^3)^{1/2}) ???
-    E_re.attrs['timeOffset'] = 0.0
-    # Add grid attrs
-    for k, v in grid_attrs.items():
-        E_re.attrs[k] = v    
-    # components
-    E_re['x'] = np.real(dfl)
-    E_re['x'].attrs['unitSI'] = 1/dx # sqrt(W) -> sqrt(W)/m
     
-
-    # E_imag (similar to above)
-    #--------
-    # Record
-    E_im = g.create_group('E_imag')
-    E_im.attrs['unitDimension'] = (0., 0.5, -1.5, 0., 0., 0., 0.) # (W^{1/2} / m = (kg / s^3)^{1/2}) ???
-    E_im.attrs['timeOffset'] = 0.0
-    # Add grid attrs
-    for k, v in grid_attrs.items():
-        E_im.attrs[k] = v    
-    # components
-    E_im['x'] = np.imag(dfl)
-    E_im['x'].attrs['unitSI'] = 1/dx # sqrt(W) -> sqrt(W)/m     
+    if legacy:
+        
+        # E_real
+        #--------
+        # Record
+        E_re = g.create_group('E_real')
+        E_re.attrs['unitDimension'] = (0., 0.5, -1.5, 0., 0., 0., 0.) # (W^{1/2} / m = (kg / s^3)^{1/2}) ???
+        E_re.attrs['timeOffset'] = 0.0
+        # Add grid attrs
+        for k, v in grid_attrs.items():
+            E_re.attrs[k] = v    
+        # components
+        E_re['x'] = np.real(dfl)
+        E_re['x'].attrs['unitSI'] = 1/dx # sqrt(W) -> sqrt(W)/m
+        
+    
+        # E_imag (similar to above)
+        #--------
+        # Record
+        E_im = g.create_group('E_imag')
+        E_im.attrs['unitDimension'] = (0., 0.5, -1.5, 0., 0., 0., 0.) # (W^{1/2} / m = (kg / s^3)^{1/2}) ???
+        E_im.attrs['timeOffset'] = 0.0
+        # Add grid attrs
+        for k, v in grid_attrs.items():
+            E_im.attrs[k] = v    
+        # components
+        E_im['x'] = np.imag(dfl)
+        E_im['x'].attrs['unitSI'] = 1/dx # sqrt(W) -> sqrt(W)/m   
+    else:
+        # 
+        # electricField (complex)
+        #--------
+        # Record
+        E_complex = g.create_group('electricField')
+        E_complex.attrs['unitDimension'] = (1, 1, -3, -1, 0, 0, 0) # V/m
+        E_complex.attrs['timeOffset'] = 0.0
+        # Add grid attrs
+        for k, v in grid_attrs.items():
+            E_complex.attrs[k] = v    
+        # components
+        E_complex['x'] = dfl
+        E_complex['x'].attrs['unitSI'] = np.sqrt(2*Z0)/dx # sqrt(W) -> V/m      
+        E_complex['x'].attrs['unitSymbol'] = 'V/m'
     
     
-def write_openpmd_wavefront_h5(h5, dfl=None, param=None):
+def write_openpmd_wavefront_h5(h5, dfl=None, param=None, legacy=False):
     """
     Writes a proper openPMD-wavefront to an open h5 handle.
     
     https://github.com/PaNOSC-ViNYL/openPMD-standard/blob/upcoming-2.0.0/EXT_WAVEFRONT.md
     
-    
-    
+    If legacy, the old E_real, E_imag fields will be written. 
+
     """
     meshesPath='meshes/'
     
@@ -216,4 +236,4 @@ def write_openpmd_wavefront_h5(h5, dfl=None, param=None):
     g.attrs['dt'] = 0.0
     g.attrs['timeUnitSI'] = 1.0
     
-    write_wavefront_meshes_h5(g, dfl, param, name='meshes')    
+    write_wavefront_meshes_h5(g, dfl, param, name='meshes', legacy=legacy)    
