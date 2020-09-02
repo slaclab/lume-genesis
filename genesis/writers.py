@@ -161,9 +161,9 @@ def write_wavefront_meshes_h5(h5, dfl, param, name=None, legacy=False):
     Z0 = np.pi*119.9169832 # V^2/W exactly
     
 
-    grid_attrs['frequency'] = frequency
-    grid_attrs['frequencyUnitSI'] = 1.0
-    grid_attrs['frequencyUnitDimension'] = (0,0,-1,0,0,0,0)
+    #grid_attrs['frequency'] = frequency
+    #grid_attrs['frequencyUnitSI'] = 1.0
+    #grid_attrs['frequencyUnitDimension'] = (0,0,-1,0,0,0,0)
     
     grid_attrs['photonEnergy'] = photon_energy_eV
     grid_attrs['photonEnergyUnitSI'] = elementary_charge # eV -> J
