@@ -83,14 +83,14 @@ def pmd_wavefront_init(h5, photon_energy=0):
     wavefront_series_attrs = {
         # optiona
         'beamline':'(optional) The string representation of the optical beamline',
-        'temporal domain':'time',
-        'spatial domain': 'r',
-        'z coordinate': 0.0,
-        'photon energy': photon_energy,
-        'radius of curvature in x': 0.0,
-        'radius of curvature in y': 0.0,
-        'Delta radius of curvature in x': 0.0,
-        'Delta radius of curvature in y': 0.0
+        'temporalDomain':'time',
+        'spatialDomain': 'r',
+        'zCoordinate': 0.0,
+        'photonEnergy': photon_energy,
+        'radiusOfCurvatureX': 0.0,
+        'radiusOfCurvatureY': 0.0,
+        'deltaRadiusOfCurvatureX': 0.0,
+        'deltaRadiusOfCurvatureY': 0.0
     }
     for k, v in wavefront_series_attrs.items():
         h5.attrs[k] = v      
