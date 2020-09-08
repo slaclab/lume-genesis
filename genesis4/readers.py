@@ -21,17 +21,16 @@ def load_genesis4_fields(h5):
         
         param is a dict with:
             gridpoints:    number of gridpoints in one transverse dimension, equal to nx and ny above
-            gridsize:      half width of the tansverse grid: 
-                               origin to the edge along of th emajor axis (meter)
+            gridsize:      gridpoint spacing (meter)
             refposition:   starting position (meter)
             wavelength:    radiation wavelength (meter)
             slicecount:    number of slices
             slicespacing   slice spacing (meter)
             
         These params correspond to v2 params:
-            gridpoints: ncar
-            gridsize: dgrid
-            wavelength: xlamds
+            gridpoints:   ncar
+            gridsize:     dgrid*2 / (ncar-1)
+            wavelength:   xlamds
             slicespacing: xlamds * zsep
         
     

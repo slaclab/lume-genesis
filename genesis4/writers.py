@@ -49,14 +49,13 @@ def write_wavefront_meshes_h5(h5, dfl, param, name=None):
     assert ny == param['gridpoints']
     
     # x grid (y is the same)
-    # grid goes from [-dgrid, dgrid]
         
-    dx = 2*param['gridsize']/(nx-1)
+    dx = param['gridsize']
     if dx == 0:
         raise ValueError('gridsize zero!!!')
-        # TODO
         
-    xoffset = -param['gridsize']
+    # The grid should be symmetry about zero    
+    xoffset = -(nx-1)*dx/2
     
     #z grid
     dz = param['slicespacing']
