@@ -1,10 +1,11 @@
-import numpy as np
+
 
 from .tools import fstr, isotime, native_type
-
 from ._version import __version__
 
+
 import numpy as np
+
 
 
 

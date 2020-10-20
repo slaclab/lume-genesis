@@ -9,10 +9,35 @@ from genesis import archive, lattice, parsers, tools, writers
 import h5py
 import tempfile
 from time import time
+import shutil
 import os
 
 
 
+def find_genesis2_executable(genesis_exe=None, verbose=False):
+    """
+    Searches for the genesis2 executable. 
+    """
+        
+    if genesis_exe:
+        exe = tools.full_path(genesis_exe)
+        if os.path.exists(exe):
+            if verbose:
+                print(f'Using user provided executable: {exe}')
+            return exe
+        else: 
+            raise ValueError(f'Genesis executable does not exist: {exe}')
+    
+   
+    
+    for exe in  [tools.full_path('$GENESIS_BIN'), shutil.which('genesis2')]:
+        if os.path.exists(exe):
+            if verbose:
+                print(f'Using found executable: {exe}')
+            return exe
+
+    raise ValueError('No Genesisi executable found')
+        
 
 class Genesis:
     """
@@ -20,11 +45,10 @@ class Genesis:
     
     By default, a temporary directory is created for working.
     
-    """
-    
+    """    
         
     def __init__(self, input_file=None, 
-                 genesis_bin='$GENESIS_BIN', 
+                 genesis_bin=None, 
                  use_tempdir=True,
                  workdir=None,
                  verbose=False
@@ -38,7 +62,8 @@ class Genesis:
             assert os.path.exists(workdir), 'workdir does not exist: '+workdir           
         self.verbose=verbose
         
-        self.genesis_bin = genesis_bin
+        self.genesis_bin = find_genesis2_executable(genesis_bin, verbose=verbose)
+
         self.binary_prefixes = [] #  For example, ['mpirun', '-n', '2']
         self.finished = False
     
