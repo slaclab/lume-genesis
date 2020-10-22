@@ -117,6 +117,11 @@ def parse_main_input(rawtext, strict=True, fill_defaults=True):
         if line.strip() =='':
             continue
         x = line.split('=')
+        
+        # Windows bug? puts a new line after lout. Skip
+        if len(x) == 1:
+            continue        
+        
         key = x[0].strip().lower() # force all keys to be lower case
         
 
