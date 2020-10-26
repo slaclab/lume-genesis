@@ -2,8 +2,9 @@
 Genesis tools for use in LUME
 
 
+## Installation
 
-Installing lume-genesis
+Installing lume-genesis via conda-forge
 =======================
 
 Installing `lume-genesis` from the `conda-forge` channel can be achieved by adding `conda-forge` to your channels with:
@@ -22,7 +23,7 @@ It is possible to list all of the versions of `lume-genesis` available on your p
 
 ```
 conda search lume-genesis --channel conda-forge
-
+```
 
 Installing Genesis 1.3 version 2 Executables
 ============================================
