@@ -122,7 +122,11 @@ class Genesis:
         return self.input['beam']    
     @property
     def lattice(self):
-        return self.input['lattice']
+        try: 
+            return self.input['lattice']
+        except:
+            print('No lattice found, assuming lattice is defined in input file.')
+            return None
     @property
     def param(self):
         return self.input['param']    
@@ -259,8 +263,7 @@ class Genesis:
     def write_lattice(self):
     
         if not self.lattice:
-            print('Error, no lattice to write')
-            return
+            self.input['lattice'] = None
     
         else:
             filePath = os.path.join(self.path, self.param['maginfile'])
