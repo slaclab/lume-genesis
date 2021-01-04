@@ -1,7 +1,38 @@
 # lume-genesis
 Genesis tools for use in LUME
 
-## Genesis 1.3 v2.0 Installation
+
+## Installation
+
+Installing lume-genesis via conda-forge
+=======================
+
+Installing `lume-genesis` from the `conda-forge` channel can be achieved by adding `conda-forge` to your channels with:
+
+```
+conda config --add channels conda-forge
+```
+
+Once the `conda-forge` channel has been enabled, `lume-genesis` can be installed with:
+
+```
+conda install lume-genesis
+```
+
+It is possible to list all of the versions of `lume-genesis` available on your platform with:
+
+```
+conda search lume-genesis --channel conda-forge
+```
+
+Installing Genesis 1.3 version 2 Executables
+============================================
+See: https://github.com/slaclab/Genesis-1.3-Version2
+
+
+
+
+## Old Genesis 1.3 v2.0 Installation
 Go to <http://genesis.web.psi.ch/download.html> and download:
 <http://genesis.web.psi.ch/download/source/genesis_source_2.0_120629.tar.gz>
 
