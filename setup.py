@@ -10,7 +10,7 @@ with open(path.join(cur_dir, 'requirements.txt'), 'r') as f:
 
 setup(
     name='lume-genesis',
-    version = 'v0.2.0',
+    version = 'v0.2.1',
     packages=find_packages(),  
     package_dir={'genesis':'genesis'},
     url='https://github.com/slaclab/lume-genesis',
