@@ -161,7 +161,7 @@ class Genesis:
             # Use this new name
             main['maginfile'] = parsers.POSSIBLE_INPUT_FILES['maginfile']  
         else:
-            main['lattice'] = None
+            d['lattice'] = None
 
 
     def load_output(self, filePath=None):
@@ -259,7 +259,7 @@ class Genesis:
     def write_lattice(self):
     
         if not self.lattice:
-            print('Error, no lattice to write')
+            self.vprint('Warning: no lattice to write')
             return
     
         else:
