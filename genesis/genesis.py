@@ -211,7 +211,15 @@ class Genesis:
         loads an original Genesis-style lattice into a standard_lattice
         """
         if not filePath:
+            
+            if self.param['maginfile'] == '':
+                self.vprint('Warning: no maginfile specified. No lattice loaded.')
+                return
+            
             fname = os.path.join(self.path, self.param['maginfile'])
+            
+            
+            
         else:
             fname = filePath
             
