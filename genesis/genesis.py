@@ -332,15 +332,8 @@ class Genesis:
         t1 = time()
         run_info['start_time'] = t1
 
-        # Move to local directory
-
-        # Save init dir
-        init_dir = os.getcwd()
-        self.vprint('init dir: ', init_dir)
-        
-        os.chdir(self.path)
         # Debugging
-        self.vprint('Running genesis in '+os.getcwd())
+        self.vprint(f'Running genesis in {self.path}')
 
         # Write all input
         self.write_input()
@@ -350,14 +343,14 @@ class Genesis:
         
         try:
             if timeout:
-                res = tools.execute2(runscript, timeout=timeout)
+                res = tools.execute2(runscript, timeout=timeout, cwd=self.path)
                 log = res['log']
                 self.error = res['error']
                 run_info['why_error'] = res['why_error']    
             else:
                 # Interactive output, for Jupyter
                 log = []
-                for path in tools.execute(runscript):
+                for path in tools.execute(runscript, cwd=self.path):
                     self.vprint(path, end="")
                     log.append(path)
     
@@ -376,9 +369,7 @@ class Genesis:
             run_info['run_time'] = time() - t1
             run_info['run_error'] = self.error
             
-            # Return to init_dir
-            os.chdir(init_dir)                        
-        
+                        
         self.finished = True        
 
         

@@ -11,7 +11,7 @@ import datetime
 import json
 import os
 
-def execute(cmd):
+def execute(cmd, cwd=None):
     """
     
     Constantly print Subprocess output while process is running
@@ -24,7 +24,7 @@ def execute(cmd):
     Useful in Jupyter notebook
     
     """
-    popen = subprocess.Popen(cmd, stdout=subprocess.PIPE, universal_newlines=True)
+    popen = subprocess.Popen(cmd, stdout=subprocess.PIPE, universal_newlines=True, cwd=cwd)
     for stdout_line in iter(popen.stdout.readline, ""):
         yield stdout_line 
     popen.stdout.close()
@@ -33,14 +33,15 @@ def execute(cmd):
         raise subprocess.CalledProcessError(return_code, cmd)
         
 # Alternative execute
-def execute2(cmd, timeout=None):
+def execute2(cmd, timeout=None, cwd=None):
     """
     Execute with time limit (timeout) in seconds, catching run errors. 
     """
     
     output = {'error':True, 'log':''}
     try:
-        p = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, universal_newlines=True, timeout = timeout)
+        p = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, universal_newlines=True, timeout = timeout, cwd=cwd)
+      #  p = subprocess.run(' '.join(cmd), shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, universal_newlines=True, timeout = timeout)
         output['log'] = p.stdout
         output['error'] = False
         output['why_error'] =''
