@@ -9,6 +9,7 @@ from genesis import archive, lattice, parsers, tools, writers
 import h5py
 import tempfile
 from time import time
+from copy import deepcopy
 import shutil
 import os
 
