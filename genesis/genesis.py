@@ -4,6 +4,10 @@ LUME-Genesis primary class
  
 """
 from genesis import archive, lattice, parsers, tools, writers
+from genesis.particles import final_particles
+
+
+
 
 
 import h5py
@@ -525,3 +529,14 @@ class Genesis:
         return s    
     
     
+    
+    def final_particles(self):
+        """
+        Returns a ParticleGroup object from dpa data (if present)
+        """
+        if 'dpa' in self.output['data']:
+            return final_particles(self)
+        else:
+            return None
+        
+        
