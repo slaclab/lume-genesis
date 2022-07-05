@@ -1,0 +1,20 @@
+# conda env create -f environment.yml
+name: genesis-dev
+channels:
+  - conda-forge
+dependencies:
+  - python=3.9
+  - lume-base
+  - genesis2=*=mpi_mpich*
+  - matplotlib
+
+# Developer
+  - pytest
+  - flake8
+  - mkdocs
+  - mkdocstrings
+  - mkdocs-material
+  - mkdocs-jupyter
+  - mkdocstrings-python
+  - pre-commit
+
