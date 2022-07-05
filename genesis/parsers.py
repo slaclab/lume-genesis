@@ -4,6 +4,8 @@ from collections import OrderedDict
 import re
 import os
 
+from genesis import lattice
+
 def isfloat(value):
       try:
             float(value)
@@ -33,33 +35,85 @@ def number(x):
 # All input
 # P
 
-def parse_input(filePath):
+def parse_genesis2_input(filePath):
     """
-    Parses the main input file, and then parses:
-        
+    Parses the main input file, and any referenced input files.
         
     Returns dict of:
-        'main': the main input dict
+        'param': the main input dict
         'lattice': the lattice, if any.
-        'lattice_params'
         'beam': beam description, if any. 
     
     """
     d = {
-        'beam':None
+        'param': None,
+        'beam': None, 
+        'lattice': None
     }
     
-    d['main'] = parse_main_inputfile(filePath)
+    param = parse_main_inputfile(filePath)
     
-    if d['beamfile']:
-        d['beam'] = parse_beam_file(d['beamfile'])
+    d['param'] = param
     
-    if d['maginfile']:        
-        eles, params = parsers.parse_genesis_lattice(d['maginfile'])
-        d['lattice'] = standard_lattice_from_eles(eles)
-        d['lattice_params'] = params
-              
+    if param['beamfile']:
+        d['beam'] = parse_beam_file(param['beamfile'])
+    
+    if param['maginfile']:        
+        lat = parse_genesis_lattice(param['maginfile'])
+        # Standardize eles
+        lat['eles'] = lattice.standard_eles_from_eles(lat['eles']) 
+    
+        d['lattice'] = lat
+        
+        # Use this new name
+        d['param']['maginfile'] = POSSIBLE_INPUT_FILES['maginfile']  
+                      
     return d
+
+
+
+def parse_genesis2_output(fname):
+    """
+    Parse all genesis2 output
+    """
+                     
+    output = parse_genesis_out(fname)
+    param = output['param'] # This is the readback
+    
+        
+    # Final field    
+    dflfile = fname+'.dfl'
+    if os.path.exists(dflfile):
+        output['data']['dfl'] = parse_genesis_dfl(dflfile, param['ncar'])
+        #print('Loaded dfl:', dflfile)
+        
+    # Field history
+    fldfile = fname+'.fld'
+    if os.path.exists(fldfile):
+        # Time independent is just one slice
+        if param['itdp'] == 0:
+            nslice = 1
+        else:
+            nslice = param['nslice']
+        output['data']['fld'] = parse_genesis_fld(fldfile, param['ncar'], nslice)
+        #print('Loaded fld:', fldfile)            
+        
+    # Final particles    
+    dpafile = fname+'.dpa'
+    if os.path.exists(dpafile):
+        output['data']['dpa'] = parse_genesis_dpa(dpafile, param['npart'])
+        #print('Loaded dpa:', dpafile)            
+        
+    # Particle history
+    parfile = fname+'.par'
+    if os.path.exists(parfile):
+        output['data']['par'] = parse_genesis_dpa(parfile, param['npart'])
+        #print('Loaded par:', parfile)  
+
+    return output
+
+
+
 
 #-------------------------------------------------
 # Main Input file
