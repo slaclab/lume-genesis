@@ -2,9 +2,6 @@ import numpy as np
 
 from scipy.constants import Planck, speed_of_light, elementary_charge
 
-from ._version import __version__
-
-
 def write_beam_file(fname, beam_columns, verbose=False):
     """
     Writes a beam file, using a dict beam_columns
@@ -50,12 +47,17 @@ def fstr(s):
 
 
 
-def pmd_init(h5, basePath='/data/%T/', meshesPath='meshes/' ):
+def pmd_init(h5, basePath='/data/%T/', meshesPath='meshes/', version=None ):
     """
     Root attribute initialization.
     
     h5 should be the root of the file.
     """
+    
+    if not version:
+        from genesis import __version__ 
+        version = __version__
+    
     d = {
         'basePath':basePath,
         'dataType':'openPMD',

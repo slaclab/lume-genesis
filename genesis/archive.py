@@ -1,8 +1,6 @@
 
 
 from .tools import fstr, isotime, native_type
-from ._version import __version__
-
 
 import numpy as np
 
@@ -12,11 +10,15 @@ import numpy as np
 #----------------------------        
 # Basic archive metadata
 
-def genesis_init(h5, version=__version__):
+def genesis_init(h5, version=None):
     """
     Set basic information to an open h5 handle
     
     """
+    
+    if not version:
+        from impact import __version__ 
+        version = __version__    
     
     d = {
         'dataType':'lume-genesis',
