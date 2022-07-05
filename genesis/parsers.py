@@ -164,7 +164,8 @@ def parse_main_input(rawtext, strict=True, fill_defaults=True):
     
     """
     # Look for text between $newrun and $end
-    text = re.search(r'\$((?i)newrun)\n.*?\$((?i)end)', rawtext, re.DOTALL).group()
+    #text = re.search(r'\$((?i)newrun)\n.*?\$((?i)end)', rawtext, re.DOTALL).group()
+    text = re.search(r'(?i)\$(newrun)\n.*?\$(end)', rawtext, re.DOTALL).group()
     input_parameters = OrderedDict() # Maintain order for readability
     # Split on newline: \n and comma: 
     for line in re.split('\n|,',text)[1:-1]:
