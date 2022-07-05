@@ -7,3 +7,4 @@ extra          export-ignore
 # exclude CI configurations (useless outside the repo)
 .travis-ci.yml  export-ignore
 .appveyor.yml   export-ignore
+genesis/_version.py export-subst
