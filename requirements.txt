@@ -1,5 +1,5 @@
 numpy
 scipy>=1.0.0
 matplotlib
-bokeh
 openpmd-beamphysics
+lume-base

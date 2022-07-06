@@ -1,0 +1,13 @@
+# conda env create -f environment.yml
+name: genesis-dev
+channels:
+  - conda-forge
+dependencies:
+  - python=3.9
+  - lume-base
+  - genesis2=*=mpi_mpich*
+# Developer
+  - pytest
+  - flake8
+
+
