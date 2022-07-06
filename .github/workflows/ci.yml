@@ -27,7 +27,7 @@ jobs:
         run: |
           flake8 .
 
-      - name: Install Xopt
+      - name: Install LUME-Genesis
         shell: bash -l {0}
         run: |
           pip install --no-dependencies .
@@ -35,4 +35,4 @@ jobs:
       - name: Run Tests
         shell: bash -l {0}
         run: |
-          python scripts/run_tests.py
+          pytest tests
