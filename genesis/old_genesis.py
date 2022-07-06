@@ -1,6 +1,7 @@
 from genesis import archive, lattice, parsers, tools, writers
 from genesis.particles import final_particles
 
+import lume.tools as lume_tools
 
 import h5py
 import tempfile
@@ -16,7 +17,7 @@ def find_genesis2_executable(genesis_exe=None, verbose=False):
     """
 
     if genesis_exe:
-        exe = tools.full_path(genesis_exe)
+        exe = lume_tools.full_path(genesis_exe)
         if os.path.exists(exe):
             if verbose:
                 print(f"Using user provided executable: {exe}")
@@ -24,7 +25,7 @@ def find_genesis2_executable(genesis_exe=None, verbose=False):
         else:
             raise ValueError(f"Genesis executable does not exist: {exe}")
 
-    for exe in [tools.full_path("$GENESIS_BIN"), shutil.which("genesis2")]:
+    for exe in [lume_tools.full_path("$GENESIS_BIN"), shutil.which("genesis2")]:
         if os.path.exists(exe):
             if verbose:
                 print(f"Using found executable: {exe}")
@@ -135,7 +136,7 @@ class Genesis:
 
         assert os.path.exists(filePath), f"Input file does not exist: {filePath}"
 
-        f = tools.full_path(filePath)
+        f = lume_tools.full_path(filePath)
         self.original_path, self.input_file = os.path.split(
             f
         )  # Get original path, name of main input
@@ -314,7 +315,7 @@ class Genesis:
             filename = os.path.join(self.path, "run")
             with open(filename, "w") as f:
                 f.write(" ".join(runscript))
-            tools.make_executable(filename)
+            lume_tools.make_executable(filename)
 
         return runscript
 
@@ -327,7 +328,7 @@ class Genesis:
     def run_genesis(self, verbose=False, parse_output=True, timeout=None):
 
         # Check that binary exists
-        self.genesis_bin = tools.full_path(self.genesis_bin)
+        self.genesis_bin = lume_tools.full_path(self.genesis_bin)
         assert os.path.exists(self.genesis_bin), (
             "Genesis binary does not exist: " + self.genesis_bin
         )
@@ -382,7 +383,7 @@ class Genesis:
         """
         Data fingerprint using the input.
         """
-        return tools.fingerprint(self.input)
+        return lume_tools.fingerprint(self.input)
 
     def vprint(self, *args, **kwargs):
         # Verbose print
