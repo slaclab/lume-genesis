@@ -14,7 +14,7 @@ def genesis_init(h5, version=None):
     """
 
     if not version:
-        from impact import __version__
+        from genesis import __version__
 
         version = __version__
 
