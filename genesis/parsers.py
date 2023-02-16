@@ -546,7 +546,7 @@ def parse_genesis_dfl(fname, nx):
         [x, y, z]
 
     """
-    dat = np.fromfile(fname, dtype=np.complex).astype(np.complex)
+    dat = np.fromfile(fname, dtype=complex).astype(complex)
     npoints = dat.shape[0]
 
     # Determine number of slices
