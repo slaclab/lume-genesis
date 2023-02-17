@@ -157,7 +157,7 @@ class Genesis2(CommandWrapper):
         if not self.beam:
             return
 
-        filePath = os.path.join(self.path, self.param["beamfile"])
+        filePath = os.path.join(self.path, os.path.split(self.param['beamfile'])[-1])
         writers.write_beam_file(filePath, self.beam, verbose=self.verbose)
 
     def write_lattice(self):
@@ -306,20 +306,6 @@ class Genesis2(CommandWrapper):
 
         if configure:
             self.configure()
-
-    def copy(self):
-        """
-        Returns a deep copy of this object.
-
-        If a tempdir is being used, will clear this and deconfigure.
-        """
-        G2 = deepcopy(self)
-        # Clear this
-        if G2.use_tempdir:
-            G2.path = None
-            G2.configured = False
-
-        return G2
 
     def __getitem__(self, key):
         """
