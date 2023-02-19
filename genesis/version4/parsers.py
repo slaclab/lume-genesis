@@ -127,7 +127,13 @@ def extract_data_and_unit(h5):
         if isinstance(node, h5py.Dataset):
              # node is a dataset
             key = node.name.strip('/')
-            data[key] = node[:]
+            dat = node[:]
+            if dat.shape == (1,):
+                dat = dat[0]
+            if isinstance(dat, bytes):
+                dat = dat.decode('utf-8')
+            data[key] = dat
+            
             if 'unit' in node.attrs:
                 u = node.attrs['unit'].decode('utf-8')
                 u = try_pmd_unit(u)
