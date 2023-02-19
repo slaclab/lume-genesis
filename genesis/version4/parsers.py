@@ -107,6 +107,10 @@ def try_pmd_unit(unit_str):
 
 
 
+EXTRA_UNITS = {
+    'zplot': 'm'
+}
+
 def extract_data_and_unit(h5):
     """
     Traverses an open h5 handle and extracts a dict of datasets and units
@@ -142,8 +146,37 @@ def extract_data_and_unit(h5):
         else:
              # node is a group
             pass  
+        
+    # Add in extra
+    for k, v in EXTRA_UNITS.items():
+        unit[k] = try_pmd_unit(v)
             
     h5.visititems(visitor_func)    
     
     return data, unit
+
+def extract_aliases(output_dict):
+    """
+    Forms a convenient alias dict for output keys
+    """
+    output_alias = {}
+    veto = {}
+    for key in output_dict:
+        ks = key.split('/')
+        if len(ks) < 2: 
+            continue
+        k = ks[-1]
+        if k in veto:
+            veto[k].append(key)
+        if k in output_alias:
+            veto[k] = [key, output_alias.pop(k)]
+        else:
+            output_alias[k] = key
+    
+    # Expand vetos
+    for _, keys in veto.items():
+        for key in keys:
+            output_alias[key.replace('/', '_').lower()] = key
+            
+    return output_alias
 

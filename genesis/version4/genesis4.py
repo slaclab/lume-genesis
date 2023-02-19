@@ -4,6 +4,7 @@ from time import time
 import numpy as np
 import h5py
 from . import parsers, writers
+from .plot import plot_stats_with_layout
 from lume.base import CommandWrapper
 from lume import tools
 
@@ -74,7 +75,10 @@ class Genesis4(CommandWrapper):
 
         self.input = {'main':{}, 'lattice':[]}
         
+        # Internal
         self._units = {}
+        self._alias = {}
+        
         
         # MPI
         self._nproc = 1
@@ -231,6 +235,25 @@ class Genesis4(CommandWrapper):
     def units(self, key):
         """pmd_unit of a given key"""
         return self._units[key]        
+    
+    
+    def expand_alias(self, key):
+        if key in self._alias:
+            return self._alias[key]
+        else:
+            return key
+        
+    def stat(self, key):
+        if key in self.output:
+            return self.output[key]
+        
+        # Try alias
+        key = self.expand_alias(key)
+        if key in self.output:
+            return self.output[key]
+        
+        raise ValueError(f'Unknown key: {key}')
+        
         
 
 
@@ -390,6 +413,33 @@ class Genesis4(CommandWrapper):
         for k, v in data.items():
             self.output[k] = v
             
+        self._alias = parsers.extract_aliases(self.output)
+        for k, key in self._alias.items():
+            if key in self._units:
+                self._units[k] = self._units[key]
+            
+            
+    def plot(self, y='power',
+             x='zplot', xlim=None, ylim=None, ylim2=None,
+             y2=['beam_xsize', 'beam_ysize'],
+            nice=True,
+            include_layout=True,
+            include_legend=True,
+            return_figure=False,
+            tex=False,
+             **kwargs):
+        """
+
+
+        """
+        return plot_stats_with_layout(self, ykeys=y, ykeys2=y2,
+                           xkey=x, xlim=xlim, ylim=ylim, ylim2=ylim2,
+                           nice=nice,
+                           tex=tex,
+                           include_layout=include_layout,                               
+                           include_legend=include_legend,
+                           return_figure=return_figure,
+                           **kwargs)            
             
 
             
