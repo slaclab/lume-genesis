@@ -1,6 +1,9 @@
 # --------------
 # lume-genesis genesis4 for Genesis 1.3 v4
 #
+
+import os
+import shutil
 import h5py
 
 import numpy as np
@@ -9,6 +12,8 @@ import numpy as np
 from genesis.writers import pmd_init, dim_m
 
 from scipy.constants import Planck, speed_of_light, elementary_charge
+
+from lume.parsers.namelist import namelist_lines
 
 # ------------------
 # openPMD-wavefront
@@ -130,3 +135,80 @@ def write_openpmd_wavefront(h5file, dfl, param, verbose=False):
         print(f"Writing wavefront (dfl data) to file {h5file}")
 
     return h5file
+
+
+
+
+
+
+# Namelist writing
+
+
+def write_namelists(namelists, filePath, make_symlinks=False, prefixes=['file_', 'distribution'], verbose=False):
+    """
+    Simple function to write namelist lines to a file
+    
+    If make_symlinks, prefixes will be searched for paths and the appropriate links will be made.
+    For Windows, make_symlinks is ignored and it is always False.See note at https://docs.python.org/3/library/os.html#os.symlink .
+    """
+    # With Windows 10, users need Administator Privileges or run on Developer mode
+    # in order to be able to create symlinks.
+    # More info: https://docs.python.org/3/library/os.html#os.symlink
+    if os.name == 'nt':
+        make_symlinks = False
+
+    with open(filePath, 'w') as f:
+        for key in namelists:
+            namelist = namelists[key]
+            
+            if make_symlinks:
+                # Work on a copy
+                namelist = namelist.copy()
+                path, _ = os.path.split(filePath)
+                replacements = make_namelist_symlinks(namelist, path, prefixes=prefixes, verbose=verbose)
+                namelist.update(replacements)
+                
+                
+            lines = namelist_lines(namelist, key)
+            for l in lines:
+                f.write(l+'\n')
+                
+def write_main_input(filePath, main_list):   
+    
+    path, _ = os.path.split(filePath)
+    
+    with open(filePath, 'w') as f:
+        for d in main_list:
+            d = d.copy()
+
+            name = d.pop('type')
+            if name == 'setup':
+                src = d['lattice'] #should be absolute
+                _, file = os.path.split(src)
+                dst = os.path.join(path, file)
+                shutil.copy(src, dst)
+                d['lattice'] = file # Local file
+                
+            elif name == 'profile_file':
+                 write_profile_files(d, path, replace=True)
+            
+            f.write('\n')
+            lines = namelist_lines(d, name, end='&end', strip_strings=True)
+            for line in lines:
+                f.write(line+'\n')    
+                
+                
+def write_profile_files(profile_dict, path, replace=False):
+    """
+    Write data from profile files 
+    
+    If replace, will replace the original dict with 
+    Genesis4 style HDF5 filegroup strings
+    """
+    localfile = profile_dict['label']+'.h5'
+    file = os.path.join(path, localfile)
+    with h5py.File(file, 'w') as h5:
+        for k in ['xdata', 'ydata']:
+            h5[k] = profile_dict[k]   
+            if replace:
+                profile_dict[k] = f'{localfile}/{k}'
