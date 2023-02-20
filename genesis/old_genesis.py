@@ -50,7 +50,6 @@ class Genesis:
         workdir=None,
         verbose=False,
     ):
-
         # Save init
         self.original_input_file = input_file
         self.use_tempdir = use_tempdir
@@ -216,7 +215,6 @@ class Genesis:
         loads an original Genesis-style lattice into a standard_lattice
         """
         if not filePath:
-
             if self.param["maginfile"] == "":
                 self.vprint("Warning: no maginfile specified. No lattice loaded.")
                 return
@@ -266,7 +264,6 @@ class Genesis:
                 f.write(line + "\n")
 
     def write_lattice(self):
-
         if not self.lattice:
             self.vprint("Warning: no lattice to write")
             return
@@ -326,7 +323,6 @@ class Genesis:
         self.run_genesis(verbose=self.verbose, timeout=self.timeout)
 
     def run_genesis(self, verbose=False, parse_output=True, timeout=None):
-
         # Check that binary exists
         self.genesis_bin = lume_tools.full_path(self.genesis_bin)
         assert os.path.exists(self.genesis_bin), (
@@ -391,7 +387,6 @@ class Genesis:
             print(*args, **kwargs)
 
     def input_twiss(self):
-
         betax = self["rxbeam"] ** 2 * self["gamma0"] / self["emitx"]
         betay = self["rybeam"] ** 2 * self["gamma0"] / self["emity"]
         alphax = self["alphax"]

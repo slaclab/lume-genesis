@@ -100,9 +100,7 @@ class Genesis2(CommandWrapper):
 
         try:
             if self.timeout:
-                res = tools.execute2(runscript,
-                                     timeout=self.timeout,
-                                     cwd=self.path)
+                res = tools.execute2(runscript, timeout=self.timeout, cwd=self.path)
                 log = res["log"]
                 self.error = res["error"]
                 run_info["why_error"] = res["why_error"]
@@ -157,11 +155,10 @@ class Genesis2(CommandWrapper):
         if not self.beam:
             return
 
-        filePath = os.path.join(self.path, os.path.split(self.param['beamfile'])[-1])
+        filePath = os.path.join(self.path, os.path.split(self.param["beamfile"])[-1])
         writers.write_beam_file(filePath, self.beam, verbose=self.verbose)
 
     def write_lattice(self):
-
         if not self.lattice:
             self.vprint("Warning: no lattice to write")
             return
@@ -266,8 +263,7 @@ class Genesis2(CommandWrapper):
         archive.write_input_h5(g, self.input, name="input")
 
         # All output
-        archive.write_output_h5(g, self.output, name="output",
-                                verbose=self.verbose)
+        archive.write_output_h5(g, self.output, name="output", verbose=self.verbose)
 
         return h5
 
@@ -291,8 +287,7 @@ class Genesis2(CommandWrapper):
                 message = f"group {gname} from"
                 g = g[gname]
             else:
-                raise ValueError(
-                    f"Multiple archives found in file {fname}: {glist}")
+                raise ValueError(f"Multiple archives found in file {fname}: {glist}")
 
             self.vprint(f"Reading {message} archive file {h5}")
         else:

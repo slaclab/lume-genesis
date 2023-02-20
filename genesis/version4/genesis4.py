@@ -8,146 +8,143 @@ from .plot import plot_stats_with_layout
 from lume.base import CommandWrapper
 from lume import tools
 
+
 def find_mpirun():
     """
     Simple helper to find the mpi run command for macports and homebrew
     """
-    
-    for p in ['/opt/local/bin/mpirun', '/opt/homebrew/bin/mpirun']:
+
+    for p in ["/opt/local/bin/mpirun", "/opt/homebrew/bin/mpirun"]:
         if os.path.exists(p):
             return p
-    return 'mpirun'            
-            
+    return "mpirun"
+
 
 class Genesis4(CommandWrapper):
     """
     Files will be written into a temporary directory within workdir.
     If workdir=None, a location will be determined by the system.
-    
-    
+
+
     Parameters
     ---------
     input_file: str
         Default: None
-        
+
     initial_particle: ParticleGroup
         Default: None
-        
+
     command: str
         Default: "genesis4"
-        
+
     command_mpi: str
         Default: "genesis4"
-        
+
     use_mpi: bool
         Default: False
-        
+
     mpi_run: str
         Default: ""
-        
+
     use_temp_dir: bool
         Default: True
-        
+
     workdir: path-like
         Default: None
-        
+
     verbose: bool
         Default: False
-        
+
     timeout: float
         Default: None
-    
-    
+
+
     """
-    COMMAND = 'genesis4'
-    COMMAND_MPI = 'genesis4'
+
+    COMMAND = "genesis4"
+    COMMAND_MPI = "genesis4"
     MPI_RUN = find_mpirun() + " -n {nproc} {command_mpi}"
 
     # Environmental variables to search for executables
-    command_env='GENESIS4_BIN'
-    command_mpi_env='GENESIS4_BIN'
+    command_env = "GENESIS4_BIN"
+    command_mpi_env = "GENESIS4_BIN"
 
-    def __init__(self, *args,
-                 **kwargs):
+    def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         # Save init
         self.original_input_file = self.input_file
 
-        self.input = {'main':{}, 'lattice':[]}
-        
+        self.input = {"main": {}, "lattice": []}
+
         # Internal
         self._units = {}
         self._alias = {}
-        
-        
+
         # MPI
         self._nproc = 1
-            
+
         # Call configure
         if self.input_file:
             infile = tools.full_path(self.input_file)
-            assert os.path.exists(infile), f'Impact input file does not exist: {infile}'
+            assert os.path.exists(infile), f"Impact input file does not exist: {infile}"
             self.load_input(self.input_file)
             self.configure()
 
-
-        #else:            
+        # else:
         #    self.vprint('Using default input: 1 m drift lattice')
         #    self.input = deepcopy(DEFAULT_INPUT)
         #    self.configure()
-            
-            
-
 
     def configure(self):
         """
         Configure and set up for run.
         """
+
     def configure(self):
         self.setup_workdir(self._workdir)
-        self.vprint('Configured to run in:', self.path)
+        self.vprint("Configured to run in:", self.path)
         self.configured = True
 
     def run(self):
         """
         Execute the code.
         """
-        
+
         # Clear output
         self.output = {}
-        
-        run_info = self.output['run_info'] = {'error':False}
+
+        run_info = self.output["run_info"] = {"error": False}
 
         # Run script, gets executables
         runscript = self.get_run_script()
-        run_info['run_script'] = runscript
+        run_info["run_script"] = runscript
 
         t1 = time()
-        run_info['start_time'] = t1
+        run_info["start_time"] = t1
 
-        self.vprint(f'Running Genesis4 in {self.path}')
+        self.vprint(f"Running Genesis4 in {self.path}")
         self.vprint(runscript)
-        
+
         # Write input
         self.write_input()
 
         # TODO: Remove previous files
-        
-        #try:
+
+        # try:
         if self.timeout:
-            res = tools.execute2(runscript.split(), timeout= self.timeout, cwd=self.path)
-            log = res['log']
-            self.error = res['error']
-            run_info['error'] = self.error
-            run_info['why_run_error'] = res['why_error']
+            res = tools.execute2(runscript.split(), timeout=self.timeout, cwd=self.path)
+            log = res["log"]
+            self.error = res["error"]
+            run_info["error"] = self.error
+            run_info["why_run_error"] = res["why_error"]
 
         else:
             # Interactive output, for Jupyter
             log = []
             counter = 0
             for path in tools.execute(runscript.split(), cwd=self.path):
-                self.vprint(path, end='')
-                #print(f'{path.strip()}, elapsed: {time()-t1:5.1f} s')
+                self.vprint(path, end="")
+                # print(f'{path.strip()}, elapsed: {time()-t1:5.1f} s')
                 # # Fancy clearing of old lines
                 # counter +=1
                 # if self.verbose:
@@ -156,22 +153,21 @@ class Genesis4(CommandWrapper):
                 #     else:
                 #         print('\r', path.strip()+', elapsed: '+str(time()-t1), end='')
                 log.append(path)
-            self.vprint('Finished.')
+            self.vprint("Finished.")
         self.log = log
 
         # Load output
         self.load_output()
 
-        #except Exception as ex:
+        # except Exception as ex:
         #    self.vprint('Exception in Genesis4:', ex)
         #    run_info['error'] = True
         #    run_info['why_run_error'] = str(ex)
-        #finally:
-        run_info['run_time'] = time() - t1
+        # finally:
+        run_info["run_time"] = time() - t1
 
-        self.finished = True        
-            
-            
+        self.finished = True
+
     def get_executable(self):
         """
         Gets the full path of the executable from .command, .command_mpi
@@ -180,87 +176,85 @@ class Genesis4(CommandWrapper):
                 Genesis4.command_mpi_env='GENESIS4_BIN'
         """
         if self.use_mpi:
-            exe = tools.find_executable(exename=self.command_mpi, envname=self.command_mpi_env)
+            exe = tools.find_executable(
+                exename=self.command_mpi, envname=self.command_mpi_env
+            )
         else:
             exe = tools.find_executable(exename=self.command, envname=self.command_env)
-        return exe            
-    
-    def get_run_script(self, write_to_path=False, path=None, scriptname='run'):
+        return exe
+
+    def get_run_script(self, write_to_path=False, path=None, scriptname="run"):
         """
         Assembles the run script using self.mpi_run string of the form:
             'mpirun -n {n} {command_mpi}'
         Optionally writes a file 'run' with this line to path.
-        
+
         mpi_exe could be a complicated string like:
             'srun -N 1 --cpu_bind=cores {n} {command_mpi}'
             or
-            'mpirun -n {n} {command_mpi}'        
+            'mpirun -n {n} {command_mpi}'
         """
         exe = self.get_executable()
-        
+
         # Expect to run locally
-        #_, infile = os.path.split(self.input_file) 
-        infile = 'genesis4.in'
-        
+        # _, infile = os.path.split(self.input_file)
+        infile = "genesis4.in"
+
         if self.nproc > 1 and not self.use_mpi:
-            self.vprint(f'Setting use_mpi = True because nproc = {self.nproc}')
+            self.vprint(f"Setting use_mpi = True because nproc = {self.nproc}")
             self.use_mpi = True
 
         if self.use_mpi:
             runscript = [self.mpi_run.format(nproc=self.nproc, command_mpi=exe), infile]
         else:
             runscript = [exe, infile]
-            
-        runscript = ' '.join(runscript)            
-                                
+
+        runscript = " ".join(runscript)
+
         if write_to_path:
             if path is None:
                 path = self.path
-            path=os.path.join(path, scriptname)
-            with open(path, 'w') as f:
+            path = os.path.join(path, scriptname)
+            with open(path, "w") as f:
                 f.write(runscript)
             tools.make_executable(path)
-        return runscript    
-    
+        return runscript
+
     @property
     def nproc(self):
         """
         Number of MPI processes to use.
         """
         return self._nproc
+
     @nproc.setter
-    def nproc(self, n):  
-        self._nproc = n      
-        
-        
+    def nproc(self, n):
+        self._nproc = n
+
     @property
     def field(self):
-        return self.output['field']
-        
+        return self.output["field"]
+
     def units(self, key):
         """pmd_unit of a given key"""
-        return self._units[key]        
-    
-    
+        return self._units[key]
+
     def expand_alias(self, key):
         if key in self._alias:
             return self._alias[key]
         else:
             return key
-        
+
     def stat(self, key):
         if key in self.output:
             return self.output[key]
-        
+
         # Try alias
         key = self.expand_alias(key)
         if key in self.output:
             return self.output[key]
-        
-        raise ValueError(f'Unknown key: {key}')
-        
-        
 
+        raise ValueError(f"Unknown key: {key}")
 
     def archive(self, h5=None):
         """
@@ -278,22 +272,20 @@ class Genesis4(CommandWrapper):
             Handle to the HDF5 file.
         """
         if not h5:
-            h5 = 'genesis4_'+self.fingerprint()+'.h5'
-            
+            h5 = "genesis4_" + self.fingerprint() + ".h5"
 
         if isinstance(h5, str):
-            if 'outfile' in self.output:
-                shutil.copy(self.output['outfile'], h5)   
-                self.vprint(f'Archiving to file {h5}')
-            
-            #fname = os.path.expandvars(h5)
-            #g = h5py.File(fname, 'w')
-            #self.vprint(f'Archiving to file {fname}')
+            if "outfile" in self.output:
+                shutil.copy(self.output["outfile"], h5)
+                self.vprint(f"Archiving to file {h5}")
+
+            # fname = os.path.expandvars(h5)
+            # g = h5py.File(fname, 'w')
+            # self.vprint(f'Archiving to file {fname}')
         else:
             g = h5
-            
+
         return h5
-    
 
     def load_archive(self, h5, configure=True):
         """
@@ -306,12 +298,9 @@ class Genesis4(CommandWrapper):
         configure : bool, optional
             Whether or not to invoke the configure method after loading, by default True
         """
-        raise NotImplementedError   
-        
+        raise NotImplementedError
 
-
-
-    def write_input(self, input_filename='genesis4.in', path=None):
+    def write_input(self, input_filename="genesis4.in", path=None):
         """
         Write the input parameters into the file.
 
@@ -322,18 +311,16 @@ class Genesis4(CommandWrapper):
         """
         if path is None:
             path = self.path
-            
+
         assert os.path.exists(path)
 
         filePath = os.path.join(path, input_filename)
 
         # Write main input file. This should come last.
-        writers.write_main_input(filePath, self.input['main'])
+        writers.write_main_input(filePath, self.input["main"])
 
         # Write run script
-        self.get_run_script(write_to_path=True, path=path)        
-        
-        
+        self.get_run_script(write_to_path=True, path=path)
 
     @staticmethod
     def input_parser(path):
@@ -352,76 +339,82 @@ class Genesis4(CommandWrapper):
             The input dictionary
         """
         d = {}
-        d['main'] = parsers.parse_main_input(path)
-        
+        d["main"] = parsers.parse_main_input(path)
+
         return d
-        
-        
+
     def load_output(self, load_fields=False, **kwargs):
         """
         Reads and load into `.output` the outputs generated by the code.
         """
-        outfile = self.input['main'][0]['rootname'] + '.out.h5'
+        outfile = self.input["main"][0]["rootname"] + ".out.h5"
         outfile = os.path.join(self.path, outfile)
-        self.output['outfile'] = outfile
-        
+        self.output["outfile"] = outfile
+
         # Find any field files
-        self.output['field_files'] = [os.path.join(self.path, f) for f in os.listdir(self.path) if f.endswith('fld.h5')]
-        
-        self.output['field'] = {}
-        #if load_fields:
+        self.output["field_files"] = [
+            os.path.join(self.path, f)
+            for f in os.listdir(self.path)
+            if f.endswith("fld.h5")
+        ]
+
+        self.output["field"] = {}
+        # if load_fields:
         #    for
-        
-        
+
         # Extract all data
         with h5py.File(outfile) as h5:
-            data, unit = parsers.extract_data_and_unit(h5)    
+            data, unit = parsers.extract_data_and_unit(h5)
         self._units.update(unit)
-        
+
         for k, v in data.items():
             self.output[k] = v
-            
+
         self._alias = parsers.extract_aliases(self.output)
         for k, key in self._alias.items():
             if key in self._units:
                 self._units[k] = self._units[key]
-            
-            
+
     def load_field_files(self):
         """
         Loads all field files produced.
         """
-        for file in self.output['field_files']:
+        for file in self.output["field_files"]:
             self.load_field_file(file)
-            
+
     def load_field_file(self, filename):
         """
         Load a single .dfl.h5 file into .output
         """
         if not h5py.is_hdf5(filename):
-            raise ValueError(f'Field file {filename} is not an HDF5 file')
-        with h5py.File(filename, 'r') as h5:            
+            raise ValueError(f"Field file {filename} is not an HDF5 file")
+        with h5py.File(filename, "r") as h5:
             dfl, param = readers.load_genesis4_fields(h5)
-        
+
         file = os.path.split(filename)[1]
-        if file.endswith('fld.h5'):
+        if file.endswith("fld.h5"):
             label = file[:-7]
         else:
             label = file
-            
-        self.output['field'][label] = {'dfl':dfl, 'param':param}
-        self.vprint(f'Loaded field data: {label}')
-      
-            
-    def plot(self, y='power',
-             x='zplot', xlim=None, ylim=None, ylim2=None,
-             y2=[],
-            nice=True,
-            include_layout=True,
-            include_legend=True,
-            return_figure=False,
-            tex=False,
-             **kwargs):
+
+        self.output["field"][label] = {"dfl": dfl, "param": param}
+        self.vprint(f"Loaded field data: {label}")
+
+    def plot(
+        self,
+        y="power",
+        x="zplot",
+        xlim=None,
+        ylim=None,
+        ylim2=None,
+        y2=[],
+        nice=True,
+        include_layout=True,
+        include_legend=True,
+        return_figure=False,
+        tex=False,
+        **kwargs,
+    ):
         """
         Plots output multiple keys.
 
@@ -456,16 +449,18 @@ class Genesis4(CommandWrapper):
         fig : matplotlib.pyplot.figure.Figure
             The plot figure for further customizations or `None` if `return_figure` is set to False.
         """
-        return plot_stats_with_layout(self, ykeys=y, ykeys2=y2,
-                           xkey=x, xlim=xlim, ylim=ylim, ylim2=ylim2,
-                           nice=nice,
-                           tex=tex,
-                           include_layout=include_layout,                              
-                           include_legend=include_legend,
-                           return_figure=return_figure,
-                           **kwargs)            
-            
-
-            
-        
-    
+        return plot_stats_with_layout(
+            self,
+            ykeys=y,
+            ykeys2=y2,
+            xkey=x,
+            xlim=xlim,
+            ylim=ylim,
+            ylim2=ylim2,
+            nice=nice,
+            tex=tex,
+            include_layout=include_layout,
+            include_legend=include_legend,
+            return_figure=return_figure,
+            **kwargs,
+        )

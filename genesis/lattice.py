@@ -266,7 +266,6 @@ def print_ele(e):
 
 
 def join_eles(eles1, eles2):
-
     zlist = [e["s"] for e in eles1]
     zmax = max(zlist)
     for ele in eles2:
