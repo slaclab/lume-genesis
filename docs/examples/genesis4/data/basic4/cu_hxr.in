@@ -1,0 +1,54 @@
+# Comment 1
+&setup
+  rootname=LCLS2_HXR_9keV # Comment 2
+  lattice=hxr.lat
+  # Comment 3
+  beamline=HXR
+  lambda0 = 1.3789244869952112e-10
+  gamma0 = 19174.0776
+  delz=0.026
+  seed=84672
+  npart=1024
+  
+&end
+
+&time
+  slen=15.0e-6
+  sample = 200
+&end
+
+&field
+  dgrid=0.1e-3
+  ngrid=101
+  accumulate = true
+&end
+
+&profile_file
+label=beamcurrent
+xdata=beam_current.h5/s
+ydata=beam_current.h5/current
+&end
+
+&profile_file
+label=beamgamma
+xdata=beam_gamma.h5/s
+ydata=beam_gamma.h5/gamma
+&end
+
+
+&beam
+current = @beamcurrent
+gamma = @beamgamma
+delgam = 3.97848
+ex = 4.000000e-07
+ey = 4.000000e-07
+alphax = -0.7393217413918415 
+betax = 7.910909406464387
+alphay = 1.3870723536888105 
+betay = 16.8811786213468987
+&end
+
+&track
+field_dump_at_undexit = false
+zstop = 10
+&end

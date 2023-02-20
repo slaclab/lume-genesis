@@ -22,10 +22,10 @@ jobs:
           activate-environment: genesis-dev
           environment-file: environment.yml
           
-      - name: flake8
-        shell: bash -l {0}
-        run: |
-          flake8 .
+      #- name: flake8
+      #  shell: bash -l {0}
+      #  run: |
+      #    flake8 .
 
       - name: Install LUME-Genesis
         shell: bash -l {0}

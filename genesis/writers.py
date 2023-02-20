@@ -87,8 +87,7 @@ def pmd_wavefront_init(h5, photon_energy=0):
 
     wavefront_series_attrs = {
         # optiona
-        "beamline": "(optional) The string representation "
-                    "of the optical beamline",
+        "beamline": "(optional) The string representation " "of the optical beamline",
         "temporalDomain": "time",
         "spatialDomain": "r",
         "zCoordinate": 0.0,
@@ -174,7 +173,6 @@ def write_wavefront_meshes_h5(h5, dfl, param, name=None, legacy=False):
     grid_attrs["photonEnergyUnitDimension"] = (2, 1, -2, 0, 0, 0, 0)  # J
 
     if legacy:
-
         # E_real
         # --------
         # Record

@@ -1,0 +1,84 @@
+site_name: LUME-Genesis
+repo_url: https://github.com/slaclab/lume-genesis
+repo_name: slaclab/lume-genesis
+
+nav:
+    - Home: index.md
+    - Installation: installation.md
+    - Examples:
+        - Genesis2:
+            - examples/genesis2/genesis2_example.ipynb
+            - examples/genesis2/example_parse_genesis_lattice.ipynb
+            - examples/genesis2/example_parsing_genesis_out.ipynb
+            - examples/genesis2/example_parsing_genesis_field.ipynb       
+        - Genesis4:
+            - examples/genesis4/genesis4_example.ipynb  
+            - examples/genesis4/genesis4_field.ipynb 
+            - examples/genesis4/perlmutter_benchmark.ipynb 
+    - API:
+      - Genesis2: api/genesis2.md
+      - Genesis4: api/genesis4.md
+
+theme:
+  icon:
+    repo: fontawesome/brands/github
+  name: material
+
+  custom_dir: overrides
+  features:
+    - navigation.top
+    - navigation.tabs
+    - navigation.indexes
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: black
+      toggle:
+        icon: material/toggle-switch-off-outline
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: black
+      toggle:
+        icon: material/toggle-switch
+        name: Switch to light mode
+
+markdown_extensions:
+  - pymdownx.highlight
+  - pymdownx.superfences
+
+extra:
+  generator: false
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/slaclab/lume-genesis
+      name: LUME-Genesis
+
+extra_css:
+  - stylesheets/extra.css      
+
+plugins:
+    - search
+
+    - mkdocs-jupyter:
+        include_source: True
+
+    - mkdocstrings:
+        default_handler: python
+        handlers:
+          python:
+            selection:
+              docstring_style: "numpy"
+              inherited_members: false
+              filters:
+                - "!^_"  # exclude all members starting with _
+                - "^__init__$"  # but always include __init__ modules and methods
+            rendering:
+              show_source: true
+              show_root_heading: true
+
+
+
+
+
+
