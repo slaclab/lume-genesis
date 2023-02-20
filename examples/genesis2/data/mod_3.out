@@ -1,0 +1,191 @@
+- - - - - - - - - - - - - - - - - - - - - - - ------------------------------------------------
+Genesis 1.3 output start
+(Version 1.0 Unix)
+
+Input file name:  2.in                          
+
+ $newrun
+ aw0   =  1.701700E+00
+ xkx   =  0.000000E+00
+ xky   =  1.000000E+00
+ wcoefz=  0.000000E+00   0.000000E+00   0.000000E+00
+ xlamd =  2.600000E-02
+ fbess0=  0.000000E+00
+ delaw =  0.000000E+00
+ iertyp=    0
+ iwityp=    0
+ awd   =  1.701700E+00
+ awx   =  0.000000E+00
+ awy   =  0.000000E+00
+ iseed =   -1
+ npart =   2048
+ gamma0=  1.279850E+04
+ delgam=  5.332690E+00
+ rxbeam=  2.136320E-05
+ rybeam=  1.499350E-05
+ alphax= -1.457790E+00
+ alphay=  7.344240E-01
+ emitx =  4.000000E-07
+ emity =  4.000000E-07
+ xbeam =  0.000000E+00
+ ybeam =  0.000000E+00
+ pxbeam=  0.000000E+00
+ pybeam=  0.000000E+00
+ conditx =  0.000000E+00
+ condity =  0.000000E+00
+ bunch =  0.000000E+00
+ bunchphase =  0.000000E+00
+ emod =  0.000000E+00
+ emodphase =  0.000000E+00
+ xlamds=  3.091880E-10
+ prad0 =  1.000000E+01
+ pradh0=  0.000000E+00
+ zrayl =  5.000000E-01
+ zwaist=  0.000000E+00
+ ncar  =  191
+ lbc   =    0
+ rmax0 =  9.000000E+00
+ dgrid =  0.000000E+00
+ nscr  =    0
+ nscz  =    0
+ nptr  =   40
+ nwig  =   98
+ zsep  =  1.500000E+01
+ delz  =  5.000000E+00
+ nsec  =    1
+ iorb  =    0
+ zstop = -1.000000E+00
+ magin =    0
+ magout=    0
+ quadf =  1.678100E+01
+ quadd =  1.678100E+01
+ fl    =  1.000000E+01
+ dl    =  1.000000E+01
+ drl   =  0.000000E+00
+ f1st  =  0.000000E+00
+ qfdx  =  0.000000E+00
+ qfdy  =  0.000000E+00
+ solen =  0.000000E+00
+ sl    =  0.000000E+00
+ ildgam=    5
+ ildpsi=    7
+ ildx  =    1
+ ildy  =    2
+ ildpx =    3
+ ildpy =    4
+ itgaus=    2
+ nbins =    8
+ igamgaus =    1
+ inverfc =    0
+ lout  = 1 0 1 1 1 0 1 1 1 1 1 0 0 1 0 1 1 1 1
+ iphsty=    1
+ ishsty=    1
+ ippart=    0
+ ispart=    0
+ ipradi=    0
+ isradi=    0
+ idump =    0
+ iotail=    1
+ nharm =    1
+ iallharm =    0
+ iharmsc =    0
+ curpeak=  4.000000E+03
+ curlen=  0.000000E+00
+ ntail = -253
+ nslice=   11
+ shotnoise=  1.000000E+00
+ isntyp=    0
+ iall  =    0
+ itdp  =    0
+ ipseed=   -1
+ iscan =    0
+ nscan =    3
+ svar  =  1.000000E-02
+ isravg=    1
+ isrsig=    1
+ cuttail= -1.000000E+00
+ eloss =  0.000000E+00
+ version=  1.000000E+00
+ ndcut =   -1
+ idmpfld=    1
+ idmppar=    1
+ ilog  =    0
+ ffspec=    0
+ convharm=    1
+ ibfield=  0.000000E+00
+ imagl=    0.000000E+00
+ idril=    0.000000E+00
+ alignradf=    0
+ offsetradf=    0
+ multconv=    0
+ igamref=  0.000000E+00
+ rmax0sc=  0.000000E+00
+ iscrkup=    0
+ trama=    0
+ itram11=  1.000000E+00
+ itram12=  0.000000E+00
+ itram13=  0.000000E+00
+ itram14=  0.000000E+00
+ itram15=  0.000000E+00
+ itram16=  0.000000E+00
+ itram21=  0.000000E+00
+ itram22=  1.000000E+00
+ itram23=  0.000000E+00
+ itram24=  0.000000E+00
+ itram25=  0.000000E+00
+ itram26=  0.000000E+00
+ itram31=  0.000000E+00
+ itram32=  0.000000E+00
+ itram33=  1.000000E+00
+ itram34=  0.000000E+00
+ itram35=  0.000000E+00
+ itram36=  0.000000E+00
+ itram41=  0.000000E+00
+ itram42=  0.000000E+00
+ itram43=  0.000000E+00
+ itram44=  1.000000E+00
+ itram45=  0.000000E+00
+ itram46=  0.000000E+00
+ itram51=  0.000000E+00
+ itram52=  0.000000E+00
+ itram53=  0.000000E+00
+ itram54=  0.000000E+00
+ itram55=  1.000000E+00
+ itram56=  0.000000E+00
+ itram61=  0.000000E+00
+ itram62=  0.000000E+00
+ itram63=  0.000000E+00
+ itram64=  0.000000E+00
+ itram65=  0.000000E+00
+ itram66=  1.000000E+00
+ fieldfile ='mod_2.out.dfl'
+ outputfile ='mod_3.out'
+ maginfile ='taper.lat'
+ partfile ='mod_2.out.dpa'
+ filetype ='ORIGINAL'
+ $end
+flags for output parameter
+ 1 0 1 1 1 0 1 1 1 1 1 0 0 1 0 0 0 0 0
+    2 entries per record
+    1 history records
+    0.3092E-09 wavelength
+    0.1546E-08 seperation of output slices
+  191 number of gridpoints
+    0.1569E-05 meshsize
+   2048 number of particles
+    0 particle: records in z
+    0 particle: records in t
+    0 field: records in z
+    0 field: records in t
+    z[m]          aw            qfld      
+    0.0000E+00    1.7017E+00    1.6781E+01
+    1.3000E-01    1.7017E+00    1.6781E+01
+
+********** output: slice     1
+           =================
+     4.0000E+03 current
+
+
+    power         p_mid         phi_mid       r_size        energy        bunching      xrms          yrms          error         e-spread  
+    1.5000E+08    4.5183E+06   -2.4572E-01    5.1133E-06   -6.7706E-03    3.8532E-05    2.1502E-05    1.4894E-05    0.0000E+00    5.3311E+00
+    1.4998E+08    3.8694E+06   -4.7047E-01    5.5474E-06   -1.3538E-02    1.5425E-04    2.1364E-05    1.4993E-05   -9.2342E+00    5.3306E+00

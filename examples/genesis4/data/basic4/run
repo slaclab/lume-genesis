@@ -1,0 +1,1 @@
+mpirun -n 8 $GENESIS4_BIN cu_hxr.in
