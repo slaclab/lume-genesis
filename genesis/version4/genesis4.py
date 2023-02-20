@@ -415,7 +415,7 @@ class Genesis4(CommandWrapper):
             
     def plot(self, y='power',
              x='zplot', xlim=None, ylim=None, ylim2=None,
-             y2=['beam_xsize', 'beam_ysize'],
+             y2=[],
             nice=True,
             include_layout=True,
             include_legend=True,
