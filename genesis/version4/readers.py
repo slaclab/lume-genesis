@@ -7,7 +7,7 @@ import numpy as np
 
 def load_genesis4_fields(h5):
     """
-    Loads the field data into memory from an open h5 hangle.
+    Loads the field data into memory from an open h5 handle.
 
     Example usage:
 

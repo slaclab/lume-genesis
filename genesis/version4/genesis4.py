@@ -3,7 +3,7 @@ import shutil
 from time import time
 import numpy as np
 import h5py
-from . import parsers, writers
+from . import parsers, writers, readers
 from .plot import plot_stats_with_layout
 from lume.base import CommandWrapper
 from lume import tools
@@ -133,41 +133,41 @@ class Genesis4(CommandWrapper):
 
         # TODO: Remove previous files
         
-        try:
-            if self.timeout:
-                res = tools.execute2(runscript.split(), timeout= self.timeout, cwd=self.path)
-                log = res['log']
-                self.error = res['error']
-                run_info['error'] = self.error
-                run_info['why_run_error'] = res['why_error']
+        #try:
+        if self.timeout:
+            res = tools.execute2(runscript.split(), timeout= self.timeout, cwd=self.path)
+            log = res['log']
+            self.error = res['error']
+            run_info['error'] = self.error
+            run_info['why_run_error'] = res['why_error']
 
-            else:
-                # Interactive output, for Jupyter
-                log = []
-                counter = 0
-                for path in tools.execute(runscript.split(), cwd=self.path):
-                    self.vprint(path, end='')
-                    #print(f'{path.strip()}, elapsed: {time()-t1:5.1f} s')
-                    # # Fancy clearing of old lines
-                    # counter +=1
-                    # if self.verbose:
-                    #     if counter < 15:
-                    #         print(path, end='')
-                    #     else:
-                    #         print('\r', path.strip()+', elapsed: '+str(time()-t1), end='')
-                    log.append(path)
-                self.vprint('Finished.')
-            self.log = log
+        else:
+            # Interactive output, for Jupyter
+            log = []
+            counter = 0
+            for path in tools.execute(runscript.split(), cwd=self.path):
+                self.vprint(path, end='')
+                #print(f'{path.strip()}, elapsed: {time()-t1:5.1f} s')
+                # # Fancy clearing of old lines
+                # counter +=1
+                # if self.verbose:
+                #     if counter < 15:
+                #         print(path, end='')
+                #     else:
+                #         print('\r', path.strip()+', elapsed: '+str(time()-t1), end='')
+                log.append(path)
+            self.vprint('Finished.')
+        self.log = log
 
-            # Load output
-            self.load_output()
+        # Load output
+        self.load_output()
 
-        except Exception as ex:
-            self.vprint('Exception in Genesis4:', ex)
-            run_info['error'] = True
-            run_info['why_run_error'] = str(ex)
-        finally:
-            run_info['run_time'] = time() - t1
+        #except Exception as ex:
+        #    self.vprint('Exception in Genesis4:', ex)
+        #    run_info['error'] = True
+        #    run_info['why_run_error'] = str(ex)
+        #finally:
+        run_info['run_time'] = time() - t1
 
         self.finished = True        
             
@@ -231,6 +231,11 @@ class Genesis4(CommandWrapper):
     @nproc.setter
     def nproc(self, n):  
         self._nproc = n      
+        
+        
+    @property
+    def field(self):
+        return self.output['field']
         
     def units(self, key):
         """pmd_unit of a given key"""
@@ -304,49 +309,6 @@ class Genesis4(CommandWrapper):
         raise NotImplementedError   
         
 
-    def plot(self, y=[], x=None, xlim=None, ylim=None, ylim2=None, y2=[], nice=True,
-             include_layout=True, include_labels=False, include_particles=True, include_legend=True,
-             return_figure=False):
-        """
-        Plots output multiple keys.
-
-        Parameters
-        ----------
-        y : list
-            List of keys to be displayed on the Y axis
-        x : str
-            Key to be displayed as X axis
-        xlim : list
-            Limits for the X axis
-        ylim : list
-            Limits for the Y axis
-        ylim2 : list
-            Limits for the secondary Y axis
-        y2 : list
-            List of keys to be displayed on the secondary Y axis
-        nice : bool
-            Whether or not a nice SI prefix and scaling will be used to
-            make the numbers reasonably sized. Default: True
-        include_layout : bool
-            Whether or not to include a layout plot at the bottom. Default: True
-        include_labels : bool
-            Whether or not the layout will include element labels. Default: False
-        include_particles : bool
-            Whether or not to plot the particle statistics as dots. Default: True
-        include_legend : bool
-            Whether or not the plot should include the legend. Default: True
-        return_figure : bool
-            Whether or not to return the figure object for further manipulation.
-            Default: True
-        kwargs : dict
-            Extra arguments can be passed to the specific plotting function.
-
-        Returns
-        -------
-        fig : matplotlib.pyplot.figure.Figure
-            The plot figure for further customizations or `None` if `return_figure` is set to False.
-        """
-        raise NotImplementedError
 
 
     def write_input(self, input_filename='genesis4.in', path=None):
@@ -395,15 +357,21 @@ class Genesis4(CommandWrapper):
         return d
         
         
-        
-
-    def load_output(self, **kwargs):
+    def load_output(self, load_fields=False, **kwargs):
         """
         Reads and load into `.output` the outputs generated by the code.
         """
         outfile = self.input['main'][0]['rootname'] + '.out.h5'
         outfile = os.path.join(self.path, outfile)
         self.output['outfile'] = outfile
+        
+        # Find any field files
+        self.output['field_files'] = [os.path.join(self.path, f) for f in os.listdir(self.path) if f.endswith('fld.h5')]
+        
+        self.output['field'] = {}
+        #if load_fields:
+        #    for
+        
         
         # Extract all data
         with h5py.File(outfile) as h5:
@@ -419,6 +387,32 @@ class Genesis4(CommandWrapper):
                 self._units[k] = self._units[key]
             
             
+    def load_field_files(self):
+        """
+        Loads all field files produced.
+        """
+        for file in self.output['field_files']:
+            self.load_field_file(file)
+            
+    def load_field_file(self, filename):
+        """
+        Load a single .dfl.h5 file into .output
+        """
+        if not h5py.is_hdf5(filename):
+            raise ValueError(f'Field file {filename} is not an HDF5 file')
+        with h5py.File(filename, 'r') as h5:            
+            dfl, param = readers.load_genesis4_fields(h5)
+        
+        file = os.path.split(filename)[1]
+        if file.endswith('fld.h5'):
+            label = file[:-7]
+        else:
+            label = file
+            
+        self.output['field'][label] = {'dfl':dfl, 'param':param}
+        self.vprint(f'Loaded field data: {label}')
+      
+            
     def plot(self, y='power',
              x='zplot', xlim=None, ylim=None, ylim2=None,
              y2=['beam_xsize', 'beam_ysize'],
@@ -429,14 +423,44 @@ class Genesis4(CommandWrapper):
             tex=False,
              **kwargs):
         """
+        Plots output multiple keys.
 
+        Parameters
+        ----------
+        y : list
+            List of keys to be displayed on the Y axis
+        x : str
+            Key to be displayed as X axis
+        xlim : list
+            Limits for the X axis
+        ylim : list
+            Limits for the Y axis
+        ylim2 : list
+            Limits for the secondary Y axis
+        y2 : list
+            List of keys to be displayed on the secondary Y axis
+        nice : bool
+            Whether or not a nice SI prefix and scaling will be used to
+            make the numbers reasonably sized. Default: True
+        include_layout : bool
+            Whether or not to include a layout plot at the bottom. Default: True
+            Whether or not the plot should include the legend. Default: True
+        return_figure : bool
+            Whether or not to return the figure object for further manipulation.
+            Default: True
+        kwargs : dict
+            Extra arguments can be passed to the specific plotting function.
 
+        Returns
+        -------
+        fig : matplotlib.pyplot.figure.Figure
+            The plot figure for further customizations or `None` if `return_figure` is set to False.
         """
         return plot_stats_with_layout(self, ykeys=y, ykeys2=y2,
                            xkey=x, xlim=xlim, ylim=ylim, ylim2=ylim2,
                            nice=nice,
                            tex=tex,
-                           include_layout=include_layout,                               
+                           include_layout=include_layout,                              
                            include_legend=include_legend,
                            return_figure=return_figure,
                            **kwargs)            

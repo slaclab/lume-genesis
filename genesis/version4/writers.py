@@ -137,12 +137,8 @@ def write_openpmd_wavefront(h5file, dfl, param, verbose=False):
     return h5file
 
 
-
-
-
-
 # Namelist writing
-
+#-----------------
 
 def write_namelists(namelists, filePath, make_symlinks=False, prefixes=['file_', 'distribution'], verbose=False):
     """
