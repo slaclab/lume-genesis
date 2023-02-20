@@ -13,7 +13,8 @@ nav:
             - examples/genesis2/example_parsing_genesis_field.ipynb       
         - Genesis4:
             - examples/genesis4/genesis4_example.ipynb  
-            - examples/genesis4/genesis4_field.ipynb   
+            - examples/genesis4/genesis4_field.ipynb 
+            - examples/genesis4/perlmutter_benchmark.ipynb 
     - API:
       - Genesis2: api/genesis2.md
       - Genesis4: api/genesis4.md
