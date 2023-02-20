@@ -300,7 +300,7 @@ class Genesis4(CommandWrapper):
         """
         raise NotImplementedError
 
-    def write_input(self, input_filename="genesis4.in", path=None):
+    def write_input(self, path=None, input_filename="genesis4.in"):
         """
         Write the input parameters into the file.
 
@@ -407,6 +407,8 @@ class Genesis4(CommandWrapper):
         xlim=None,
         ylim=None,
         ylim2=None,
+        yscale='linear',
+        yscale2='linear',        
         y2=[],
         nice=True,
         include_layout=True,
@@ -430,6 +432,10 @@ class Genesis4(CommandWrapper):
             Limits for the Y axis
         ylim2 : list
             Limits for the secondary Y axis
+        yscale: str
+            one of "linear", "log", "symlog", "logit", ... for the Y axis
+        yscale2: str
+            one of "linear", "log", "symlog", "logit", ... for the secondary Y axis      
         y2 : list
             List of keys to be displayed on the secondary Y axis
         nice : bool
@@ -457,6 +463,8 @@ class Genesis4(CommandWrapper):
             xlim=xlim,
             ylim=ylim,
             ylim2=ylim2,
+            yscale=yscale,
+            yscale2=yscale2,
             nice=nice,
             tex=tex,
             include_layout=include_layout,
