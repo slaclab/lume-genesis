@@ -8,6 +8,8 @@ Genesis tools for use in LUME
 
 ## Installation
 
+
+
 Installing lume-genesis via conda-forge
 =======================
 
@@ -28,18 +30,47 @@ It is possible to list all of the versions of `lume-genesis` available on your p
 ```
 conda search lume-genesis --channel conda-forge
 ```
+---
+# Installing Genesis 1.3 version 2 Executables
 
-Installing Genesis 1.3 version 2 Executables
-============================================
 See: [slaclab/Genesis-1.3-Version2 Installation](https://github.com/slaclab/Genesis-1.3-Version2#precompiled)
 
+---
+# Installing Genesis 1.3 version 4 Executables
 
-Installing Genesis 1.3 version 4 Executables
-============================================
 See: [svenreiche/Genesis-1.3-Version4 dev installation](https://github.com/svenreiche/Genesis-1.3-Version4/blob/dev/manual/INSTALLATION.md)
 
 Please use the `dev` branch to be compatible with LUME-Genesis.
 
+Once build, set this environmental variable so that LUME-Genesis can find the executable:
+```bash
+export GENESIS4_BIN=/path/to/genesis4
+```
+
+
+## Genesis4 on Cori (NERSC)
+
+
+
+```bash
+git clone https://github.com/svenreiche/Genesis-1.3-Version4
+cd Genesis-1.3-Version4/
+git fetch 
+git swtich dev
+module load cray-hdf5-parallel
+module load cray-fftw
+cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER=CC
+cmake --build build
+```
+
+
+
+
+
+
+
+
+---
 ## Old Genesis 1.3 v2.0 Installation
 Go to <http://genesis.web.psi.ch/download.html> and download:
 <http://genesis.web.psi.ch/download/source/genesis_source_2.0_120629.tar.gz>
@@ -59,7 +90,8 @@ This should build the  `genesis` binary.
 
 
 
-## Related Publications
+---
+# Related Publications
 
 The lume-genesis package was used in the following publications:
 
