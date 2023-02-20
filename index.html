@@ -321,40 +321,9 @@
         
       
       
-        <label class="md-nav__link md-nav__link--active" for="__toc">
-          Home
-          <span class="md-nav__icon md-icon"></span>
-        </label>
-      
       <a href="." class="md-nav__link md-nav__link--active">
         Home
       </a>
-      
-        
-
-<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
-  
-  
-  
-    
-  
-  
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      Table of contents
-    </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#installation" class="md-nav__link">
-    Installation
-  </a>
-  
-</li>
-      
-    </ul>
-  
-</nav>
       
     </li>
   
@@ -531,6 +500,8 @@
         
           
         
+          
+        
       
       
         <label class="md-nav__link" for="__nav_3_2" id="__nav_3_2_label" tabindex="0">
@@ -567,6 +538,20 @@
     <li class="md-nav__item">
       <a href="examples/genesis4/genesis4_field/" class="md-nav__link">
         FLD parsing and Wavefront writing
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="examples/genesis4/fodo_scan/" class="md-nav__link">
+        Genesis4 FODO Scan
       </a>
     </li>
   
@@ -689,21 +674,6 @@
     
   
   
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      Table of contents
-    </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#installation" class="md-nav__link">
-    Installation
-  </a>
-  
-</li>
-      
-    </ul>
-  
 </nav>
                   </div>
                 </div>
@@ -729,56 +699,13 @@
   <img src="assets/field.png", width="800">
 </div>
 
-<h2 id="installation">Installation</h2>
-<h1 id="installing-lume-genesis-via-conda-forge">Installing lume-genesis via conda-forge</h1>
-<p>Installing <code>lume-genesis</code> from the <code>conda-forge</code> channel can be achieved by adding <code>conda-forge</code> to your channels with:</p>
-<div class="highlight"><pre><span></span><code>conda config --add channels conda-forge
-</code></pre></div>
-<p>Once the <code>conda-forge</code> channel has been enabled, <code>lume-genesis</code> can be installed with:</p>
-<div class="highlight"><pre><span></span><code>conda install lume-genesis
-</code></pre></div>
-<p>It is possible to list all of the versions of <code>lume-genesis</code> available on your platform with:</p>
-<h2 id="conda-search-lume-genesis-channel-conda-forge"><div class="highlight"><pre><span></span><code>conda search lume-genesis --channel conda-forge
-</code></pre></div></h2>
-<h1 id="installing-genesis-13-version-2-executables">Installing Genesis 1.3 version 2 Executables</h1>
-<p>See: <a href="https://github.com/slaclab/Genesis-1.3-Version2#precompiled">slaclab/Genesis-1.3-Version2 Installation</a></p>
-<hr />
-<h1 id="installing-genesis-13-version-4-executables">Installing Genesis 1.3 version 4 Executables</h1>
-<p>See: <a href="https://github.com/svenreiche/Genesis-1.3-Version4/blob/dev/manual/INSTALLATION.md">svenreiche/Genesis-1.3-Version4 dev installation</a></p>
-<p>Please use the <code>dev</code> branch to be compatible with LUME-Genesis.</p>
-<p>Once build, set this environmental variable so that LUME-Genesis can find the executable:
-<div class="highlight"><pre><span></span><code><span class="nb">export</span><span class="w"> </span><span class="nv">GENESIS4_BIN</span><span class="o">=</span>/path/to/genesis4
-</code></pre></div></p>
-<h2 id="genesis4-on-cori-nersc">Genesis4 on Cori (NERSC)</h2>
-<div class="highlight"><pre><span></span><code>git<span class="w"> </span>clone<span class="w"> </span>https://github.com/svenreiche/Genesis-1.3-Version4
-<span class="nb">cd</span><span class="w"> </span>Genesis-1.3-Version4/
-git<span class="w"> </span>fetch<span class="w"> </span>
-git<span class="w"> </span>swtich<span class="w"> </span>dev
-module<span class="w"> </span>load<span class="w"> </span>cray-hdf5-parallel
-module<span class="w"> </span>load<span class="w"> </span>cray-fftw
-cmake<span class="w"> </span>-S<span class="w"> </span>.<span class="w"> </span>-B<span class="w"> </span>build<span class="w"> </span>-DCMAKE_BUILD_TYPE<span class="o">=</span>Release<span class="w"> </span>-DCMAKE_CXX_COMPILER<span class="o">=</span>CC
-cmake<span class="w"> </span>--build<span class="w"> </span>build
-</code></pre></div>
-<hr />
-<h2 id="old-genesis-13-v20-installation">Old Genesis 1.3 v2.0 Installation</h2>
-<p>Go to <a href="http://genesis.web.psi.ch/download.html">http://genesis.web.psi.ch/download.html</a> and download:
-<a href="http://genesis.web.psi.ch/download/source/genesis_source_2.0_120629.tar.gz">http://genesis.web.psi.ch/download/source/genesis_source_2.0_120629.tar.gz</a></p>
-<p>Untar, and replace one of the source files with one provided in this repository (cloned at <ROOT>):
-<div class="highlight"><pre><span></span><code>  tar -xzvf genesis_source_2.0_120629.tar
-  cd  Genesis_Current
-  cp &lt;ROOT&gt;/lume-genesis/extra/fix_genesis_input/input.f .
-</code></pre></div>
-Edit Makefile to point to your compile, and type:
-<div class="highlight"><pre><span></span><code>make
-</code></pre></div>
-This should build the  <code>genesis</code> binary.</p>
 <hr />
 <h1 id="related-publications">Related Publications</h1>
 <p>The lume-genesis package was used in the following publications:</p>
-<p><em>Very high brightness and power LCLS-II hard X-ray pulses</em>\
-Aliaksei Halavanau, Franz-Josef Decker, Claudio Emma, Jackson Sheppard, and Claudio Pellegrini\
-J. Synchrotron Rad. (2019). 26\
-https://doi.org/10.1107/S1600577519002492</p>
+<p><em>Very high brightness and power LCLS-II hard X-ray pulses</em> 
+Aliaksei Halavanau, Franz-Josef Decker, Claudio Emma, Jackson Sheppard, and Claudio Pellegrini,
+J. Synchrotron Rad. (2019). 26
+[https://doi.org/10.1107/S1600577519002492]</p>
 
 
 
