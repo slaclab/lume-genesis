@@ -94,6 +94,8 @@ def plot_stats_with_layout(
     xlim=None,
     ylim=None,
     ylim2=None,
+    yscale='linear',
+    yscale2='linear',
     nice=True,
     tex=False,
     include_layout=True,
@@ -190,6 +192,7 @@ def plot_stats_with_layout(
         unit = str(ulist[0])
 
         # Data
+        # Averages over slices #TODO something better?
         data = [np.mean(genesis4_object.stat(key)[good], axis=1) for key in keys]
 
         if nice:
@@ -211,6 +214,12 @@ def plot_stats_with_layout(
         # Handle tex labels
         ylabel = mathlabel(*keys, units=unit, tex=tex)
         ax.set_ylabel(ylabel)
+        
+        # Scaling(e.g. "linear", "log", "symlog", "logit")
+        if ix == 0:
+            ax.set_yscale(yscale)
+        else:
+            ax_twinx.set_yscale(yscale2)
 
         # Set limits, considering the scaling.
         if ix == 0 and ylim:
