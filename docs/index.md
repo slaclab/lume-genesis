@@ -1,6 +1,10 @@
 # LUME-Genesis
 Genesis tools for use in LUME
 
+<div align="center">
+  <img src="assets/field.png", width="800">
+</div>
+
 
 ## Installation
 
