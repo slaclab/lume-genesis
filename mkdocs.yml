@@ -47,6 +47,8 @@ theme:
 markdown_extensions:
   - pymdownx.highlight
   - pymdownx.superfences
+  - toc:
+      permalink: true  
 
 extra:
   generator: false
