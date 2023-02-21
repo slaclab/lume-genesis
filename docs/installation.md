@@ -69,7 +69,7 @@ cmake --build build
 ```
 
 
-## Genesis4 on Cori (NERSC)
+## Genesis4 on Perlmutter and Cori (NERSC)
 
 
 
@@ -77,7 +77,7 @@ cmake --build build
 git clone https://github.com/svenreiche/Genesis-1.3-Version4
 cd Genesis-1.3-Version4/
 git fetch 
-git swtich dev
+git switch dev
 module load cray-hdf5-parallel
 module load cray-fftw
 cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER=CC
