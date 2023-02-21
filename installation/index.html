@@ -837,9 +837,9 @@
   
 
 
-<h1 id="installation">Installation</h1>
+<h1 id="installation">Installation<a class="headerlink" href="#installation" title="Permanent link">&para;</a></h1>
 <hr />
-<h2 id="installing-lume-genesis-via-conda-forge">Installing lume-genesis via conda-forge</h2>
+<h2 id="installing-lume-genesis-via-conda-forge">Installing lume-genesis via conda-forge<a class="headerlink" href="#installing-lume-genesis-via-conda-forge" title="Permanent link">&para;</a></h2>
 <p>Installing <code>lume-genesis</code> from the <code>conda-forge</code> channel can be achieved by adding <code>conda-forge</code> to your channels with:</p>
 <div class="highlight"><pre><span></span><code>conda config --add channels conda-forge
 </code></pre></div>
@@ -850,16 +850,16 @@
 <div class="highlight"><pre><span></span><code>conda search lume-genesis --channel conda-forge
 </code></pre></div>
 <hr />
-<h2 id="installing-genesis-13-version-2-executables">Installing Genesis 1.3 version 2 Executables</h2>
+<h2 id="installing-genesis-13-version-2-executables">Installing Genesis 1.3 version 2 Executables<a class="headerlink" href="#installing-genesis-13-version-2-executables" title="Permanent link">&para;</a></h2>
 <p>See: <a href="https://github.com/slaclab/Genesis-1.3-Version2#precompiled">slaclab/Genesis-1.3-Version2 Installation</a></p>
 <hr />
-<h2 id="installing-genesis-13-version-4-executables">Installing Genesis 1.3 version 4 Executables</h2>
+<h2 id="installing-genesis-13-version-4-executables">Installing Genesis 1.3 version 4 Executables<a class="headerlink" href="#installing-genesis-13-version-4-executables" title="Permanent link">&para;</a></h2>
 <p>See: <a href="https://github.com/svenreiche/Genesis-1.3-Version4/blob/dev/manual/INSTALLATION.md">svenreiche/Genesis-1.3-Version4 dev installation</a></p>
 <p>Please use the <code>dev</code> branch to be compatible with LUME-Genesis.</p>
 <p>Once built, set this environmental variable so that LUME-Genesis can find the executable:
 <div class="highlight"><pre><span></span><code><span class="nb">export</span><span class="w"> </span><span class="nv">GENESIS4_BIN</span><span class="o">=</span>/path/to/build/genesis4
 </code></pre></div></p>
-<h3 id="macos">macOS</h3>
+<h3 id="macos">macOS<a class="headerlink" href="#macos" title="Permanent link">&para;</a></h3>
 <p>Installation on macOS requires a suitable compiler and dependencies, which can be provided by <a href="https://www.macports.org">MacPorts</a>. With a working MacPorts, install the GCC12 compiler and dependencies:
 <div class="highlight"><pre><span></span><code>sudo<span class="w"> </span>port<span class="w"> </span>install<span class="w"> </span>gcc12
 sudo<span class="w"> </span>port<span class="w"> </span><span class="k">select</span><span class="w"> </span>gcc<span class="w"> </span>mp-gcc12
@@ -878,7 +878,7 @@ git swtich dev
 <div class="highlight"><pre><span></span><code>cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
 cmake --build build
 </code></pre></div></p>
-<h2 id="genesis4-on-cori-nersc">Genesis4 on Cori (NERSC)</h2>
+<h2 id="genesis4-on-cori-nersc">Genesis4 on Cori (NERSC)<a class="headerlink" href="#genesis4-on-cori-nersc" title="Permanent link">&para;</a></h2>
 <div class="highlight"><pre><span></span><code>git<span class="w"> </span>clone<span class="w"> </span>https://github.com/svenreiche/Genesis-1.3-Version4
 <span class="nb">cd</span><span class="w"> </span>Genesis-1.3-Version4/
 git<span class="w"> </span>fetch<span class="w"> </span>
@@ -889,7 +889,7 @@ cmake<span class="w"> </span>-S<span class="w"> </span>.<span class="w"> </span>
 cmake<span class="w"> </span>--build<span class="w"> </span>build
 </code></pre></div>
 <hr />
-<h2 id="old-genesis-13-v20-installation">Old Genesis 1.3 v2.0 Installation</h2>
+<h2 id="old-genesis-13-v20-installation">Old Genesis 1.3 v2.0 Installation<a class="headerlink" href="#old-genesis-13-v20-installation" title="Permanent link">&para;</a></h2>
 <p>Go to <a href="http://genesis.web.psi.ch/download.html">http://genesis.web.psi.ch/download.html</a> and download:
 <a href="http://genesis.web.psi.ch/download/source/genesis_source_2.0_120629.tar.gz">http://genesis.web.psi.ch/download/source/genesis_source_2.0_120629.tar.gz</a></p>
 <p>Untar, and replace one of the source files with one provided in this repository (cloned at <ROOT>):
@@ -902,7 +902,7 @@ Edit Makefile to point to your compile, and type:
 </code></pre></div>
 This should build the  <code>genesis</code> binary.</p>
 <hr />
-<h2 id="developers">Developers</h2>
+<h2 id="developers">Developers<a class="headerlink" href="#developers" title="Permanent link">&para;</a></h2>
 <p>Clone this repository:
 <div class="highlight"><pre><span></span><code>git<span class="w"> </span>clone<span class="w"> </span>https://github.com/slaclab/lume-genesis.git
 </code></pre></div></p>
