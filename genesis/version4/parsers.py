@@ -13,7 +13,6 @@ known_unit["W/m^2"] = pmd_unit("W/m^2", 1, (1, 0, -3, 0, 0, 0, 0))
 known_unit["W"] = pmd_unit("W", 1, (1, 2, -3, 0, 0, 0, 0))
 known_unit["mec2"] = pmd_unit("m_ec^2", mec2 * e_charge, "energy")
 
-
 def expand_path(file, path=None):
     if not os.path.isabs(file):
         file = os.path.join(path, file)

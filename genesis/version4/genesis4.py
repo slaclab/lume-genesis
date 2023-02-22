@@ -5,9 +5,17 @@ import numpy as np
 import h5py
 from . import parsers, writers, readers
 from .plot import plot_stats_with_layout
+from pmd_beamphysics import ParticleGroup
+from pmd_beamphysics.interfaces.genesis import genesis4_par_to_data
+from pmd_beamphysics.units import c_light, known_unit
 from lume.base import CommandWrapper
 from lume import tools
 
+
+EXTRA_UNITS = {}
+for key in ['field_energy', 'pulse_energy']:
+    EXTRA_UNITS[key] = known_unit['J']
+EXTRA_UNITS['peak_power'] = known_unit['W']
 
 def find_mpirun():
     """
@@ -77,7 +85,7 @@ class Genesis4(CommandWrapper):
         self.input = {"main": {}, "lattice": []}
 
         # Internal
-        self._units = {}
+        self._units = EXTRA_UNITS.copy()
         self._alias = {}
 
         # MPI
@@ -232,12 +240,19 @@ class Genesis4(CommandWrapper):
         self._nproc = n
 
     @property
+    def particles(self):
+        return self.output["particles"]        
+        
+    @property
     def field(self):
         return self.output["field"]
 
     def units(self, key):
         """pmd_unit of a given key"""
-        return self._units[key]
+        if key in self._units:
+            return self._units[key]
+        else:
+            return None
 
     def expand_alias(self, key):
         if key in self._alias:
@@ -246,15 +261,66 @@ class Genesis4(CommandWrapper):
             return key
 
     def stat(self, key):
+        """
+        Calculate a statistic of the beam or field
+        along z.
+        """
+        
+        key = self.expand_alias(key)
+        
+        # Peak power
+        if 'power' in key.lower():
+            dat = self.output['Field/power']
+            return np.max(dat, axis=1)
+        
+        if key.startswith('Lattice'):
+            return self.get_array(key)
+        
+        if key.startswith('Beam'):
+            dat = self.get_array(key)
+            # Average over the beam taking to account the weighting (current)
+            current = self.output['Beam/current']
+            return np.sum(dat * current, axis=1) / np.sum(current, axis=1)
+        
+        elif key.lower() in ['field_energy', 'pulse_energy']:
+            dat = self.output['Field/power']
+            
+            # Integrate to get J
+            nslice = dat.shape[1]
+            slen = self.output['Global/slen']            
+            ds = slen/nslice
+            return np.sum(dat, axis=1) * ds / c_light
+            
+        elif key.startswith('Field'):
+            dat = self.get_array(key)
+            skey = key.split('/')[1]
+            if skey in ['xposition', 'xsize',
+                        'yposition', 'ysize',
+                       ]:
+                return np.mean(dat, axis=1)
+            
+
+        
+        raise ValueError(f"Cannot compute stat for: '{key}'")
+            
+
+        
+    def get_array(self, key):
+        """
+        Gets an array, considering aliases
+        """
+        # Try raw
         if key in self.output:
             return self.output[key]
-
         # Try alias
         key = self.expand_alias(key)
         if key in self.output:
-            return self.output[key]
-
-        raise ValueError(f"Unknown key: {key}")
+            return self.output[key]    
+        
+        raise ValueError(f'unknwon key: {key}')
+        
+        
+    
 
     def archive(self, h5=None):
         """
@@ -352,15 +418,20 @@ class Genesis4(CommandWrapper):
         self.output["outfile"] = outfile
 
         # Find any field files
+        self.output["field"] = {}
         self.output["field_files"] = [
             os.path.join(self.path, f)
             for f in os.listdir(self.path)
             if f.endswith("fld.h5")
         ]
 
-        self.output["field"] = {}
-        # if load_fields:
-        #    for
+        # Find any particle files
+        self.output["particles"] = {}
+        self.output["particle_files"] = [
+            os.path.join(self.path, f)
+            for f in os.listdir(self.path)
+            if f.endswith("par.h5")
+        ]        
 
         # Extract all data
         with h5py.File(outfile) as h5:
@@ -375,12 +446,39 @@ class Genesis4(CommandWrapper):
             if key in self._units:
                 self._units[k] = self._units[key]
 
-    def load_field_files(self):
+    def load_particle_file(self, filename, smear=True):
+        """
+        Loads a single particle file into openPMD-beamphysics
+        ParticleGroup object.
+        
+        If smear = True (default), will smear the phase over 
+        the sample (skipped) slices, preserving the modulus. 
+        """
+        P = ParticleGroup(data = genesis4_par_to_data(filename, smear=smear))
+        
+        file = os.path.split(filename)[1]
+        if file.endswith("par.h5"):
+            label = file[:-7]
+        else:
+            label = file
+            
+        self.output["particles"][label] = P
+        self.vprint(f"Loaded particle data: '{label}' as a ParticleGroup")
+        
+    def load_particles(self, smear=True):
+        """
+        Loads all particle files produced.
+        """
+        for file in self.output["particle_files"]:
+            self.load_particle_file(file, smear=smear)        
+                
+    def load_fields(self):
         """
         Loads all field files produced.
         """
         for file in self.output["field_files"]:
             self.load_field_file(file)
+            
 
     def load_field_file(self, filename):
         """
@@ -402,7 +500,7 @@ class Genesis4(CommandWrapper):
 
     def plot(
         self,
-        y="power",
+        y="field_energy",
         x="zplot",
         xlim=None,
         ylim=None,
@@ -455,6 +553,20 @@ class Genesis4(CommandWrapper):
         fig : matplotlib.pyplot.figure.Figure
             The plot figure for further customizations or `None` if `return_figure` is set to False.
         """
+        
+        
+        # Expand keys
+        if isinstance(y, str):
+            y = y.split()
+        if isinstance(y2, str):            
+            y2 = y2.split()
+        
+        # Special case
+        for yk in (y, y2):
+            for i, key in enumerate(yk):
+                if 'power' in key:
+                    yk[i] = 'peak_power'   
+        
         return plot_stats_with_layout(
             self,
             ykeys=y,
@@ -472,3 +584,43 @@ class Genesis4(CommandWrapper):
             return_figure=return_figure,
             **kwargs,
         )
+    
+    
+    def output_info(self):
+        print('Output data\n')
+        print("key                       value              unit")
+        print(50*'-')
+        for k in sorted(list(self.output)):
+            line = self.output_description_line(k)
+            print(line)
+    
+    
+    def output_description_line(self, k):
+        """
+        Returns a line describing an output
+        """
+        v = self.output[k]
+        u = self.units(k)
+        if u is None:
+            u = ''
+        
+        if isinstance(v, dict):
+            return ''
+        
+        if isinstance(v, str):
+            if len(v) > 200:
+                descrip = 'long str: '+ v[0:20].replace('\n', ' ') + '...'
+            else:
+                descrip = v  
+        elif np.isscalar(v):
+            descrip = f'{v} {u} '
+        elif isinstance(v, np.ndarray):
+            descrip = f'array: {str(v.shape):10}  {u}'
+        elif isinstance(v, list):
+            descrip = str(v)
+        else:
+            raise ValueError(f'Cannot describe {k}')
+
+            
+        line = f'{k:25} {descrip}'
+        return line    

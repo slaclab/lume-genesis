@@ -88,8 +88,8 @@ from pmd_beamphysics.labels import mathlabel
 
 def plot_stats_with_layout(
     genesis4_object,
-    ykeys=["beam_xsize", "beam_ysize"],
-    ykeys2="power",
+    ykeys="field_energy",
+    ykeys2=[],
     xkey="zplot",
     xlim=None,
     ylim=None,
@@ -192,8 +192,7 @@ def plot_stats_with_layout(
         unit = str(ulist[0])
 
         # Data
-        # Averages over slices #TODO something better?
-        data = [np.mean(genesis4_object.stat(key)[good], axis=1) for key in keys]
+        data = [genesis4_object.stat(key)[good] for key in keys]
 
         if nice:
             factor, prefix = nice_scale_prefix(np.ptp(data))
