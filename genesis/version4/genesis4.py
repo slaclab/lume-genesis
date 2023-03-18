@@ -24,12 +24,13 @@ def find_mpirun():
     if os.environ.get('NERSC_HOST') == 'perlmutter':
         srun = 'srun -n {nproc} --ntasks-per-node {nproc} -c 1 {command_mpi}'
         hostname = os.environ.get('HOSTNAME')
-        assert hostname #
+        assert hostname # This must exist
         if hostname.startswith('nid'):
+            # Compute node
             return srun
         else:
             # This will work on a login node
-            return 'salloc -N 1 -C cpu -q interactive -t 04:00:00 ' + srun
+            return 'salloc -N {nnode} -C cpu -q interactive -t 04:00:00 ' + srun
         
       
     # Default    
@@ -229,7 +230,7 @@ class Genesis4(CommandWrapper):
             self.use_mpi = True
 
         if self.use_mpi:
-            runscript = [self.mpi_run.format(nproc=self.nproc, command_mpi=exe), infile]
+            runscript = [self.mpi_run.format(nnode=self.nnode, nproc=self.nproc, command_mpi=exe), infile]
         else:
             runscript = [exe, infile]
 
@@ -254,6 +255,17 @@ class Genesis4(CommandWrapper):
     @nproc.setter
     def nproc(self, n):
         self._nproc = n
+        
+    @property
+    def nnode(self):
+        """
+        Number of MPI nodes to use
+        """
+        return self._nnode
+    
+    @nnode.setter
+    def nnode(self, n):
+        self._nnode = n        
 
     @property
     def particles(self):
