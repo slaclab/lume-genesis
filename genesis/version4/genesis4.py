@@ -22,7 +22,15 @@ def find_mpirun():
             return p + " -n {nproc} {command_mpi}"
         
     if os.environ.get('NERSC_HOST') == 'perlmutter':
-        return 'srun -n {nproc} --ntasks-per-node {nproc} -c 1 {command_mpi}'
+        srun = 'srun -n {nproc} --ntasks-per-node {nproc} -c 1 {command_mpi}'
+        hostname = os.environ.get('HOSTNAME')
+        assert hostname #
+        if hostname.startswith('nid'):
+            return srun
+        else:
+            # This will work on a login node
+            return 'salloc -N 1 -C cpu -q interactive -t 04:00:00 ' + srun
+        
       
     # Default    
     return "mpirun -n {nproc} {command_mpi}"
@@ -97,6 +105,7 @@ class Genesis4(CommandWrapper):
 
         # MPI
         self._nproc = 1
+        self._nnode = 1
 
         # Call configure
         if self.input_file:
