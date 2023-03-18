@@ -1,4 +1,5 @@
 import os
+import math
 import h5py
 import warnings
 from lume.parsers.namelist import parse_simple_namelist, parse_unrolled_namelist
@@ -12,6 +13,17 @@ known_unit["eV/m"] = pmd_unit("eV/m", e_charge, (1, 1, -2, 0, 0, 0, 0))
 known_unit["W/m^2"] = pmd_unit("W/m^2", 1, (1, 0, -3, 0, 0, 0, 0))
 known_unit["W"] = pmd_unit("W", 1, (1, 2, -3, 0, 0, 0, 0))
 known_unit["mec2"] = pmd_unit("m_ec^2", mec2 * e_charge, "energy")
+
+for key in ['field_energy', 'pulse_energy']:
+    known_unit[key] = known_unit['J']
+
+known_unit['peak_power'] = known_unit['W']
+known_unit['m^{-1}'] = pmd_unit('1/m', 1, (-1, 0, 0, 0, 0, 0, 0))
+known_unit['m^{-2}'] = pmd_unit('1/m^2', 1, (-2, 0, 0, 0, 0, 0, 0))
+known_unit['degree'] = pmd_unit('degree', math.pi/180, (0, 0, 0, 0, 0, 0, 0))
+known_unit['{s}'] = known_unit['s']
+known_unit['ev'] = known_unit['eV']
+
 
 def expand_path(file, path=None):
     if not os.path.isabs(file):
@@ -99,13 +111,11 @@ def try_pmd_unit(unit_str):
     try:
         u = unit(s)
     except:
-        warnings.warn(f"unknown unit {s}")
+        warnings.warn(f"unknown unit '{s}'")
         u = None
     return u
 
-
-EXTRA_UNITS = {"zplot": "m"}
-
+EXTRA_UNITS = {"zplot": "m"}    
 
 def extract_data_and_unit(h5):
     """

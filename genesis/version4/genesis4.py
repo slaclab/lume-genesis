@@ -7,25 +7,31 @@ from . import parsers, writers, readers
 from .plot import plot_stats_with_layout
 from pmd_beamphysics import ParticleGroup
 from pmd_beamphysics.interfaces.genesis import genesis4_par_to_data
-from pmd_beamphysics.units import c_light, known_unit
+from pmd_beamphysics.units import c_light, known_unit, pmd_unit
 from lume.base import CommandWrapper
 from lume import tools
 
-
-EXTRA_UNITS = {}
-for key in ['field_energy', 'pulse_energy']:
-    EXTRA_UNITS[key] = known_unit['J']
-EXTRA_UNITS['peak_power'] = known_unit['W']
-
 def find_mpirun():
     """
-    Simple helper to find the mpi run command for macports and homebrew
+    Simple helper to find the mpi run command for macports and homebrew,
+    as well as custom commands for Perlmutter at NERSC.
     """
 
     for p in ["/opt/local/bin/mpirun", "/opt/homebrew/bin/mpirun"]:
         if os.path.exists(p):
-            return p
-    return "mpirun"
+            return p + " -n {nproc} {command_mpi}"
+        
+    if os.environ.get('NERSC_HOST') == 'perlmutter':
+        return 'srun -n {nproc} --ntasks-per-node {nproc} -c 1 {command_mpi}'
+      
+    # Default    
+    return "mpirun -n {nproc} {command_mpi}"
+
+def find_workdir():
+    if os.environ.get('NERSC_HOST') == 'perlmutter':
+        return os.environ.get('SCRATCH')
+    else:
+        return None
 
 
 class Genesis4(CommandWrapper):
@@ -71,7 +77,8 @@ class Genesis4(CommandWrapper):
 
     COMMAND = "genesis4"
     COMMAND_MPI = "genesis4"
-    MPI_RUN = find_mpirun() + " -n {nproc} {command_mpi}"
+    MPI_RUN = find_mpirun()
+    WORKDIR = find_workdir()
 
     # Environmental variables to search for executables
     command_env = "GENESIS4_BIN"
@@ -85,7 +92,7 @@ class Genesis4(CommandWrapper):
         self.input = {"main": {}, "lattice": []}
 
         # Internal
-        self._units = EXTRA_UNITS.copy()
+        self._units = parsers.known_unit.copy()
         self._alias = {}
 
         # MPI
