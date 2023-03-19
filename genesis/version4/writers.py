@@ -197,7 +197,8 @@ def write_main_input(filePath, main_list):
                 src = d[key]  # should be absolute
                 _, file = os.path.split(src)
                 dst = os.path.join(path, file)
-                shutil.copy(src, dst)
+                if src != dst:     
+                    shutil.copy(src, dst)
                 d[key] = file  # Local file
 
             elif name == "profile_file":
