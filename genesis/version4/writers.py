@@ -177,6 +177,12 @@ def write_namelists(
             for l in lines:
                 f.write(l + "\n")
 
+# These items will always be copied
+COPYITEMS = {
+    'setup':'lattice',
+    'importdistribution':'file',
+}
+    
 
 def write_main_input(filePath, main_list):
     path, _ = os.path.split(filePath)
@@ -186,12 +192,13 @@ def write_main_input(filePath, main_list):
             d = d.copy()
 
             name = d.pop("type")
-            if name == "setup":
-                src = d["lattice"]  # should be absolute
+            if name in COPYITEMS:
+                key = COPYITEMS[name]
+                src = d[key]  # should be absolute
                 _, file = os.path.split(src)
                 dst = os.path.join(path, file)
                 shutil.copy(src, dst)
-                d["lattice"] = file  # Local file
+                d[key] = file  # Local file
 
             elif name == "profile_file":
                 write_profile_files(d, path, replace=True)
