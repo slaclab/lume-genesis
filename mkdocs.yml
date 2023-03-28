@@ -14,6 +14,7 @@ nav:
         - Genesis4:
             - examples/genesis4/genesis4_example.ipynb  
             - examples/genesis4/genesis4_field.ipynb 
+            - examples/genesis4/genesis4_particles.ipynb 
             - examples/genesis4/fodo_scan.ipynb 
             - examples/genesis4/fodo_scan_model.ipynb 
             - examples/genesis4/perlmutter_benchmark.ipynb 
