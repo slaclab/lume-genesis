@@ -510,19 +510,21 @@ class Genesis4(CommandWrapper):
 
         # Find any field files
         self.output["field"] = {}
-        self.output["field_files"] = [
+        fld_files = [
             os.path.join(self.path, f)
             for f in os.listdir(self.path)
             if f.endswith("fld.h5")
         ]
+        self.output["field_files"] = sorted(fld_files, key = lambda k: parsers.dumpfile_step(k))
 
         # Find any particle files
         self.output["particles"] = {}
-        self.output["particle_files"] = [
+        par_files = [
             os.path.join(self.path, f)
             for f in os.listdir(self.path)
             if f.endswith("par.h5")
         ]        
+        self.output["particle_files"] = sorted(par_files, key = lambda k: parsers.dumpfile_step(k))
 
 
 

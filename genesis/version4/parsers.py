@@ -181,3 +181,21 @@ def extract_aliases(output_dict):
             output_alias[key.replace("/", "_").lower()] = key
 
     return output_alias
+
+
+def dumpfile_step(fname):
+    """
+    returns an int corresponding to the step extracted from 
+    a filename that ends with '.fld.h5' or '.par.h5'
+    This is useful in sorting:
+        sorted(list_of_filenames, key = lambda k: dumpfile_step(k))
+    """
+    _, f = os.path.split(fname)
+    for suffix in ('.fld.h5', '.par.h5'):
+        if f.endswith(suffix):
+            f = f.strip(suffix)
+            break
+    if '.' in f:
+        return int(f.split('.')[-1])
+    else:
+        return 9999999
