@@ -1789,7 +1789,9 @@ If workdir=None, a location will be determined by the system.</p>
 <span class="normal">708</span>
 <span class="normal">709</span>
 <span class="normal">710</span>
-<span class="normal">711</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span> <span class="nc">Genesis4</span><span class="p">(</span><span class="n">CommandWrapper</span><span class="p">):</span>
+<span class="normal">711</span>
+<span class="normal">712</span>
+<span class="normal">713</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span> <span class="nc">Genesis4</span><span class="p">(</span><span class="n">CommandWrapper</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Files will be written into a temporary directory within workdir.</span>
 <span class="sd">    If workdir=None, a location will be determined by the system.</span>
@@ -2256,19 +2258,21 @@ If workdir=None, a location will be determined by the system.</p>
 
         <span class="c1"># Find any field files</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">output</span><span class="p">[</span><span class="s2">&quot;field&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">output</span><span class="p">[</span><span class="s2">&quot;field_files&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="n">fld_files</span> <span class="o">=</span> <span class="p">[</span>
             <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">path</span><span class="p">,</span> <span class="n">f</span><span class="p">)</span>
             <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">os</span><span class="o">.</span><span class="n">listdir</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">path</span><span class="p">)</span>
             <span class="k">if</span> <span class="n">f</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s2">&quot;fld.h5&quot;</span><span class="p">)</span>
         <span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">output</span><span class="p">[</span><span class="s2">&quot;field_files&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">fld_files</span><span class="p">,</span> <span class="n">key</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">k</span><span class="p">:</span> <span class="n">parsers</span><span class="o">.</span><span class="n">dumpfile_step</span><span class="p">(</span><span class="n">k</span><span class="p">))</span>
 
         <span class="c1"># Find any particle files</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">output</span><span class="p">[</span><span class="s2">&quot;particles&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">output</span><span class="p">[</span><span class="s2">&quot;particle_files&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="n">par_files</span> <span class="o">=</span> <span class="p">[</span>
             <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">path</span><span class="p">,</span> <span class="n">f</span><span class="p">)</span>
             <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">os</span><span class="o">.</span><span class="n">listdir</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">path</span><span class="p">)</span>
             <span class="k">if</span> <span class="n">f</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s2">&quot;par.h5&quot;</span><span class="p">)</span>
         <span class="p">]</span>        
+        <span class="bp">self</span><span class="o">.</span><span class="n">output</span><span class="p">[</span><span class="s2">&quot;particle_files&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">par_files</span><span class="p">,</span> <span class="n">key</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">k</span><span class="p">:</span> <span class="n">parsers</span><span class="o">.</span><span class="n">dumpfile_step</span><span class="p">(</span><span class="n">k</span><span class="p">))</span>
 
 
 
@@ -3039,9 +3043,7 @@ input dictionary.</p>
 
       <details class="quote">
         <summary>Source code in <code>genesis/version4/genesis4.py</code></summary>
-        <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">568</span>
-<span class="normal">569</span>
-<span class="normal">570</span>
+        <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">570</span>
 <span class="normal">571</span>
 <span class="normal">572</span>
 <span class="normal">573</span>
@@ -3055,7 +3057,9 @@ input dictionary.</p>
 <span class="normal">581</span>
 <span class="normal">582</span>
 <span class="normal">583</span>
-<span class="normal">584</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="nf">load_field_file</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">filename</span><span class="p">):</span>
+<span class="normal">584</span>
+<span class="normal">585</span>
+<span class="normal">586</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="nf">load_field_file</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">filename</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Load a single .dfl.h5 file into .output</span>
 <span class="sd">    &quot;&quot;&quot;</span>
@@ -3094,12 +3098,12 @@ input dictionary.</p>
 
       <details class="quote">
         <summary>Source code in <code>genesis/version4/genesis4.py</code></summary>
-        <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">560</span>
-<span class="normal">561</span>
-<span class="normal">562</span>
+        <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">562</span>
 <span class="normal">563</span>
 <span class="normal">564</span>
-<span class="normal">565</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="nf">load_fields</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="normal">565</span>
+<span class="normal">566</span>
+<span class="normal">567</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="nf">load_fields</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Loads all field files produced.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
@@ -3171,7 +3175,9 @@ input dictionary.</p>
 <span class="normal">529</span>
 <span class="normal">530</span>
 <span class="normal">531</span>
-<span class="normal">532</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="nf">load_output</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">load_fields</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="normal">532</span>
+<span class="normal">533</span>
+<span class="normal">534</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="nf">load_output</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">load_fields</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Reads and load into `.output` the outputs generated by the code.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
@@ -3196,19 +3202,21 @@ input dictionary.</p>
 
     <span class="c1"># Find any field files</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">output</span><span class="p">[</span><span class="s2">&quot;field&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">output</span><span class="p">[</span><span class="s2">&quot;field_files&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="n">fld_files</span> <span class="o">=</span> <span class="p">[</span>
         <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">path</span><span class="p">,</span> <span class="n">f</span><span class="p">)</span>
         <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">os</span><span class="o">.</span><span class="n">listdir</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">path</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">f</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s2">&quot;fld.h5&quot;</span><span class="p">)</span>
     <span class="p">]</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">output</span><span class="p">[</span><span class="s2">&quot;field_files&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">fld_files</span><span class="p">,</span> <span class="n">key</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">k</span><span class="p">:</span> <span class="n">parsers</span><span class="o">.</span><span class="n">dumpfile_step</span><span class="p">(</span><span class="n">k</span><span class="p">))</span>
 
     <span class="c1"># Find any particle files</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">output</span><span class="p">[</span><span class="s2">&quot;particles&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">output</span><span class="p">[</span><span class="s2">&quot;particle_files&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="n">par_files</span> <span class="o">=</span> <span class="p">[</span>
         <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">path</span><span class="p">,</span> <span class="n">f</span><span class="p">)</span>
         <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">os</span><span class="o">.</span><span class="n">listdir</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">path</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">f</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s2">&quot;par.h5&quot;</span><span class="p">)</span>
     <span class="p">]</span>        
+    <span class="bp">self</span><span class="o">.</span><span class="n">output</span><span class="p">[</span><span class="s2">&quot;particle_files&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">par_files</span><span class="p">,</span> <span class="n">key</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">k</span><span class="p">:</span> <span class="n">parsers</span><span class="o">.</span><span class="n">dumpfile_step</span><span class="p">(</span><span class="n">k</span><span class="p">))</span>
 
 
 
@@ -3241,9 +3249,7 @@ the sample (skipped) slices, preserving the modulus.</p>
 
       <details class="quote">
         <summary>Source code in <code>genesis/version4/genesis4.py</code></summary>
-        <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">534</span>
-<span class="normal">535</span>
-<span class="normal">536</span>
+        <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">536</span>
 <span class="normal">537</span>
 <span class="normal">538</span>
 <span class="normal">539</span>
@@ -3258,7 +3264,9 @@ the sample (skipped) slices, preserving the modulus.</p>
 <span class="normal">548</span>
 <span class="normal">549</span>
 <span class="normal">550</span>
-<span class="normal">551</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="nf">load_particle_file</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">filename</span><span class="p">,</span> <span class="n">smear</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+<span class="normal">551</span>
+<span class="normal">552</span>
+<span class="normal">553</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="nf">load_particle_file</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">filename</span><span class="p">,</span> <span class="n">smear</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Loads a single particle file into openPMD-beamphysics</span>
 <span class="sd">    ParticleGroup object.</span>
@@ -3298,12 +3306,12 @@ the sample (skipped) slices, preserving the modulus.</p>
 
       <details class="quote">
         <summary>Source code in <code>genesis/version4/genesis4.py</code></summary>
-        <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">553</span>
-<span class="normal">554</span>
-<span class="normal">555</span>
+        <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">555</span>
 <span class="normal">556</span>
 <span class="normal">557</span>
-<span class="normal">558</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="nf">load_particles</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">smear</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+<span class="normal">558</span>
+<span class="normal">559</span>
+<span class="normal">560</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="nf">load_particles</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">smear</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Loads all particle files produced.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
@@ -3331,9 +3339,7 @@ the sample (skipped) slices, preserving the modulus.</p>
 
       <details class="quote">
         <summary>Source code in <code>genesis/version4/genesis4.py</code></summary>
-        <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">683</span>
-<span class="normal">684</span>
-<span class="normal">685</span>
+        <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">685</span>
 <span class="normal">686</span>
 <span class="normal">687</span>
 <span class="normal">688</span>
@@ -3359,7 +3365,9 @@ the sample (skipped) slices, preserving the modulus.</p>
 <span class="normal">708</span>
 <span class="normal">709</span>
 <span class="normal">710</span>
-<span class="normal">711</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="nf">output_description_line</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">k</span><span class="p">):</span>
+<span class="normal">711</span>
+<span class="normal">712</span>
+<span class="normal">713</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="nf">output_description_line</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">k</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Returns a line describing an output</span>
 <span class="sd">    &quot;&quot;&quot;</span>
@@ -3563,9 +3571,7 @@ Default: True</p></td>
 
       <details class="quote">
         <summary>Source code in <code>genesis/version4/genesis4.py</code></summary>
-        <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">586</span>
-<span class="normal">587</span>
-<span class="normal">588</span>
+        <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">588</span>
 <span class="normal">589</span>
 <span class="normal">590</span>
 <span class="normal">591</span>
@@ -3648,7 +3654,9 @@ Default: True</p></td>
 <span class="normal">668</span>
 <span class="normal">669</span>
 <span class="normal">670</span>
-<span class="normal">671</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="nf">plot</span><span class="p">(</span>
+<span class="normal">671</span>
+<span class="normal">672</span>
+<span class="normal">673</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="nf">plot</span><span class="p">(</span>
     <span class="bp">self</span><span class="p">,</span>
     <span class="n">y</span><span class="o">=</span><span class="s2">&quot;field_energy&quot;</span><span class="p">,</span>
     <span class="n">x</span><span class="o">=</span><span class="s2">&quot;zplot&quot;</span><span class="p">,</span>
