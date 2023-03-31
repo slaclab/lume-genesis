@@ -309,6 +309,7 @@ class Genesis4(CommandWrapper):
         
         if key.startswith('Beam'):
             dat = self.get_array(key)
+            dat = np.nan_to_num(dat) # Convert any nan to zero for averaging.
             # Average over the beam taking to account the weighting (current)
             current = self.output['Beam/current']
             return np.sum(dat * current, axis=1) / np.sum(current, axis=1)
