@@ -1791,7 +1791,8 @@ If workdir=None, a location will be determined by the system.</p>
 <span class="normal">710</span>
 <span class="normal">711</span>
 <span class="normal">712</span>
-<span class="normal">713</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span> <span class="nc">Genesis4</span><span class="p">(</span><span class="n">CommandWrapper</span><span class="p">):</span>
+<span class="normal">713</span>
+<span class="normal">714</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span> <span class="nc">Genesis4</span><span class="p">(</span><span class="n">CommandWrapper</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Files will be written into a temporary directory within workdir.</span>
 <span class="sd">    If workdir=None, a location will be determined by the system.</span>
@@ -2057,6 +2058,7 @@ If workdir=None, a location will be determined by the system.</p>
 
         <span class="k">if</span> <span class="n">key</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;Beam&#39;</span><span class="p">):</span>
             <span class="n">dat</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_array</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
+            <span class="n">dat</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nan_to_num</span><span class="p">(</span><span class="n">dat</span><span class="p">)</span> <span class="c1"># Convert any nan to zero for averaging.</span>
             <span class="c1"># Average over the beam taking to account the weighting (current)</span>
             <span class="n">current</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">output</span><span class="p">[</span><span class="s1">&#39;Beam/current&#39;</span><span class="p">]</span>
             <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">dat</span> <span class="o">*</span> <span class="n">current</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">current</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
@@ -2577,8 +2579,7 @@ If not in informed, a new file is generated.</p></td>
 
       <details class="quote">
         <summary>Source code in <code>genesis/version4/genesis4.py</code></summary>
-        <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">356</span>
-<span class="normal">357</span>
+        <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">357</span>
 <span class="normal">358</span>
 <span class="normal">359</span>
 <span class="normal">360</span>
@@ -2606,7 +2607,8 @@ If not in informed, a new file is generated.</p></td>
 <span class="normal">382</span>
 <span class="normal">383</span>
 <span class="normal">384</span>
-<span class="normal">385</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="nf">archive</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">h5</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="normal">385</span>
+<span class="normal">386</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="nf">archive</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">h5</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Dump inputs and outputs into HDF5 file.</span>
 
@@ -2658,8 +2660,7 @@ If not in informed, a new file is generated.</p></td>
 
       <details class="quote">
         <summary>Source code in <code>genesis/version4/genesis4.py</code></summary>
-        <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">339</span>
-<span class="normal">340</span>
+        <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">340</span>
 <span class="normal">341</span>
 <span class="normal">342</span>
 <span class="normal">343</span>
@@ -2670,7 +2671,8 @@ If not in informed, a new file is generated.</p></td>
 <span class="normal">348</span>
 <span class="normal">349</span>
 <span class="normal">350</span>
-<span class="normal">351</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="nf">get_array</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">):</span>
+<span class="normal">351</span>
+<span class="normal">352</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="nf">get_array</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Gets an array, considering aliases</span>
 <span class="sd">    &quot;&quot;&quot;</span>
@@ -2903,8 +2905,7 @@ input dictionary.</p>
 
       <details class="quote">
         <summary>Source code in <code>genesis/version4/genesis4.py</code></summary>
-        <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">425</span>
-<span class="normal">426</span>
+        <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">426</span>
 <span class="normal">427</span>
 <span class="normal">428</span>
 <span class="normal">429</span>
@@ -2922,7 +2923,8 @@ input dictionary.</p>
 <span class="normal">441</span>
 <span class="normal">442</span>
 <span class="normal">443</span>
-<span class="normal">444</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@staticmethod</span>
+<span class="normal">444</span>
+<span class="normal">445</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@staticmethod</span>
 <span class="k">def</span> <span class="nf">input_parser</span><span class="p">(</span><span class="n">path</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Invoke the specialized input parser and returns the</span>
@@ -2998,8 +3000,7 @@ input dictionary.</p>
 
       <details class="quote">
         <summary>Source code in <code>genesis/version4/genesis4.py</code></summary>
-        <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">387</span>
-<span class="normal">388</span>
+        <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">388</span>
 <span class="normal">389</span>
 <span class="normal">390</span>
 <span class="normal">391</span>
@@ -3009,7 +3010,8 @@ input dictionary.</p>
 <span class="normal">395</span>
 <span class="normal">396</span>
 <span class="normal">397</span>
-<span class="normal">398</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="nf">load_archive</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">h5</span><span class="p">,</span> <span class="n">configure</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+<span class="normal">398</span>
+<span class="normal">399</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="nf">load_archive</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">h5</span><span class="p">,</span> <span class="n">configure</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Loads input and output from archived h5 file.</span>
 
@@ -3043,8 +3045,7 @@ input dictionary.</p>
 
       <details class="quote">
         <summary>Source code in <code>genesis/version4/genesis4.py</code></summary>
-        <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">570</span>
-<span class="normal">571</span>
+        <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">571</span>
 <span class="normal">572</span>
 <span class="normal">573</span>
 <span class="normal">574</span>
@@ -3059,7 +3060,8 @@ input dictionary.</p>
 <span class="normal">583</span>
 <span class="normal">584</span>
 <span class="normal">585</span>
-<span class="normal">586</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="nf">load_field_file</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">filename</span><span class="p">):</span>
+<span class="normal">586</span>
+<span class="normal">587</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="nf">load_field_file</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">filename</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Load a single .dfl.h5 file into .output</span>
 <span class="sd">    &quot;&quot;&quot;</span>
@@ -3098,12 +3100,12 @@ input dictionary.</p>
 
       <details class="quote">
         <summary>Source code in <code>genesis/version4/genesis4.py</code></summary>
-        <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">562</span>
-<span class="normal">563</span>
+        <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">563</span>
 <span class="normal">564</span>
 <span class="normal">565</span>
 <span class="normal">566</span>
-<span class="normal">567</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="nf">load_fields</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="normal">567</span>
+<span class="normal">568</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="nf">load_fields</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Loads all field files produced.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
@@ -3131,8 +3133,7 @@ input dictionary.</p>
 
       <details class="quote">
         <summary>Source code in <code>genesis/version4/genesis4.py</code></summary>
-        <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">488</span>
-<span class="normal">489</span>
+        <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">489</span>
 <span class="normal">490</span>
 <span class="normal">491</span>
 <span class="normal">492</span>
@@ -3177,7 +3178,8 @@ input dictionary.</p>
 <span class="normal">531</span>
 <span class="normal">532</span>
 <span class="normal">533</span>
-<span class="normal">534</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="nf">load_output</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">load_fields</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="normal">534</span>
+<span class="normal">535</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="nf">load_output</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">load_fields</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Reads and load into `.output` the outputs generated by the code.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
@@ -3249,8 +3251,7 @@ the sample (skipped) slices, preserving the modulus.</p>
 
       <details class="quote">
         <summary>Source code in <code>genesis/version4/genesis4.py</code></summary>
-        <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">536</span>
-<span class="normal">537</span>
+        <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">537</span>
 <span class="normal">538</span>
 <span class="normal">539</span>
 <span class="normal">540</span>
@@ -3266,7 +3267,8 @@ the sample (skipped) slices, preserving the modulus.</p>
 <span class="normal">550</span>
 <span class="normal">551</span>
 <span class="normal">552</span>
-<span class="normal">553</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="nf">load_particle_file</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">filename</span><span class="p">,</span> <span class="n">smear</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+<span class="normal">553</span>
+<span class="normal">554</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="nf">load_particle_file</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">filename</span><span class="p">,</span> <span class="n">smear</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Loads a single particle file into openPMD-beamphysics</span>
 <span class="sd">    ParticleGroup object.</span>
@@ -3306,12 +3308,12 @@ the sample (skipped) slices, preserving the modulus.</p>
 
       <details class="quote">
         <summary>Source code in <code>genesis/version4/genesis4.py</code></summary>
-        <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">555</span>
-<span class="normal">556</span>
+        <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">556</span>
 <span class="normal">557</span>
 <span class="normal">558</span>
 <span class="normal">559</span>
-<span class="normal">560</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="nf">load_particles</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">smear</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+<span class="normal">560</span>
+<span class="normal">561</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="nf">load_particles</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">smear</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Loads all particle files produced.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
@@ -3339,8 +3341,7 @@ the sample (skipped) slices, preserving the modulus.</p>
 
       <details class="quote">
         <summary>Source code in <code>genesis/version4/genesis4.py</code></summary>
-        <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">685</span>
-<span class="normal">686</span>
+        <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">686</span>
 <span class="normal">687</span>
 <span class="normal">688</span>
 <span class="normal">689</span>
@@ -3367,7 +3368,8 @@ the sample (skipped) slices, preserving the modulus.</p>
 <span class="normal">710</span>
 <span class="normal">711</span>
 <span class="normal">712</span>
-<span class="normal">713</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="nf">output_description_line</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">k</span><span class="p">):</span>
+<span class="normal">713</span>
+<span class="normal">714</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="nf">output_description_line</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">k</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Returns a line describing an output</span>
 <span class="sd">    &quot;&quot;&quot;</span>
@@ -3571,8 +3573,7 @@ Default: True</p></td>
 
       <details class="quote">
         <summary>Source code in <code>genesis/version4/genesis4.py</code></summary>
-        <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">588</span>
-<span class="normal">589</span>
+        <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">589</span>
 <span class="normal">590</span>
 <span class="normal">591</span>
 <span class="normal">592</span>
@@ -3656,7 +3657,8 @@ Default: True</p></td>
 <span class="normal">670</span>
 <span class="normal">671</span>
 <span class="normal">672</span>
-<span class="normal">673</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="nf">plot</span><span class="p">(</span>
+<span class="normal">673</span>
+<span class="normal">674</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="nf">plot</span><span class="p">(</span>
     <span class="bp">self</span><span class="p">,</span>
     <span class="n">y</span><span class="o">=</span><span class="s2">&quot;field_energy&quot;</span><span class="p">,</span>
     <span class="n">x</span><span class="o">=</span><span class="s2">&quot;zplot&quot;</span><span class="p">,</span>
@@ -3957,7 +3959,8 @@ along z.</p>
 <span class="normal">332</span>
 <span class="normal">333</span>
 <span class="normal">334</span>
-<span class="normal">335</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="nf">stat</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">):</span>
+<span class="normal">335</span>
+<span class="normal">336</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="nf">stat</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Calculate a statistic of the beam or field</span>
 <span class="sd">    along z.</span>
@@ -3975,6 +3978,7 @@ along z.</p>
 
     <span class="k">if</span> <span class="n">key</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;Beam&#39;</span><span class="p">):</span>
         <span class="n">dat</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_array</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
+        <span class="n">dat</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nan_to_num</span><span class="p">(</span><span class="n">dat</span><span class="p">)</span> <span class="c1"># Convert any nan to zero for averaging.</span>
         <span class="c1"># Average over the beam taking to account the weighting (current)</span>
         <span class="n">current</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">output</span><span class="p">[</span><span class="s1">&#39;Beam/current&#39;</span><span class="p">]</span>
         <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">dat</span> <span class="o">*</span> <span class="n">current</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">current</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
@@ -4054,8 +4058,7 @@ along z.</p>
 
       <details class="quote">
         <summary>Source code in <code>genesis/version4/genesis4.py</code></summary>
-        <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">447</span>
-<span class="normal">448</span>
+        <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">448</span>
 <span class="normal">449</span>
 <span class="normal">450</span>
 <span class="normal">451</span>
@@ -4093,7 +4096,8 @@ along z.</p>
 <span class="normal">483</span>
 <span class="normal">484</span>
 <span class="normal">485</span>
-<span class="normal">486</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="nf">write_initial_particles</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">update_input</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">filename</span><span class="o">=</span><span class="s1">&#39;genesis4_importdistribution.h5&#39;</span><span class="p">):</span>
+<span class="normal">486</span>
+<span class="normal">487</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="nf">write_initial_particles</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">update_input</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">filename</span><span class="o">=</span><span class="s1">&#39;genesis4_importdistribution.h5&#39;</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Writes initial particles (ParicleGroup) if present.</span>
 
@@ -4179,8 +4183,7 @@ along z.</p>
 
       <details class="quote">
         <summary>Source code in <code>genesis/version4/genesis4.py</code></summary>
-        <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">400</span>
-<span class="normal">401</span>
+        <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">401</span>
 <span class="normal">402</span>
 <span class="normal">403</span>
 <span class="normal">404</span>
@@ -4202,7 +4205,8 @@ along z.</p>
 <span class="normal">420</span>
 <span class="normal">421</span>
 <span class="normal">422</span>
-<span class="normal">423</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="nf">write_input</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">path</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">input_filename</span><span class="o">=</span><span class="s2">&quot;genesis4.in&quot;</span><span class="p">):</span>
+<span class="normal">423</span>
+<span class="normal">424</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="nf">write_input</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">path</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">input_filename</span><span class="o">=</span><span class="s2">&quot;genesis4.in&quot;</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Write the input parameters into the file.</span>
 
