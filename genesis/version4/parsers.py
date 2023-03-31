@@ -193,7 +193,7 @@ def dumpfile_step(fname):
     _, f = os.path.split(fname)
     for suffix in ('.fld.h5', '.par.h5'):
         if f.endswith(suffix):
-            f = f.strip(suffix)
+            f = f[:-len(suffix)]
             break
     if '.' in f:
         return int(f.split('.')[-1])
