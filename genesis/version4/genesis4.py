@@ -98,7 +98,9 @@ class Genesis4(CommandWrapper):
         # Save init
         self.original_input_file = self.input_file
 
+        # Data
         self.input = {"main": {}, "lattice": []}
+        self.output = {}
 
         # Internal
         self._units = parsers.known_unit.copy()
