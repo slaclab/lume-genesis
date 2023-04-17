@@ -303,7 +303,10 @@ class Genesis4(CommandWrapper):
         
         # Peak power
         if 'power' in key.lower():
-            dat = self.output['Field/power']
+            if 'field' in key.lower():
+                dat = self.output[key]
+            else:
+                dat = self.output['Field/power']
             return np.max(dat, axis=1)
         
         if key.startswith('Lattice'):
