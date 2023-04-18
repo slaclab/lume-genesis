@@ -188,6 +188,9 @@ def dumpfile_step(fname):
     """
     returns an int corresponding to the step extracted from 
     a filename that ends with '.fld.h5' or '.par.h5'
+    
+    If there is no int, the filename hash will be used.
+    
     This is useful in sorting:
         sorted(list_of_filenames, key = lambda k: dumpfile_step(k))
     """
@@ -197,6 +200,10 @@ def dumpfile_step(fname):
             f = f[:-len(suffix)]
             break
     if '.' in f:
-        return int(f.split('.')[-1])
+        tail = f.split('.')[-1]
+        if tail.isdigit():
+            return int(tail)
+        else:
+            return hash(tail) 
     else:
-        return 9999999
+        return hash(f)
