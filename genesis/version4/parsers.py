@@ -22,7 +22,8 @@ known_unit['ev'] = known_unit['eV']
 def expand_path(file, path=None):
     if not os.path.isabs(file):
         file = os.path.join(path, file)
-    assert os.path.exists(file)
+    if not os.path.exists(file):
+        raise FileNotFoundError(file)
     return tools.full_path(file)
 
 
