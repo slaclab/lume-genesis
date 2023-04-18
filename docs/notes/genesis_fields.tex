@@ -1,0 +1,70 @@
+\documentclass{article}
+\usepackage[utf8]{inputenc}
+
+\title{Conversion of radiation fields from genesis2, genesis4, and SRW to electric fields in SI units}
+\author{A.~Halavanau and C.~Mayes}
+\date{July 2020}
+%\usepackage{draftwatermark}
+%\usepackage{natbib}
+%\usepackage{graphicx}
+\usepackage{amsmath}
+
+\begin{document}
+
+\maketitle
+
+
+
+\section{Genesis Field to Electric Field}
+The description of FEL radiation field format in the {\sc genesis} manual is scarce. The {\sc dfl} / {\sc rad.h5} file stores a complex array of \texttt{ncar} $\times$ \texttt{ncar} points for each simulation slice, over a transverse domain size $[-\texttt{dgrid}$, -$\texttt{dgrid}]$ m in both the horizontal and vertical dimensions.
+
+Let us denote the radiation field value taken from {\sc dfl} file for $n$-th slice at $i,j$ transverse location as $F_{n,i,j}$.
+The manual hints that integrated value of $|F_{n,i,j}|^2$ over the spatial domain yields the total FEL power of $n$-th slice.
+Indeed, the value of 
+\begin{equation}
+P_n = \sum_{i,j}{|F_{n,i,j}|^2},
+\end{equation}
+ matches the value of integrated power, in units of Watt, reported in the output file for $n$-th slice. The values of $F_{n,i,j}$ returned by {\sc genesis} are therefore in the units of $\sqrt{\textrm{W}}$. 
+ One can use this fact to devise the conversion factor for {\sc dfl} / {\sc rad.h5} to V/m.
+We first recall that time-averaged energy density is given by (Jackson, Eq. 7.14):
+\begin{equation}
+    u = \frac{\epsilon_0}{2} |E|^2,
+\end{equation}
+where $\epsilon_0$ is vacuum permittivity. The local
+radiation intensity (energy per unit area per unit time) is related to the electric field as:
+\begin{equation}
+    I = c u = c \frac{\epsilon_0}{2} |E|^2 = \frac{E^2}{2 Z_0},
+\end{equation}
+where $Z_0 = \sqrt{\mu_0/\epsilon_0} =  1/(\epsilon_0 c)$ is the impedance of free space. In SI units, $Z_0 = \pi\cdot119.9169832  ~\textrm{V}^2/\textrm{W}$ exactly.  The total power (energy per unit time) over an area $A$ can be approximated by
+\begin{align*}
+    P &= \int I dA \\
+      &\approx \sum_{i,j}  \frac{E_{i,j}^2}{2 Z_0} \Delta^2
+\end{align*}
+where $E_{i,j}$ is the electric field value on an equally spaced grid with grid spacing $\Delta$.
+
+According to the {\sc genesis} manual, $\Delta = 2 * \texttt{dgrid} / (\texttt{ncar}-1)$ m, and therefore we can express the electric field for $n$-th slice for a $i,j$-th point on the grid in V/m as:
+
+\begin{equation}
+ E_{n,i,j} =  F_{n,i,j} \sqrt{2 Z_0}/\Delta
+\end{equation}
+
+\section{SRW Wavefront to Electric Field}
+
+SRW's radiation wavefront class \texttt{SRWWFr} allows several unit systems. The only documentation is in the code of \texttt{srwlib.py}:
+\begin{verbatim}
+    unitElFld = 1 #electric field units:
+    0- arbitrary, 1- sqrt(Phot/s/0.1%bw/mm^2)
+    2- sqrt(J/eV/mm^2) or sqrt(W/mm^2), depending on representation (freq. or time)
+\end{verbatim}
+
+Assuming the time representation, the conversion from an SRW field $F_\texttt{SRW}$ (in units of $\sqrt{\textrm{W}}/\textrm{mm}$) to electric field $E$ is therefore:
+\begin{equation}
+    E = F_\texttt{SRW} *  \sqrt{2 Z_0} * \frac{1000\textrm{mm}}{\textrm{m}}
+\end{equation}
+
+
+
+
+J.D.~Jackson, \emph{Classical Electrodynamics, Third Edition} (1999)
+
+\end{document}
