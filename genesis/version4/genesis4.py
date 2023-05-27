@@ -1,4 +1,5 @@
 import os
+import platform
 import shutil
 from time import time
 import numpy as np
@@ -23,7 +24,7 @@ def find_mpirun():
         
     if os.environ.get('NERSC_HOST') == 'perlmutter':
         srun = 'srun -n {nproc} --ntasks-per-node {nproc} -c 1 {command_mpi}'
-        hostname = os.environ.get('HOSTNAME')
+        hostname = platform.node()
         assert hostname # This must exist
         if hostname.startswith('nid'):
             # Compute node
