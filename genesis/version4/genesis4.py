@@ -473,7 +473,22 @@ class Genesis4(CommandWrapper):
                'charge': p.charge}            
             
             main_input = self.input['main']
-            # look for existing
+
+
+            # Remove any existing 'beam'
+            ixpop = []
+            for ix, d in enumerate(main_input):
+                if d['type'] == 'beam':
+                    ixpop.append(ix)
+            if len(ixpop) > 0:
+                if len(ixpop) > 1:
+                    raise NotImplementedError("Multiple 'beam' encountered")                    
+                main_input.pop(ixpop[0])
+                self.vprint("Removed 'beam' from input, will be replaced by 'importdistribution'")
+            #else:
+            #    self.vprint('No existing beam encountered')
+
+            # look for existing importdistribution
             for ix, d in enumerate(main_input):
                 if d['type'] == 'importdistribution':
                     found = True
@@ -481,13 +496,15 @@ class Genesis4(CommandWrapper):
                     self.vprint("Updated existing importdistribution")
                     return
                 
-            # Now try to insert before the first track
+            # Now try to insert before the first track or write statement
             for ix, d in enumerate(main_input):
-                if d['type'] == 'track':
+                if d['type'] in ('track', 'write'):
                     main_input.insert(ix, d1)          
-                    self.vprint("Added new importdistribution before track")
+                    self.vprint(f"Added new importdistribution before the first {d['type']}")
                     return
-                
+
+
+                                              
             # Just append at the end. Note that a track will still be needed!
             self.vprint("Nothing found, inserting at the end")
             main_input.append(d1)    
