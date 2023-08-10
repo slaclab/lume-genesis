@@ -61,11 +61,16 @@ def load_genesis4_fields(h5):
         ]
     )
 
-    # 3D complex field
+    # Note from Sven:
+    #   The order of the 1D array of the wavefront is with the x coordinates as the inner loop. 
+    #   So the order is (x1,y1),(x2,y1), ... (xn,y1),(x1,y2),(x2,y2),.....
+    #   This is done int he routine getLLGridpoint in the field class.
+    # Therefore the transpose is needed below
+    
     dfl = np.stack(
         [
-            h5[g]["field-real"][:].reshape(nx, nx)
-            + 1j * h5[g]["field-imag"][:].reshape(nx, nx)
+            h5[g]["field-real"][:].reshape(nx, nx).T
+            + 1j * h5[g]["field-imag"][:].reshape(nx, nx).T
             for g in slist
         ],
         axis=-1,
