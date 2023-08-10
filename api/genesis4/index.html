@@ -1825,7 +1825,12 @@ If workdir=None, a location will be determined by the system.</p>
 <span class="normal">734</span>
 <span class="normal">735</span>
 <span class="normal">736</span>
-<span class="normal">737</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span> <span class="nc">Genesis4</span><span class="p">(</span><span class="n">CommandWrapper</span><span class="p">):</span>
+<span class="normal">737</span>
+<span class="normal">738</span>
+<span class="normal">739</span>
+<span class="normal">740</span>
+<span class="normal">741</span>
+<span class="normal">742</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span> <span class="nc">Genesis4</span><span class="p">(</span><span class="n">CommandWrapper</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Files will be written into a temporary directory within workdir.</span>
 <span class="sd">    If workdir=None, a location will be determined by the system.</span>
@@ -2256,11 +2261,16 @@ If workdir=None, a location will be determined by the system.</p>
             <span class="n">main_input</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">input</span><span class="p">[</span><span class="s1">&#39;main&#39;</span><span class="p">]</span>
 
 
-            <span class="c1"># Remove any existing &#39;beam&#39;</span>
+            <span class="c1"># Remove any existing &#39;beam&#39;, update slen</span>
             <span class="n">ixpop</span> <span class="o">=</span> <span class="p">[]</span>
             <span class="k">for</span> <span class="n">ix</span><span class="p">,</span> <span class="n">d</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">main_input</span><span class="p">):</span>
                 <span class="k">if</span> <span class="n">d</span><span class="p">[</span><span class="s1">&#39;type&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;beam&#39;</span><span class="p">:</span>
                     <span class="n">ixpop</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">ix</span><span class="p">)</span>
+                <span class="k">elif</span> <span class="n">d</span><span class="p">[</span><span class="s1">&#39;type&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;time&#39;</span><span class="p">:</span>
+                    <span class="n">slen</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">c_light</span> <span class="o">*</span> <span class="n">p</span><span class="o">.</span><span class="n">t</span><span class="o">.</span><span class="n">ptp</span><span class="p">()</span> <span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">z</span><span class="o">.</span><span class="n">ptp</span><span class="p">()</span> <span class="p">)</span> 
+                    <span class="n">d</span><span class="p">[</span><span class="s1">&#39;slen&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">slen</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">vprint</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Updated slen = </span><span class="si">{</span><span class="n">slen</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
             <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">ixpop</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
                 <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">ixpop</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
                     <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s2">&quot;Multiple &#39;beam&#39; encountered&quot;</span><span class="p">)</span>                    
@@ -3141,12 +3151,7 @@ input dictionary.</p>
 
           <details class="quote">
             <summary>Source code in <code>genesis/version4/genesis4.py</code></summary>
-            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">594</span>
-<span class="normal">595</span>
-<span class="normal">596</span>
-<span class="normal">597</span>
-<span class="normal">598</span>
-<span class="normal">599</span>
+            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">599</span>
 <span class="normal">600</span>
 <span class="normal">601</span>
 <span class="normal">602</span>
@@ -3157,7 +3162,12 @@ input dictionary.</p>
 <span class="normal">607</span>
 <span class="normal">608</span>
 <span class="normal">609</span>
-<span class="normal">610</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="nf">load_field_file</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">filename</span><span class="p">):</span>
+<span class="normal">610</span>
+<span class="normal">611</span>
+<span class="normal">612</span>
+<span class="normal">613</span>
+<span class="normal">614</span>
+<span class="normal">615</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="nf">load_field_file</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">filename</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Load a single .dfl.h5 file into .output</span>
 <span class="sd">    &quot;&quot;&quot;</span>
@@ -3197,12 +3207,12 @@ input dictionary.</p>
 
           <details class="quote">
             <summary>Source code in <code>genesis/version4/genesis4.py</code></summary>
-            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">586</span>
-<span class="normal">587</span>
-<span class="normal">588</span>
-<span class="normal">589</span>
-<span class="normal">590</span>
-<span class="normal">591</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="nf">load_fields</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">591</span>
+<span class="normal">592</span>
+<span class="normal">593</span>
+<span class="normal">594</span>
+<span class="normal">595</span>
+<span class="normal">596</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="nf">load_fields</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Loads all field files produced.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
@@ -3231,12 +3241,7 @@ input dictionary.</p>
 
           <details class="quote">
             <summary>Source code in <code>genesis/version4/genesis4.py</code></summary>
-            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">512</span>
-<span class="normal">513</span>
-<span class="normal">514</span>
-<span class="normal">515</span>
-<span class="normal">516</span>
-<span class="normal">517</span>
+            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">517</span>
 <span class="normal">518</span>
 <span class="normal">519</span>
 <span class="normal">520</span>
@@ -3277,7 +3282,12 @@ input dictionary.</p>
 <span class="normal">555</span>
 <span class="normal">556</span>
 <span class="normal">557</span>
-<span class="normal">558</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="nf">load_output</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">load_fields</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="normal">558</span>
+<span class="normal">559</span>
+<span class="normal">560</span>
+<span class="normal">561</span>
+<span class="normal">562</span>
+<span class="normal">563</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="nf">load_output</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">load_fields</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Reads and load into `.output` the outputs generated by the code.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
@@ -3350,12 +3360,7 @@ the sample (skipped) slices, preserving the modulus.</p>
 
           <details class="quote">
             <summary>Source code in <code>genesis/version4/genesis4.py</code></summary>
-            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">560</span>
-<span class="normal">561</span>
-<span class="normal">562</span>
-<span class="normal">563</span>
-<span class="normal">564</span>
-<span class="normal">565</span>
+            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">565</span>
 <span class="normal">566</span>
 <span class="normal">567</span>
 <span class="normal">568</span>
@@ -3367,7 +3372,12 @@ the sample (skipped) slices, preserving the modulus.</p>
 <span class="normal">574</span>
 <span class="normal">575</span>
 <span class="normal">576</span>
-<span class="normal">577</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="nf">load_particle_file</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">filename</span><span class="p">,</span> <span class="n">smear</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+<span class="normal">577</span>
+<span class="normal">578</span>
+<span class="normal">579</span>
+<span class="normal">580</span>
+<span class="normal">581</span>
+<span class="normal">582</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="nf">load_particle_file</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">filename</span><span class="p">,</span> <span class="n">smear</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Loads a single particle file into openPMD-beamphysics</span>
 <span class="sd">    ParticleGroup object.</span>
@@ -3408,12 +3418,12 @@ the sample (skipped) slices, preserving the modulus.</p>
 
           <details class="quote">
             <summary>Source code in <code>genesis/version4/genesis4.py</code></summary>
-            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">579</span>
-<span class="normal">580</span>
-<span class="normal">581</span>
-<span class="normal">582</span>
-<span class="normal">583</span>
-<span class="normal">584</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="nf">load_particles</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">smear</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">584</span>
+<span class="normal">585</span>
+<span class="normal">586</span>
+<span class="normal">587</span>
+<span class="normal">588</span>
+<span class="normal">589</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="nf">load_particles</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">smear</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Loads all particle files produced.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
@@ -3442,12 +3452,7 @@ the sample (skipped) slices, preserving the modulus.</p>
 
           <details class="quote">
             <summary>Source code in <code>genesis/version4/genesis4.py</code></summary>
-            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">709</span>
-<span class="normal">710</span>
-<span class="normal">711</span>
-<span class="normal">712</span>
-<span class="normal">713</span>
-<span class="normal">714</span>
+            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">714</span>
 <span class="normal">715</span>
 <span class="normal">716</span>
 <span class="normal">717</span>
@@ -3470,7 +3475,12 @@ the sample (skipped) slices, preserving the modulus.</p>
 <span class="normal">734</span>
 <span class="normal">735</span>
 <span class="normal">736</span>
-<span class="normal">737</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="nf">output_description_line</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">k</span><span class="p">):</span>
+<span class="normal">737</span>
+<span class="normal">738</span>
+<span class="normal">739</span>
+<span class="normal">740</span>
+<span class="normal">741</span>
+<span class="normal">742</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="nf">output_description_line</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">k</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Returns a line describing an output</span>
 <span class="sd">    &quot;&quot;&quot;</span>
@@ -3731,12 +3741,7 @@ Default: True</p>
 
           <details class="quote">
             <summary>Source code in <code>genesis/version4/genesis4.py</code></summary>
-            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">612</span>
-<span class="normal">613</span>
-<span class="normal">614</span>
-<span class="normal">615</span>
-<span class="normal">616</span>
-<span class="normal">617</span>
+            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">617</span>
 <span class="normal">618</span>
 <span class="normal">619</span>
 <span class="normal">620</span>
@@ -3816,7 +3821,12 @@ Default: True</p>
 <span class="normal">694</span>
 <span class="normal">695</span>
 <span class="normal">696</span>
-<span class="normal">697</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="nf">plot</span><span class="p">(</span>
+<span class="normal">697</span>
+<span class="normal">698</span>
+<span class="normal">699</span>
+<span class="normal">700</span>
+<span class="normal">701</span>
+<span class="normal">702</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="nf">plot</span><span class="p">(</span>
     <span class="bp">self</span><span class="p">,</span>
     <span class="n">y</span><span class="o">=</span><span class="s2">&quot;field_energy&quot;</span><span class="p">,</span>
     <span class="n">x</span><span class="o">=</span><span class="s2">&quot;zplot&quot;</span><span class="p">,</span>
@@ -4282,7 +4292,12 @@ along z.</p>
 <span class="normal">507</span>
 <span class="normal">508</span>
 <span class="normal">509</span>
-<span class="normal">510</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="nf">write_initial_particles</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">update_input</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">filename</span><span class="o">=</span><span class="s1">&#39;genesis4_importdistribution.h5&#39;</span><span class="p">):</span>
+<span class="normal">510</span>
+<span class="normal">511</span>
+<span class="normal">512</span>
+<span class="normal">513</span>
+<span class="normal">514</span>
+<span class="normal">515</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="nf">write_initial_particles</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">update_input</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">filename</span><span class="o">=</span><span class="s1">&#39;genesis4_importdistribution.h5&#39;</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Writes initial particles (ParicleGroup) if present.</span>
 
@@ -4306,11 +4321,16 @@ along z.</p>
         <span class="n">main_input</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">input</span><span class="p">[</span><span class="s1">&#39;main&#39;</span><span class="p">]</span>
 
 
-        <span class="c1"># Remove any existing &#39;beam&#39;</span>
+        <span class="c1"># Remove any existing &#39;beam&#39;, update slen</span>
         <span class="n">ixpop</span> <span class="o">=</span> <span class="p">[]</span>
         <span class="k">for</span> <span class="n">ix</span><span class="p">,</span> <span class="n">d</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">main_input</span><span class="p">):</span>
             <span class="k">if</span> <span class="n">d</span><span class="p">[</span><span class="s1">&#39;type&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;beam&#39;</span><span class="p">:</span>
                 <span class="n">ixpop</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">ix</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="n">d</span><span class="p">[</span><span class="s1">&#39;type&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;time&#39;</span><span class="p">:</span>
+                <span class="n">slen</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">c_light</span> <span class="o">*</span> <span class="n">p</span><span class="o">.</span><span class="n">t</span><span class="o">.</span><span class="n">ptp</span><span class="p">()</span> <span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">z</span><span class="o">.</span><span class="n">ptp</span><span class="p">()</span> <span class="p">)</span> 
+                <span class="n">d</span><span class="p">[</span><span class="s1">&#39;slen&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">slen</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">vprint</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Updated slen = </span><span class="si">{</span><span class="n">slen</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
         <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">ixpop</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
             <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">ixpop</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
                 <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s2">&quot;Multiple &#39;beam&#39; encountered&quot;</span><span class="p">)</span>                    
