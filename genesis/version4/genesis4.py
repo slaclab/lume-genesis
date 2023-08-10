@@ -475,11 +475,16 @@ class Genesis4(CommandWrapper):
             main_input = self.input['main']
 
 
-            # Remove any existing 'beam'
+            # Remove any existing 'beam', update slen
             ixpop = []
             for ix, d in enumerate(main_input):
                 if d['type'] == 'beam':
                     ixpop.append(ix)
+                elif d['type'] == 'time':
+                    slen = max(c_light * p.t.ptp() , p.z.ptp() ) 
+                    d['slen'] = slen
+                    self.vprint(f"Updated slen = {slen}")
+
             if len(ixpop) > 0:
                 if len(ixpop) > 1:
                     raise NotImplementedError("Multiple 'beam' encountered")                    
