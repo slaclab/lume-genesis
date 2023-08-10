@@ -13,7 +13,7 @@
       
       
       <link rel="icon" href="../../assets/images/favicon.png">
-      <meta name="generator" content="mkdocs-1.4.3, mkdocs-material-9.1.17">
+      <meta name="generator" content="mkdocs-1.5.2, mkdocs-material-9.1.21">
     
     
       
@@ -21,7 +21,7 @@
       
     
     
-      <link rel="stylesheet" href="../../assets/stylesheets/main.26e3688c.min.css">
+      <link rel="stylesheet" href="../../assets/stylesheets/main.eebd395e.min.css">
       
         
         <link rel="stylesheet" href="../../assets/stylesheets/palette.ecc896b0.min.css">
@@ -1072,19 +1072,21 @@
 
 
 <h2 id="genesis.Genesis4" class="doc doc-heading">
-        <code>genesis.Genesis4</code>
+          <code>genesis.Genesis4</code>
 
 
 <a href="#genesis.Genesis4" class="headerlink" title="Permanent link">&para;</a></h2>
 
 
   <div class="doc doc-contents first">
-      <p class="doc doc-class-bases">
-        Bases: <code><span title="lume.base.CommandWrapper">CommandWrapper</span></code></p>
+          <p class="doc doc-class-bases">
+            Bases: <code><span title="lume.base.CommandWrapper">CommandWrapper</span></code></p>
 
   
       <p>Files will be written into a temporary directory within workdir.
 If workdir=None, a location will be determined by the system.</p>
+
+
 
   <p><strong>Parameters:</strong></p>
   <table>
@@ -1131,10 +1133,9 @@ If workdir=None, a location will be determined by the system.</p>
 <p>timeout: float
     Default: None</p>
 
-
-        <details class="quote">
-          <summary>Source code in <code>genesis/version4/genesis4.py</code></summary>
-          <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"> 47</span>
+            <details class="quote">
+              <summary>Source code in <code>genesis/version4/genesis4.py</code></summary>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"> 47</span>
 <span class="normal"> 48</span>
 <span class="normal"> 49</span>
 <span class="normal"> 50</span>
@@ -2516,7 +2517,7 @@ If workdir=None, a location will be determined by the system.</p>
         <span class="n">line</span> <span class="o">=</span> <span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="n">k</span><span class="si">:</span><span class="s1">25</span><span class="si">}</span><span class="s1"> </span><span class="si">{</span><span class="n">descrip</span><span class="si">}</span><span class="s1">&#39;</span>
         <span class="k">return</span> <span class="n">line</span>    
 </code></pre></div></td></tr></table></div>
-        </details>
+            </details>
 
   
 
@@ -2536,8 +2537,8 @@ If workdir=None, a location will be determined by the system.</p>
 <code class="highlight language-python"><span class="n">nnode</span></code>
   
   <span class="doc doc-labels">
-      <small class="doc doc-label doc-label-writable"><code>writable</code></small>
       <small class="doc doc-label doc-label-property"><code>property</code></small>
+      <small class="doc doc-label doc-label-writable"><code>writable</code></small>
   </span>
 
 <a href="#genesis.version4.genesis4.Genesis4.nnode" class="headerlink" title="Permanent link">&para;</a></h3>
@@ -2558,8 +2559,8 @@ If workdir=None, a location will be determined by the system.</p>
 <code class="highlight language-python"><span class="n">nproc</span></code>
   
   <span class="doc doc-labels">
-      <small class="doc doc-label doc-label-writable"><code>writable</code></small>
       <small class="doc doc-label doc-label-property"><code>property</code></small>
+      <small class="doc doc-label doc-label-writable"><code>writable</code></small>
   </span>
 
 <a href="#genesis.version4.genesis4.Genesis4.nproc" class="headerlink" title="Permanent link">&para;</a></h3>
@@ -2571,6 +2572,7 @@ If workdir=None, a location will be determined by the system.</p>
   </div>
 
 </div>
+
 
 
 
@@ -2588,6 +2590,8 @@ If workdir=None, a location will be determined by the system.</p>
   
       <p>Dump inputs and outputs into HDF5 file.</p>
 
+
+
   <p><strong>Parameters:</strong></p>
   <table>
     <thead>
@@ -2602,7 +2606,7 @@ If workdir=None, a location will be determined by the system.</p>
         <tr>
           <td><code>h5</code></td>
           <td>
-                <code>str or h5py.File</code>
+                <code>str or h5py.<span title="h5py.File">File</span></code>
           </td>
           <td>
             <div class="doc-md-description">
@@ -2616,6 +2620,8 @@ If not in informed, a new file is generated.</p>
         </tr>
     </tbody>
   </table>
+
+
 
   <p><strong>Returns:</strong></p>
   <table>
@@ -2639,9 +2645,9 @@ If not in informed, a new file is generated.</p>
     </tbody>
   </table>
 
-      <details class="quote">
-        <summary>Source code in <code>genesis/version4/genesis4.py</code></summary>
-        <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">363</span>
+          <details class="quote">
+            <summary>Source code in <code>genesis/version4/genesis4.py</code></summary>
+            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">363</span>
 <span class="normal">364</span>
 <span class="normal">365</span>
 <span class="normal">366</span>
@@ -2701,10 +2707,11 @@ If not in informed, a new file is generated.</p>
 
     <span class="k">return</span> <span class="n">h5</span>
 </code></pre></div></td></tr></table></div>
-      </details>
+          </details>
   </div>
 
 </div>
+
 
 <div class="doc doc-object doc-function">
 
@@ -2720,9 +2727,9 @@ If not in informed, a new file is generated.</p>
   
       <p>Gets an array, considering aliases</p>
 
-      <details class="quote">
-        <summary>Source code in <code>genesis/version4/genesis4.py</code></summary>
-        <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">346</span>
+          <details class="quote">
+            <summary>Source code in <code>genesis/version4/genesis4.py</code></summary>
+            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">346</span>
 <span class="normal">347</span>
 <span class="normal">348</span>
 <span class="normal">349</span>
@@ -2748,10 +2755,11 @@ If not in informed, a new file is generated.</p>
 
     <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;unknwon key: </span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
 </code></pre></div></td></tr></table></div>
-      </details>
+          </details>
   </div>
 
 </div>
+
 
 <div class="doc doc-object doc-function">
 
@@ -2770,9 +2778,9 @@ Will search environmental variables:
         Genesis4.command_env='GENESIS4_BIN'
         Genesis4.command_mpi_env='GENESIS4_BIN'</p>
 
-      <details class="quote">
-        <summary>Source code in <code>genesis/version4/genesis4.py</code></summary>
-        <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">202</span>
+          <details class="quote">
+            <summary>Source code in <code>genesis/version4/genesis4.py</code></summary>
+            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">202</span>
 <span class="normal">203</span>
 <span class="normal">204</span>
 <span class="normal">205</span>
@@ -2800,10 +2808,11 @@ Will search environmental variables:
         <span class="n">exe</span> <span class="o">=</span> <span class="n">tools</span><span class="o">.</span><span class="n">find_executable</span><span class="p">(</span><span class="n">exename</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">command</span><span class="p">,</span> <span class="n">envname</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">command_env</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">exe</span>
 </code></pre></div></td></tr></table></div>
-      </details>
+          </details>
   </div>
 
 </div>
+
 
 <div class="doc doc-object doc-function">
 
@@ -2825,9 +2834,9 @@ Optionally writes a file 'run' with this line to path.</p>
     or
     'mpirun -n {n} {command_mpi}'</p>
 
-      <details class="quote">
-        <summary>Source code in <code>genesis/version4/genesis4.py</code></summary>
-        <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">217</span>
+          <details class="quote">
+            <summary>Source code in <code>genesis/version4/genesis4.py</code></summary>
+            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">217</span>
 <span class="normal">218</span>
 <span class="normal">219</span>
 <span class="normal">220</span>
@@ -2899,10 +2908,11 @@ Optionally writes a file 'run' with this line to path.</p>
         <span class="n">tools</span><span class="o">.</span><span class="n">make_executable</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">runscript</span>
 </code></pre></div></td></tr></table></div>
-      </details>
+          </details>
   </div>
 
 </div>
+
 
 <div class="doc doc-object doc-function">
 
@@ -2922,6 +2932,8 @@ Optionally writes a file 'run' with this line to path.</p>
   
       <p>Invoke the specialized input parser and returns the
 input dictionary.</p>
+
+
 
   <p><strong>Parameters:</strong></p>
   <table>
@@ -2951,6 +2963,8 @@ input dictionary.</p>
     </tbody>
   </table>
 
+
+
   <p><strong>Returns:</strong></p>
   <table>
     <thead>
@@ -2973,9 +2987,9 @@ input dictionary.</p>
     </tbody>
   </table>
 
-      <details class="quote">
-        <summary>Source code in <code>genesis/version4/genesis4.py</code></summary>
-        <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">432</span>
+          <details class="quote">
+            <summary>Source code in <code>genesis/version4/genesis4.py</code></summary>
+            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">432</span>
 <span class="normal">433</span>
 <span class="normal">434</span>
 <span class="normal">435</span>
@@ -3015,10 +3029,11 @@ input dictionary.</p>
 
     <span class="k">return</span> <span class="n">d</span>
 </code></pre></div></td></tr></table></div>
-      </details>
+          </details>
   </div>
 
 </div>
+
 
 <div class="doc doc-object doc-function">
 
@@ -3034,6 +3049,8 @@ input dictionary.</p>
   
       <p>Loads input and output from archived h5 file.</p>
 
+
+
   <p><strong>Parameters:</strong></p>
   <table>
     <thead>
@@ -3048,7 +3065,7 @@ input dictionary.</p>
         <tr>
           <td><code>h5</code></td>
           <td>
-                <code>str or h5py.File</code>
+                <code>str or h5py.<span title="h5py.File">File</span></code>
           </td>
           <td>
             <div class="doc-md-description">
@@ -3076,9 +3093,9 @@ input dictionary.</p>
     </tbody>
   </table>
 
-      <details class="quote">
-        <summary>Source code in <code>genesis/version4/genesis4.py</code></summary>
-        <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">394</span>
+          <details class="quote">
+            <summary>Source code in <code>genesis/version4/genesis4.py</code></summary>
+            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">394</span>
 <span class="normal">395</span>
 <span class="normal">396</span>
 <span class="normal">397</span>
@@ -3102,10 +3119,11 @@ input dictionary.</p>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">raise</span> <span class="ne">NotImplementedError</span>
 </code></pre></div></td></tr></table></div>
-      </details>
+          </details>
   </div>
 
 </div>
+
 
 <div class="doc doc-object doc-function">
 
@@ -3121,9 +3139,9 @@ input dictionary.</p>
   
       <p>Load a single .dfl.h5 file into .output</p>
 
-      <details class="quote">
-        <summary>Source code in <code>genesis/version4/genesis4.py</code></summary>
-        <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">594</span>
+          <details class="quote">
+            <summary>Source code in <code>genesis/version4/genesis4.py</code></summary>
+            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">594</span>
 <span class="normal">595</span>
 <span class="normal">596</span>
 <span class="normal">597</span>
@@ -3157,10 +3175,11 @@ input dictionary.</p>
     <span class="bp">self</span><span class="o">.</span><span class="n">output</span><span class="p">[</span><span class="s2">&quot;field&quot;</span><span class="p">][</span><span class="n">label</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;dfl&quot;</span><span class="p">:</span> <span class="n">dfl</span><span class="p">,</span> <span class="s2">&quot;param&quot;</span><span class="p">:</span> <span class="n">param</span><span class="p">}</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">vprint</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Loaded field data: </span><span class="si">{</span><span class="n">label</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
 </code></pre></div></td></tr></table></div>
-      </details>
+          </details>
   </div>
 
 </div>
+
 
 <div class="doc doc-object doc-function">
 
@@ -3176,9 +3195,9 @@ input dictionary.</p>
   
       <p>Loads all field files produced.</p>
 
-      <details class="quote">
-        <summary>Source code in <code>genesis/version4/genesis4.py</code></summary>
-        <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">586</span>
+          <details class="quote">
+            <summary>Source code in <code>genesis/version4/genesis4.py</code></summary>
+            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">586</span>
 <span class="normal">587</span>
 <span class="normal">588</span>
 <span class="normal">589</span>
@@ -3190,10 +3209,11 @@ input dictionary.</p>
     <span class="k">for</span> <span class="n">file</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">output</span><span class="p">[</span><span class="s2">&quot;field_files&quot;</span><span class="p">]:</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">load_field_file</span><span class="p">(</span><span class="n">file</span><span class="p">)</span>
 </code></pre></div></td></tr></table></div>
-      </details>
+          </details>
   </div>
 
 </div>
+
 
 <div class="doc doc-object doc-function">
 
@@ -3209,9 +3229,9 @@ input dictionary.</p>
   
       <p>Reads and load into <code>.output</code> the outputs generated by the code.</p>
 
-      <details class="quote">
-        <summary>Source code in <code>genesis/version4/genesis4.py</code></summary>
-        <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">512</span>
+          <details class="quote">
+            <summary>Source code in <code>genesis/version4/genesis4.py</code></summary>
+            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">512</span>
 <span class="normal">513</span>
 <span class="normal">514</span>
 <span class="normal">515</span>
@@ -3305,10 +3325,11 @@ input dictionary.</p>
         <span class="k">if</span> <span class="n">key</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_units</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_units</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_units</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
 </code></pre></div></td></tr></table></div>
-      </details>
+          </details>
   </div>
 
 </div>
+
 
 <div class="doc doc-object doc-function">
 
@@ -3327,9 +3348,9 @@ ParticleGroup object.</p>
 <p>If smear = True (default), will smear the phase over 
 the sample (skipped) slices, preserving the modulus.</p>
 
-      <details class="quote">
-        <summary>Source code in <code>genesis/version4/genesis4.py</code></summary>
-        <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">560</span>
+          <details class="quote">
+            <summary>Source code in <code>genesis/version4/genesis4.py</code></summary>
+            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">560</span>
 <span class="normal">561</span>
 <span class="normal">562</span>
 <span class="normal">563</span>
@@ -3365,10 +3386,11 @@ the sample (skipped) slices, preserving the modulus.</p>
     <span class="bp">self</span><span class="o">.</span><span class="n">output</span><span class="p">[</span><span class="s2">&quot;particles&quot;</span><span class="p">][</span><span class="n">label</span><span class="p">]</span> <span class="o">=</span> <span class="n">P</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">vprint</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Loaded particle data: &#39;</span><span class="si">{</span><span class="n">label</span><span class="si">}</span><span class="s2">&#39; as a ParticleGroup with </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">P</span><span class="p">)</span><span class="si">}</span><span class="s2"> particles&quot;</span><span class="p">)</span>
 </code></pre></div></td></tr></table></div>
-      </details>
+          </details>
   </div>
 
 </div>
+
 
 <div class="doc doc-object doc-function">
 
@@ -3384,9 +3406,9 @@ the sample (skipped) slices, preserving the modulus.</p>
   
       <p>Loads all particle files produced.</p>
 
-      <details class="quote">
-        <summary>Source code in <code>genesis/version4/genesis4.py</code></summary>
-        <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">579</span>
+          <details class="quote">
+            <summary>Source code in <code>genesis/version4/genesis4.py</code></summary>
+            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">579</span>
 <span class="normal">580</span>
 <span class="normal">581</span>
 <span class="normal">582</span>
@@ -3398,10 +3420,11 @@ the sample (skipped) slices, preserving the modulus.</p>
     <span class="k">for</span> <span class="n">file</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">output</span><span class="p">[</span><span class="s2">&quot;particle_files&quot;</span><span class="p">]:</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">load_particle_file</span><span class="p">(</span><span class="n">file</span><span class="p">,</span> <span class="n">smear</span><span class="o">=</span><span class="n">smear</span><span class="p">)</span>        
 </code></pre></div></td></tr></table></div>
-      </details>
+          </details>
   </div>
 
 </div>
+
 
 <div class="doc doc-object doc-function">
 
@@ -3417,9 +3440,9 @@ the sample (skipped) slices, preserving the modulus.</p>
   
       <p>Returns a line describing an output</p>
 
-      <details class="quote">
-        <summary>Source code in <code>genesis/version4/genesis4.py</code></summary>
-        <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">709</span>
+          <details class="quote">
+            <summary>Source code in <code>genesis/version4/genesis4.py</code></summary>
+            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">709</span>
 <span class="normal">710</span>
 <span class="normal">711</span>
 <span class="normal">712</span>
@@ -3477,10 +3500,11 @@ the sample (skipped) slices, preserving the modulus.</p>
     <span class="n">line</span> <span class="o">=</span> <span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="n">k</span><span class="si">:</span><span class="s1">25</span><span class="si">}</span><span class="s1"> </span><span class="si">{</span><span class="n">descrip</span><span class="si">}</span><span class="s1">&#39;</span>
     <span class="k">return</span> <span class="n">line</span>    
 </code></pre></div></td></tr></table></div>
-      </details>
+          </details>
   </div>
 
 </div>
+
 
 <div class="doc doc-object doc-function">
 
@@ -3495,6 +3519,8 @@ the sample (skipped) slices, preserving the modulus.</p>
   <div class="doc doc-contents ">
   
       <p>Plots output multiple keys.</p>
+
+
 
   <p><strong>Parameters:</strong></p>
   <table>
@@ -3679,6 +3705,8 @@ Default: True</p>
     </tbody>
   </table>
 
+
+
   <p><strong>Returns:</strong></p>
   <table>
     <thead>
@@ -3701,9 +3729,9 @@ Default: True</p>
     </tbody>
   </table>
 
-      <details class="quote">
-        <summary>Source code in <code>genesis/version4/genesis4.py</code></summary>
-        <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">612</span>
+          <details class="quote">
+            <summary>Source code in <code>genesis/version4/genesis4.py</code></summary>
+            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">612</span>
 <span class="normal">613</span>
 <span class="normal">614</span>
 <span class="normal">615</span>
@@ -3875,10 +3903,11 @@ Default: True</p>
         <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
     <span class="p">)</span>
 </code></pre></div></td></tr></table></div>
-      </details>
+          </details>
   </div>
 
 </div>
+
 
 <div class="doc doc-object doc-function">
 
@@ -3894,9 +3923,9 @@ Default: True</p>
   
       <p>Execute the code.</p>
 
-      <details class="quote">
-        <summary>Source code in <code>genesis/version4/genesis4.py</code></summary>
-        <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">136</span>
+          <details class="quote">
+            <summary>Source code in <code>genesis/version4/genesis4.py</code></summary>
+            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">136</span>
 <span class="normal">137</span>
 <span class="normal">138</span>
 <span class="normal">139</span>
@@ -4026,10 +4055,11 @@ Default: True</p>
 
     <span class="bp">self</span><span class="o">.</span><span class="n">finished</span> <span class="o">=</span> <span class="kc">True</span>
 </code></pre></div></td></tr></table></div>
-      </details>
+          </details>
   </div>
 
 </div>
+
 
 <div class="doc doc-object doc-function">
 
@@ -4046,9 +4076,9 @@ Default: True</p>
       <p>Calculate a statistic of the beam or field
 along z.</p>
 
-      <details class="quote">
-        <summary>Source code in <code>genesis/version4/genesis4.py</code></summary>
-        <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">297</span>
+          <details class="quote">
+            <summary>Source code in <code>genesis/version4/genesis4.py</code></summary>
+            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">297</span>
 <span class="normal">298</span>
 <span class="normal">299</span>
 <span class="normal">300</span>
@@ -4140,10 +4170,11 @@ along z.</p>
 
     <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Cannot compute stat for: &#39;</span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s2">&#39;&quot;</span><span class="p">)</span>
 </code></pre></div></td></tr></table></div>
-      </details>
+          </details>
   </div>
 
 </div>
+
 
 <div class="doc doc-object doc-function">
 
@@ -4159,9 +4190,9 @@ along z.</p>
   
       <p>pmd_unit of a given key</p>
 
-      <details class="quote">
-        <summary>Source code in <code>genesis/version4/genesis4.py</code></summary>
-        <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">284</span>
+          <details class="quote">
+            <summary>Source code in <code>genesis/version4/genesis4.py</code></summary>
+            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">284</span>
 <span class="normal">285</span>
 <span class="normal">286</span>
 <span class="normal">287</span>
@@ -4173,10 +4204,11 @@ along z.</p>
     <span class="k">else</span><span class="p">:</span>
         <span class="k">return</span> <span class="kc">None</span>
 </code></pre></div></td></tr></table></div>
-      </details>
+          </details>
   </div>
 
 </div>
+
 
 <div class="doc doc-object doc-function">
 
@@ -4192,9 +4224,9 @@ along z.</p>
   
       <p>Writes initial particles (ParicleGroup) if present.</p>
 
-      <details class="quote">
-        <summary>Source code in <code>genesis/version4/genesis4.py</code></summary>
-        <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">454</span>
+          <details class="quote">
+            <summary>Source code in <code>genesis/version4/genesis4.py</code></summary>
+            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">454</span>
 <span class="normal">455</span>
 <span class="normal">456</span>
 <span class="normal">457</span>
@@ -4308,10 +4340,11 @@ along z.</p>
         <span class="bp">self</span><span class="o">.</span><span class="n">vprint</span><span class="p">(</span><span class="s2">&quot;Nothing found, inserting at the end&quot;</span><span class="p">)</span>
         <span class="n">main_input</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">d1</span><span class="p">)</span>    
 </code></pre></div></td></tr></table></div>
-      </details>
+          </details>
   </div>
 
 </div>
+
 
 <div class="doc doc-object doc-function">
 
@@ -4326,6 +4359,8 @@ along z.</p>
   <div class="doc doc-contents ">
   
       <p>Write the input parameters into the file.</p>
+
+
 
   <p><strong>Parameters:</strong></p>
   <table>
@@ -4355,9 +4390,9 @@ along z.</p>
     </tbody>
   </table>
 
-      <details class="quote">
-        <summary>Source code in <code>genesis/version4/genesis4.py</code></summary>
-        <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">407</span>
+          <details class="quote">
+            <summary>Source code in <code>genesis/version4/genesis4.py</code></summary>
+            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">407</span>
 <span class="normal">408</span>
 <span class="normal">409</span>
 <span class="normal">410</span>
@@ -4405,7 +4440,7 @@ along z.</p>
     <span class="c1"># Write run script</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">get_run_script</span><span class="p">(</span><span class="n">write_to_path</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">path</span><span class="o">=</span><span class="n">path</span><span class="p">)</span>
 </code></pre></div></td></tr></table></div>
-      </details>
+          </details>
   </div>
 
 </div>
@@ -4467,10 +4502,10 @@ along z.</p>
       <div class="md-dialog__inner md-typeset"></div>
     </div>
     
-    <script id="__config" type="application/json">{"base": "../..", "features": ["navigation.top", "navigation.tabs", "navigation.indexes"], "search": "../../assets/javascripts/workers/search.208ed371.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}}</script>
+    <script id="__config" type="application/json">{"base": "../..", "features": ["navigation.top", "navigation.tabs", "navigation.indexes"], "search": "../../assets/javascripts/workers/search.74e28a9f.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}}</script>
     
     
-      <script src="../../assets/javascripts/bundle.b425cdc4.min.js"></script>
+      <script src="../../assets/javascripts/bundle.220ee61c.min.js"></script>
       
     
   </body>
