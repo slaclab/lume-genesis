@@ -315,10 +315,28 @@ class Genesis4(CommandWrapper):
         
         if key.startswith('Beam'):
             dat = self.get_array(key)
-            dat = np.nan_to_num(dat) # Convert any nan to zero for averaging.
+            skey = key.split('/')[1]
+            
             # Average over the beam taking to account the weighting (current)
-            current = self.output['Beam/current']
-            return np.sum(dat * current, axis=1) / np.sum(current, axis=1)
+            current = np.nan_to_num(self.output['Beam/current'])
+        
+            if skey in ('xsize', 'ysize'):
+                # TODO: emitx, emity
+                # Properly calculated the projected value
+                plane = skey[0]
+                x =  np.nan_to_num(self.output[f'Beam/{plane}position']) # <x>_islice
+                x2 = np.nan_to_num(self.output[f'Beam/{plane}size']**2) # <x^2>_islice
+                norm = np.sum(current, axis=1)
+                # Total projected sigma_x
+                sigma_x2 = np.sum( (x2 + x**2) * current, axis = 1)/norm - (np.sum(x * current, axis=1)/norm)**2
+
+                output = np.sqrt(sigma_x2)
+            else:
+                # Simple stat
+                dat = np.nan_to_num(dat) # Convert any nan to zero for averaging.
+                output = np.sum(dat * current, axis=1) / np.sum(current, axis=1)
+
+            return output
         
         elif key.lower() in ['field_energy', 'pulse_energy']:
             dat = self.output['Field/power']
