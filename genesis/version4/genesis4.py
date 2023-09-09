@@ -315,8 +315,8 @@ class Genesis4(CommandWrapper):
                 k2 = f'Beam/energyspread'
                 k1 = f'Beam/energy'
             else:
+                # TODO: emittance from alpha, beta, etc.
                 raise  NotImplementedError(f"TODO: {key}")
-                
             x2 = np.nan_to_num(self.output[k2]**2) # <x^2>_islice
             x1 =  np.nan_to_num(self.output[k1]) # <x>_islice
             sigma_X2 = projected_variance_from_slice_data(x2, x1, current)
