@@ -8,7 +8,7 @@ from . import parsers, writers, readers
 from .plot import plot_stats_with_layout
 from pmd_beamphysics import ParticleGroup
 from pmd_beamphysics.interfaces.genesis import genesis4_par_to_data
-from pmd_beamphysics.units import c_light, known_unit, pmd_unit
+from pmd_beamphysics.units import c_light, known_unit, pmd_unit, mec2
 from lume.base import CommandWrapper
 from lume import tools
 
@@ -299,7 +299,31 @@ class Genesis4(CommandWrapper):
         Calculate a statistic of the beam or field
         along z.
         """
-        
+
+        # Derived stats
+        if key.startswith('beam_sigma_'):
+            comp = key[11:]
+            if comp not in ('x', 'px', 'y', 'py', 'energy'):
+                raise NotImplementedError(f"Unsupported component for f{key}: '{comp}'")
+
+            current = np.nan_to_num(self.output['Beam/current'])
+
+            if comp in ('x', 'y'):
+                k2 = f'Beam/{comp}size'
+                k1 = f'Beam/{comp}position'
+            elif comp in ('energy'):
+                k2 = f'Beam/energyspread'
+                k1 = f'Beam/energy'
+            else:
+                # TODO: emittance from alpha, beta, etc.
+                raise  NotImplementedError(f"TODO: {key}")
+            x2 = np.nan_to_num(self.output[k2]**2) # <x^2>_islice
+            x1 =  np.nan_to_num(self.output[k1]) # <x>_islice
+            sigma_X2 = projected_variance_from_slice_data(x2, x1, current)
+            
+            return np.sqrt(sigma_X2) 
+
+        # Original stats
         key = self.expand_alias(key)
         
         # Peak power
@@ -315,10 +339,28 @@ class Genesis4(CommandWrapper):
         
         if key.startswith('Beam'):
             dat = self.get_array(key)
-            dat = np.nan_to_num(dat) # Convert any nan to zero for averaging.
+            skey = key.split('/')[1]
+            
             # Average over the beam taking to account the weighting (current)
-            current = self.output['Beam/current']
-            return np.sum(dat * current, axis=1) / np.sum(current, axis=1)
+            current = np.nan_to_num(self.output['Beam/current'])
+        
+            if skey in ('xsize', 'ysize'):
+                # TODO: emitx, emity
+                # Properly calculated the projected value
+                plane = skey[0]
+                x =  np.nan_to_num(self.output[f'Beam/{plane}position']) # <x>_islice
+                x2 = np.nan_to_num(self.output[f'Beam/{plane}size']**2) # <x^2>_islice
+                norm = np.sum(current, axis=1)
+                # Total projected sigma_x
+                sigma_x2 = np.sum( (x2 + x**2) * current, axis = 1)/norm - (np.sum(x * current, axis=1)/norm)**2
+
+                output = np.sqrt(sigma_x2)
+            else:
+                # Simple stat
+                dat = np.nan_to_num(dat) # Convert any nan to zero for averaging.
+                output = np.sum(dat * current, axis=1) / np.sum(current, axis=1)
+
+            return output
         
         elif key.lower() in ['field_energy', 'pulse_energy']:
             dat = self.output['Field/power']
@@ -740,3 +782,35 @@ class Genesis4(CommandWrapper):
             
         line = f'{k:25} {descrip}'
         return line    
+
+
+
+def projected_variance_from_slice_data(x2, x1, current):
+    """
+    Slice variance data individually removes the mean values.
+    This restores that in a proper projection calc.
+
+    Parameters
+    ----------
+     x2: numpy.ndarray
+         2D <x^2 - <x> >_islice array
+     x: numpy.ndarray
+         2D <x>_islice
+     current: numpy.ndarray
+         1D current array
+
+    Returns
+    -------
+    projected_variance
+     
+    """    
+    norm = np.sum(current, axis=1)
+    
+    return np.sum( (x2 + x1**2) * current, axis = 1)/norm - (np.sum(x1 * current, axis=1)/norm)**2
+
+
+    
+
+
+
+

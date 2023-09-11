@@ -110,7 +110,12 @@ def try_pmd_unit(unit_str):
         u = None
     return u
 
-EXTRA_UNITS = {"zplot": "m"}    
+EXTRA_UNITS = {
+    "zplot": "m",
+    "beam_sigma_x": "m",
+    "beam_sigma_y": "m",
+    "beam_sigma_energy": "mc^2",
+              }    
 
 def extract_data_and_unit(h5):
     """
