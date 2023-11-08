@@ -111,6 +111,7 @@ def try_pmd_unit(unit_str):
     return u
 
 EXTRA_UNITS = {
+    "bunching": "1",
     "zplot": "m",
     "beam_sigma_x": "m",
     "beam_sigma_y": "m",
