@@ -354,7 +354,13 @@ class Genesis4(CommandWrapper):
                 # Total projected sigma_x
                 sigma_x2 = np.sum( (x2 + x**2) * current, axis = 1)/norm - (np.sum(x * current, axis=1)/norm)**2
 
-                output = np.sqrt(sigma_x2)
+                output = np.sqrt(sigma_x2)               
+            elif skey == 'bunching':
+                # The bunching calc needs to take the phase into account.
+                dat = np.nan_to_num(dat) # Convert any nan to zero for averaging.
+                phase = np.nan_to_num(self.output['Beam/bunchingphase'])
+                output = np.abs(np.sum(np.exp(1j*phase)*dat * current, axis=1)) / np.sum(current, axis=1)
+                         
             else:
                 # Simple stat
                 dat = np.nan_to_num(dat) # Convert any nan to zero for averaging.
