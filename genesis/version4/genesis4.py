@@ -114,7 +114,7 @@ class Genesis4(CommandWrapper):
         # Call configure
         if self.input_file:
             infile = tools.full_path(self.input_file)
-            assert os.path.exists(infile), f"Impact input file does not exist: {infile}"
+            assert os.path.exists(infile), f"Genesis input file does not exist: {infile}"
             self.load_input(self.input_file)
             self.configure()
 
