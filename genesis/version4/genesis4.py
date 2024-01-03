@@ -2,6 +2,7 @@ import os
 import platform
 import shutil
 from time import time
+import multiprocessing
 import numpy as np
 import h5py
 from . import parsers, writers, readers
@@ -114,7 +115,7 @@ class Genesis4(CommandWrapper):
         # Call configure
         if self.input_file:
             infile = tools.full_path(self.input_file)
-            assert os.path.exists(infile), f"Impact input file does not exist: {infile}"
+            assert os.path.exists(infile), f"Genesis4 input file does not exist: {infile}"
             self.load_input(self.input_file)
             self.configure()
 
@@ -260,6 +261,8 @@ class Genesis4(CommandWrapper):
 
     @nproc.setter
     def nproc(self, n):
+        if n is None:
+            n = multiprocessing.cpu_count()
         self._nproc = n
         
     @property

@@ -1,10 +1,13 @@
 #!/bin/bash
 
-NOTEBOOKS=$(find . -type f -name "*.ipynb" -not -path '*/.*')
+NOTEBOOKS=$(find docs/examples/genesis4/ -type f -name "*.ipynb" -not -path '*/.*')
 
-SKIP="parallel" 
+SKIP="perlmutter" 
 
-echo $NOTEBOOKS
+#echo $NOTEBOOKS
+
+# Silence Jupyterlab warning
+export PYDEVD_DISABLE_FILE_VALIDATION=1
 
 for file in $NOTEBOOKS
 do
