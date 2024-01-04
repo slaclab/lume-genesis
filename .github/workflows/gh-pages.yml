@@ -1,9 +1,8 @@
-name: Publish Documentation
+name: Documentation
 
 on:
+  pull_request:
   push:
-    branches:
-      - master
   release:
     types:
       - published
@@ -16,9 +15,8 @@ permissions:
 
 jobs:
   build:
-    # if: ${{ github.repository == 'slaclab/lume-genesis' }}
     runs-on: ubuntu-latest
-    name: "Build and deploy docs"
+    name: "Build docs"
     steps:
       - uses: actions/checkout@v4
         with:
@@ -27,10 +25,11 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
           extras: "doc"
-      - name: Execute notebooks
-        shell: bash -l {0}
-        run: |
-          scripts/execute_notebooks.bash 
+      #- name: Execute notebooks
+      #  shell: bash -l {0}
+      #  run: |
+      #    pip install --no-dependencies . 
+      #    scripts/execute_notebooks.bash 
       - name: Build Docs
         shell: bash -l {0}
         run: mkdocs build
@@ -44,7 +43,9 @@ jobs:
         with:
           path: ./site
   deploy:
+    if: ${{ github.repository_owner == 'ChristopherMayes' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/tags')) }}
     needs: build
+    name: "Deploy docs"
 
     # Grant GITHUB_TOKEN the permissions required to make a Pages deployment
     permissions:
