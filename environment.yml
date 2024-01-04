@@ -1,12 +1,14 @@
 # conda env create -f environment.yml
-name: genesis-dev
+name: lume-genesis-dev
 channels:
   - conda-forge
 dependencies:
-  - python=3.9
+  - python>=3.9
   - lume-base
 #  - genesis2=*=mpi_mpich*
+  - genesis4=4.6.4=mpi_openmpi* # Pinned because of a bug in 4.6.5
 # Developer
+  - ffmpeg
   - pytest
   - pytest-cov
   - jupyterlab>=3
@@ -17,11 +19,4 @@ dependencies:
   - mkdocs-material
   - mkdocs-jupyter
   - mkdocstrings-python
-  - pre-commit
-  - flake8
-  - pip
-  - pip:
-    - ufmt
-#  - pip:
-#    - git+git://github.com/some/repo
 

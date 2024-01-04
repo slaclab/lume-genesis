@@ -2,6 +2,7 @@ import os
 import platform
 import shutil
 from time import time
+import multiprocessing
 import numpy as np
 import h5py
 from . import parsers, writers, readers
@@ -114,7 +115,7 @@ class Genesis4(CommandWrapper):
         # Call configure
         if self.input_file:
             infile = tools.full_path(self.input_file)
-            assert os.path.exists(infile), f"Genesis input file does not exist: {infile}"
+            assert os.path.exists(infile), f"Genesis4 input file does not exist: {infile}"
             self.load_input(self.input_file)
             self.configure()
 
@@ -231,7 +232,7 @@ class Genesis4(CommandWrapper):
         # _, infile = os.path.split(self.input_file)
         infile = "genesis4.in"
 
-        if self.nproc > 1 and not self.use_mpi:
+        if self.nproc !=1 and not self.use_mpi:
             self.vprint(f"Setting use_mpi = True because nproc = {self.nproc}")
             self.use_mpi = True
 
