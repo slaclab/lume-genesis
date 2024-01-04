@@ -27,11 +27,10 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
           extras: "doc"
-      #- name: Execute notebooks
-      #  shell: bash -l {0}
-      #  run: |
-      #    pip install --no-dependencies . 
-      #    scripts/execute_notebooks.bash 
+      - name: Execute notebooks
+        shell: bash -l {0}
+        run: |
+          scripts/execute_notebooks.bash 
       - name: Build Docs
         shell: bash -l {0}
         run: mkdocs build
