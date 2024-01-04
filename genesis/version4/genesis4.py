@@ -1,5 +1,6 @@
 import os
 import platform
+import psutil
 import shutil
 from time import time
 import multiprocessing
@@ -263,7 +264,7 @@ class Genesis4(CommandWrapper):
     def nproc(self, n):
         if n is None:
             if hasattr(os, "sched_getaffinity"):
-                n = len(os.sched_getaffinity(0))
+                n = psutil.cpu_count(logical=False)
             else:
                 n = 0
         self._nproc = n
