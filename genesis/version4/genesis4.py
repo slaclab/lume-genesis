@@ -232,7 +232,7 @@ class Genesis4(CommandWrapper):
         # _, infile = os.path.split(self.input_file)
         infile = "genesis4.in"
 
-        if self.nproc > 1 and not self.use_mpi:
+        if self.nproc !=1 and not self.use_mpi:
             self.vprint(f"Setting use_mpi = True because nproc = {self.nproc}")
             self.use_mpi = True
 
@@ -262,7 +262,10 @@ class Genesis4(CommandWrapper):
     @nproc.setter
     def nproc(self, n):
         if n is None:
-            n = 0 # multiprocessing.cpu_count() ## TEST // 2 # Conservative to account for hyper-threading
+            if hasattr(os, "sched_getaffinity"):
+                n = len(os.sched_getaffinity(0))
+            else:
+                n = 0
         self._nproc = n
         
     @property
