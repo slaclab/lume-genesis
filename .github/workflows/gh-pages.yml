@@ -28,7 +28,6 @@ jobs:
       - name: Execute notebooks
         shell: bash -l {0}
         run: |
-          set -e
           scripts/execute_notebooks.bash 
       - name: Build Docs
         shell: bash -l {0}

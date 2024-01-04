@@ -1,4 +1,5 @@
 #!/bin/bash
+set -e
 
 NOTEBOOKS=$(find docs/examples/genesis4/ -type f -name "*.ipynb" -not -path '*/.*')
 
