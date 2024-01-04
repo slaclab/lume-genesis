@@ -36,7 +36,7 @@ def find_mpirun():
         
       
     # Default    
-    return "mpirun -n {nproc} {command_mpi}"
+    return "mpirun -n {nproc} --use-hwthread-cpus {command_mpi}"
 
 def find_workdir():
     if os.environ.get('NERSC_HOST') == 'perlmutter':
@@ -262,7 +262,7 @@ class Genesis4(CommandWrapper):
     @nproc.setter
     def nproc(self, n):
         if n is None:
-            n = multiprocessing.cpu_count() // 2 # Conservative to account for hyper-threading
+            n = multiprocessing.cpu_count() ## TEST // 2 # Conservative to account for hyper-threading
         self._nproc = n
         
     @property
