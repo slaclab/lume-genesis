@@ -262,7 +262,7 @@ class Genesis4(CommandWrapper):
     @nproc.setter
     def nproc(self, n):
         if n is None:
-            n = multiprocessing.cpu_count()
+            n = multiprocessing.cpu_count() // 2 # Conservative to account for hyper-threading
         self._nproc = n
         
     @property
