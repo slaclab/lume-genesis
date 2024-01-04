@@ -8,6 +8,7 @@ dependencies:
 #  - genesis2=*=mpi_mpich*
   - genesis4=4.6.4=mpi_openmpi* # Pinned because of a bug in 4.6.5
 # Developer
+  - ffmpeg
   - pytest
   - pytest-cov
   - jupyterlab>=3
