@@ -1,0 +1,79 @@
+?start: lattice
+
+lattice: (beamline_element | line)+
+
+// Borrowed/modified from lark:
+
+COMMENT: /\s*#[^\n]*/
+WS_INLINE: (" "|/\t/)+
+WS: /[ \t\f\r\n]/+
+%ignore COMMENT
+%ignore WS_INLINE
+%ignore WS
+
+DIGIT: "0".."9"
+
+INTEGER: DIGIT+
+SIGNED_INT: ["+"|"-"] INTEGER
+DECIMAL: INTEGER "." INTEGER? | "." INTEGER
+
+// float = /-?\d+(\.\d+)?([eE][+-]?\d+)?/
+_EXP: ("e"|"E") SIGNED_INT
+FLOAT: INTEGER _EXP | DECIMAL _EXP?
+SIGNED_FLOAT: ["+"|"-"] FLOAT
+
+NUMBER: FLOAT | INTEGER
+SIGNED_NUMBER: ["+"|"-"] NUMBER
+
+// Genesis Lattice terminals:
+
+DOUBLE: NUMBER
+      | SIGNED_NUMBER
+LABEL: /[A-Za-z_][A-Za-z0-9_]*/i
+PARAMETER: /[A-Za-z_][A-Za-z0-9_]*/i
+BOOLEAN: "true"i
+       | "false"i
+
+//  Following beamline elements are currently supported: undulator, quadrupole,
+//  drift, corrector, chicane, phaseshifterandmarker. For the parsing of the
+//  elements Genesis only consider the first 4 letters. Therefore, `undulator`
+//  and `unduas` element name are both valid. This applies only for the
+//  elements. Other tags, such as labels and parameter have to be exact. Upper
+//  or lower cases are ignored because all letters are converted to lower case
+//  prior to parsing.
+
+UNDULATOR: /undu[^=]*/i
+QUADRUPOLE: /quad[^=]*/i
+DRIFT: /drif[^=]*/i
+CORRECTOR: /corr[^=]*/i
+CHICANE: /chic[^=]*/i
+PHASESHIFTER: /phas[^=]*/i
+MARKER: /mark[^=]*/i
+LINE: "line"i
+
+BEAMLINE_ELEMENT: UNDULATOR
+                | QUADRUPOLE
+                | DRIFT
+                | CORRECTOR
+                | CHICANE
+                | PHASESHIFTER
+                | MARKER
+
+VALUE: INTEGER
+     | DOUBLE
+     | BOOLEAN
+
+parameter_set: PARAMETER "=" VALUE
+parameter_list: parameter_set ( "," parameter_set )*
+
+beamline_element: LABEL ":" BEAMLINE_ELEMENT "=" "{" [ parameter_list ] "}" ";"
+
+duplicate_item: INTEGER "*" LABEL
+positioned_item: LABEL "@" DOUBLE
+
+?line_item: LABEL
+          | duplicate_item
+          | positioned_item
+
+element_list: line_item ( "," line_item )*
+line: LABEL ":" LINE "=" "{" element_list "}" ";"

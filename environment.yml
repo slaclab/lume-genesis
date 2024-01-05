@@ -7,6 +7,7 @@ dependencies:
   - lume-base
 #  - genesis2=*=mpi_mpich*
   - genesis4=4.6.4=mpi_openmpi* # Pinned because of a bug in 4.6.5
+  - lark
 # Developer
   - ffmpeg
   - pytest
@@ -19,4 +20,3 @@ dependencies:
   - mkdocs-material
   - mkdocs-jupyter
   - mkdocstrings-python
-
