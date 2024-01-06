@@ -54,7 +54,7 @@ class BeamlineElement:
         "l": "length",
     }
     _attr_to_lattice_: ClassVar[Dict[str, str]] = dict(
-        reversed(_lattice_to_attr_.items())
+        (v, k) for k, v in _lattice_to_attr_.items()
     )
 
     label: str
@@ -70,7 +70,8 @@ class BeamlineElement:
             value = getattr(self, attr)
             default = getattr(type(self), attr, None)
             if str(value) != str(default):
-                data[attr] = value
+                param = self._attr_to_lattice_.get(attr, attr)
+                data[param] = value
         data.update(self.unknown_parameters)
         return data
 
