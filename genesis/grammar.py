@@ -4,7 +4,7 @@ import lark
 import pathlib
 from decimal import Decimal
 
-from typing import Dict, List, Optional, Tuple, Type, Union
+from typing import ClassVar, Dict, List, Optional, Tuple, Type, Union
 
 
 LATTICE_GRAMMAR = "lattice.lark"
@@ -50,11 +50,43 @@ ValueType = Union[int, Float, bool]
 
 @dataclasses.dataclass
 class BeamlineElement:
-    _renames_ = {
+    _lattice_to_attr_: ClassVar[Dict[str, str]] = {
         "l": "length",
     }
+    _attr_to_lattice_: ClassVar[Dict[str, str]] = dict(
+        reversed(_lattice_to_attr_.items())
+    )
+
     label: str
-    unknown_parameters: dict[str, ValueType] = dataclasses.field(default_factory=dict)
+    unknown_parameters: Dict[str, ValueType] = dataclasses.field(default_factory=dict)
+
+    @property
+    def parameter_dict(self) -> Dict[str, ValueType]:
+        skip = {"label", "unknown_parameters"}
+        data = {}
+        for attr in self.__annotations__:
+            if attr.startswith("_") or attr in skip:
+                continue
+            value = getattr(self, attr)
+            default = getattr(type(self), attr, None)
+            if str(value) != str(default):
+                data[attr] = value
+        data.update(self.unknown_parameters)
+        return data
+
+    def __str__(self) -> str:
+        parameters = ", ".join(
+            f"{name}={value}" for name, value in self.parameter_dict.items()
+        )
+        type_ = type(self).__name__.upper()
+        return "".join(
+            (
+                self.label,
+                f": {type_} = " "{",
+                parameters,
+                "}:",
+            )
+        )
 
 
 @dataclasses.dataclass
@@ -171,6 +203,9 @@ class DuplicatedLineItem:
     #: Element name.
     label: str
 
+    def __str__(self) -> str:
+        return f"{self.count}*{self.label}"
+
 
 @dataclasses.dataclass
 class PositionedLineItem:
@@ -178,6 +213,9 @@ class PositionedLineItem:
     position: Float
     #: Element name.
     label: str
+
+    def __str__(self) -> str:
+        return f"{self.label}@{self.position}"
 
 
 LineItem = Union[str, DuplicatedLineItem, PositionedLineItem]
@@ -188,6 +226,17 @@ class Line:
     label: str
     elements: List[LineItem] = dataclasses.field(default_factory=list)
 
+    def __str__(self) -> str:
+        elements = ", ".join(str(element) for element in self.elements)
+        return "".join(
+            (
+                self.label,
+                ": LINE = {",
+                elements,
+                "}:",
+            )
+        )
+
 
 @dataclasses.dataclass
 class Lattice:
@@ -195,6 +244,9 @@ class Lattice:
         default_factory=list
     )
     filename: Optional[pathlib.Path] = None
+
+    def __str__(self) -> str:
+        return "\n".join(str(element) for element in self.elements)
 
     @classmethod
     def from_file(cls, filename: AnyPath) -> Lattice:
@@ -213,7 +265,7 @@ def _fix_parameters(
     kwargs: Dict[str, ValueType] = {}
     extra: Dict[str, str] = {}
     for name, value in params.items():
-        name = cls._renames_.get(name, name)
+        name = cls._lattice_to_attr_.get(name, name)
         dtype = cls.__annotations__.get(name, None)
         if dtype is None:
             extra[name] = str(value)

@@ -51,4 +51,8 @@ def test_load_file(lattice_parser: lark.Lark, filename: pathlib.Path) -> None:
     print(lattice_parser.parse(contents))
 
     print("\n\nAs dataclasses:")
-    pprint.pprint(Lattice.from_file(filename), width=1)
+    lattice = Lattice.from_file(filename)
+    pprint.pprint(lattice, width=1)
+
+    print("\n\nSerialized back to a file:")
+    print(str(lattice))
