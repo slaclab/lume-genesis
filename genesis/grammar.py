@@ -85,7 +85,7 @@ class BeamlineElement:
                 self.label,
                 f": {type_} = " "{",
                 parameters,
-                "}:",
+                "};",
             )
         )
 
@@ -234,7 +234,7 @@ class Line:
                 self.label,
                 ": LINE = {",
                 elements,
-                "}:",
+                "};",
             )
         )
 
