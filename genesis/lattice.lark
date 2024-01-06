@@ -71,9 +71,9 @@ beamline_element: LABEL ":" BEAMLINE_ELEMENT "=" "{" [ parameter_list ] "}" ";"
 duplicate_item: INTEGER "*" LABEL
 positioned_item: LABEL "@" DOUBLE
 
-?line_item: LABEL
-          | duplicate_item
-          | positioned_item
+line_item: LABEL
+         | duplicate_item
+         | positioned_item
 
 element_list: line_item ( "," line_item )*
 line: LABEL ":" LINE "=" "{" element_list "}" ";"

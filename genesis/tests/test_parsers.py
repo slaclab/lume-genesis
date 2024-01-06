@@ -1,9 +1,10 @@
 import pathlib
+import pprint
 
 import lark
 import pytest
 
-from ..grammar import new_lattice_parser
+from ..grammar import new_lattice_parser, Lattice
 
 
 TEST_ROOT = pathlib.Path(__file__).resolve().parent
@@ -43,4 +44,11 @@ def test_elements(lattice_parser: lark.Lark, element_source: str) -> None:
 def test_load_file(lattice_parser: lark.Lark, filename: pathlib.Path) -> None:
     with open(filename) as fp:
         contents = fp.read()
+    print(f"\n\nLattice ({filename})")
+    print(contents)
+
+    print("\n\nAs a lark Tree:")
     print(lattice_parser.parse(contents))
+
+    print("\n\nAs dataclasses:")
+    pprint.pprint(Lattice.from_file(filename), width=1)
