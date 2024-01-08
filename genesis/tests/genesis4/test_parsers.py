@@ -4,12 +4,11 @@ import pprint
 import lark
 import pytest
 
-from ..grammar import new_lattice_parser, Lattice
+from ...version4.grammar import new_lattice_parser, Lattice
 
 
-TEST_ROOT = pathlib.Path(__file__).resolve().parent
-genesis4_files = TEST_ROOT / "genesis4"
-genesis4_lattices = tuple(genesis4_files.glob("*.lat"))
+TEST_V4_ROOT = pathlib.Path(__file__).resolve().parent
+genesis4_lattices = tuple(TEST_V4_ROOT.glob("*.lat"))
 
 
 @pytest.fixture(scope="module")

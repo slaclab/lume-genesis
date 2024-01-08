@@ -7,7 +7,7 @@ from decimal import Decimal
 from typing import ClassVar, Dict, List, Optional, Tuple, Type, Union
 
 
-LATTICE_GRAMMAR = "lattice.lark"
+LATTICE_GRAMMAR = pathlib.Path("version4") / "lattice.lark"
 AnyPath = Union[pathlib.Path, str]
 Float = Union[Decimal, float]
 
