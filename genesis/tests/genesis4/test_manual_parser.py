@@ -87,5 +87,9 @@ def test_parse_main_manual() -> None:
     print(parse_lattice_manual(main_manual))
 
 
-def test_make_dataclasses() -> None:
+def test_make_lattice_dataclasses() -> None:
     print(make_dataclasses_from_manual(lattice_manual))
+
+
+def test_make_main_dataclasses() -> None:
+    print(make_dataclasses_from_manual(main_manual))
