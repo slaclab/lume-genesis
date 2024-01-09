@@ -7,6 +7,7 @@ dependencies:
   - lume-base
 #  - genesis2=*=mpi_mpich*
   - genesis4=4.6.4=mpi_openmpi* # Pinned because of a bug in 4.6.5
+  - jinja2
   - lark
 # Developer
   - ffmpeg

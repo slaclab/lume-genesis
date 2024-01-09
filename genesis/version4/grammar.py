@@ -12,7 +12,7 @@ AnyPath = Union[pathlib.Path, str]
 Float = Union[Decimal, float]
 
 
-def new_parser(filename: str, **kwargs) -> lark.Lark:
+def new_parser(filename: AnyPath, **kwargs) -> lark.Lark:
     """
     Get a new parser for one of the packaged grammars.
 
@@ -92,38 +92,66 @@ class BeamlineElement:
 
 @dataclasses.dataclass
 class Undulator(BeamlineElement):
-    #: The dimensionless rms undulator parameter. For planar undulator this
-    #: value is smaller by a factor $1 / \sqrt{2}$ than its K-value, while for
-    #: helical undulator rms and peak values are identical.
+    r"""
+    Attributes
+    ----------
+    aw : float, default = 0.0
+        The dimensionless rms undulator parameter. For planar undulator this
+        value is smaller by a factor $1 / \sqrt{2}$ than its K-value, while for
+        helical undulator rms and peak values are identical.
+    lambdau : float, default = 0.0
+        Undulator period length in meter. Default is 0 m.
+    nwig : int, default = 0
+        Number of periods.
+    helical: bool, default = False
+        Boolean flag whether the undulator is planar or helical. A planar
+        undulator has helical=`false`. Note that setting it to `true`, does not
+        change the roll-off parameters for focusing. To be consistent they have
+        to be set directly.
+    kx : float, default = 0.0
+        Roll-off parameter of the quadratic term of the undulator field in x.
+        It is normalized with respect to $k_u^2$.
+    ky : float, default = 1.0
+        Roll-off parameter of the quadratic term of the undulator field in y.
+    ax : float, default = 0.0
+        Offset of the undulator module in $x$ in meter.
+    ay : float, default = 0.0
+        Offset of the undulator module in $y$ in meter.
+    gradx : float, default = 0
+        Relative transverse gradient of undulator field in $x$ $\equiv (1/a_w)
+        \partial a_w/\partial x$.
+    grady : float, default = 0
+        Relative transverse gradient of undulator field in $y$ $\equiv (1/a_w)
+        \partial a_w/\partial y$.
+    """
+
     aw: Float = 0.0
-    #: Undulator period length in meter. Default is 0 m.
     lambdau: Float = 0.0
-    #: Number of periods.
     nwig: int = 0
-    #: Boolean flag whether the undulator is planar or helical. A planar
-    #: undulator has helical=`false`. Note that setting it to `true`, does not
-    #: change the roll-off parameters for focusing. To be consistent they have to
-    #: be set directly.
     helical: bool = False
-    #: Roll-off parameter of the quadratic term of the undulator field in x. It
-    #: is normalized with respect to $k_u^2$.
     kx: Float = 0.0
-    #: Roll-off parameter of the quadratic term of the undulator field in y.
     ky: Float = 1.0
-    #: Offset of the undulator module in $x$ in meter.
     ax: Float = 0.0
-    #: Offset of the undulator module in $y$ in meter.
     ay: Float = 0.0
-    #: Relative transverse gradient of undulator field in $x$ $\equiv (1/a_w)
-    #: \partial a_w/\partial x$.
     gradx: Float = 0
-    #: Relative transverse gradient of undulator field in $y$ $\equiv (1/a_w)
-    #: \partial a_w/\partial y$.
     grady: Float = 0
 
 
 @dataclasses.dataclass
 class Quadrupole(BeamlineElement):
+    """
+    Attributes
+    ----------
+    length : float, default = 0
+        Length of the quadrupole in meter.
+    k1 : float, default = 0
+        Normalized focusing strength in 1/m^2.
+    dx : float, default = 0
+        Offset in $x$ in meter.
+    dy : float, default = 0
+        Offset in $y$ in meter.
+    """
+
     #: Length of the quadrupole in meter.
     length: Float = 0
     #: Normalized focusing strength in 1/m^2.
@@ -136,12 +164,30 @@ class Quadrupole(BeamlineElement):
 
 @dataclasses.dataclass
 class Drift(BeamlineElement):
+    """
+    Parameters
+    ----------
+    length : float, default = 0.0
+        Length of the drift in meter.
+    """
+
     #: Length of the drift in meter.
     length: Float = 0.0
 
 
 @dataclasses.dataclass
 class Corrector(BeamlineElement):
+    """
+    Parameters
+    ----------
+    length : float, default = 0
+        Length of the corrector in meter.
+    cx : float, default = 0
+        Angle in $x$ in units of $\gamma \beta_x$.
+    cy : float, default = 0
+        Angle in $y$ in units of $\gamma \beta_y$.
+    """
+
     #: Length of the corrector in meter.
     length: Float = 0
     #: angle in $x$ in units of $\gamma \beta_x$.
@@ -152,22 +198,24 @@ class Corrector(BeamlineElement):
 
 @dataclasses.dataclass
 class Chicane(BeamlineElement):
-    #: Length of the chicane, which consists out of 4 dipoles without focusing.
-    #: The first and last are placed at the beginning and end of the reserved
-    #: space. The inner ones are defined by the drift length in between. Any
-    #: remaining distance, namely the length subtracted by 4 times the dipole
-    #: length and twice the drift length are placed between the second and third
-    #: dipole.
+    """
+    length : float, default = 0
+        Length of the chicane, which consists out of 4 dipoles without focusing. The first and last are placed at the beginning and end of the reserved space. The inner ones are defined by the drift length in between. Any remaining distance, namely the length subtracted by 4 times the dipole length and twice the drift length are placed between the second and third dipole.
+    lb : float, default = 0
+        Of an individual dipole in meter.
+    ld : float, default = 0
+        between the outer and inner dipoles, projected onto the undulator axis. The actual path length is longer by the factor $1/\cos\theta$, where $\theta$ is the bending angle of an individual dipole.
+    delay : float, default = 0
+        length difference between the straight path and the actual trajectory in meters. Genesis 1.3 calculates the bending angle internally starting from this value. $R_{56} = 2$`delay`.
+    """
+
+    #: Length of the chicane, which consists out of 4 dipoles without focusing. The first and last are placed at the beginning and end of the reserved space. The inner ones are defined by the drift length in between. Any remaining distance, namely the length subtracted by 4 times the dipole length and twice the drift length are placed between the second and third dipole.
     length: Float = 0
     #: of an individual dipole in meter.
     lb: Float = 0
-    #: between the outer and inner dipoles, projected onto the undulator axis.
-    #: The actual path length is longer by the factor $1/\cos\theta$, where
-    #: $\theta$ is the bending angle of an individual dipole.
+    #: between the outer and inner dipoles, projected onto the undulator axis. The actual path length is longer by the factor $1/\cos\theta$, where $\theta$ is the bending angle of an individual dipole.
     ld: Float = 0
-    #: length difference between the straight path and the actual trajectory in
-    #: meters. Genesis 1.3 calculates the bending angle internally starting from
-    #: this value. $R_{56} = 2$`delay`.
+    #: length difference between the straight path and the actual trajectory in meters. Genesis 1.3 calculates the bending angle internally starting from this value. $R_{56} = 2$`delay`.
     delay: Float = 0
 
 
@@ -175,25 +223,19 @@ class Chicane(BeamlineElement):
 class PhaseShifter(BeamlineElement):
     #: Length of the phase shifter in meter.
     length: Float = 0
-    #: in the ponderomotive phase of the electrons in units of rad. Note that
-    #: Genesis 1.3 is doing an autophasing, so that the electrons at reference
-    #: energy are not changing in ponderomotive phase in drifts.
+    #: in the ponderomotive phase of the electrons in units of rad. Note that Genesis 1.3 is doing an autophasing, so that the electrons at reference energy are not changing in ponderomotive phase in drifts.
     phi: Float = 0
 
 
 @dataclasses.dataclass
 class Marker(BeamlineElement):
-    #: A non-zero value enforces the dump of the field distribution of this
-    #: zero length element.
+    #: A non-zero value enforces the dump of the field distribution of this zero length element.
     dumpfield: int = 0
     #: non-zero value enforces the dump of the particle distribution.
     dumpbeam: int = 0
-    #: non-zero value enforces the sorting of particles, if one-for-one
-    #: simulations are enabled.
+    #: non-zero value enforces the sorting of particles, if one-for-one simulations are enabled.
     sort: int = 0
-    #: non-zero value stops the execution of the tracking module. Note that the
-    #: output file still contains the full length with zeros as output for those
-    #: integration steps which are no further calculated.
+    #: non-zero value stops the execution of the tracking module. Note that the output file still contains the full length with zeros as output for those integration steps which are no further calculated.
     stop: int = 0
 
 

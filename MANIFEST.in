@@ -1,2 +1,2 @@
 include LICENSE
-recursive-include genesis *.lark *.lat
+recursive-include genesis *.lark *.lat *.tpl

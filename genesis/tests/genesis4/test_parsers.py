@@ -7,8 +7,8 @@ import pytest
 from ...version4.grammar import new_lattice_parser, Lattice
 
 
-TEST_V4_ROOT = pathlib.Path(__file__).resolve().parent
-genesis4_lattices = tuple(TEST_V4_ROOT.glob("*.lat"))
+test_v4_root = pathlib.Path(__file__).resolve().parent
+genesis4_lattices = tuple(test_v4_root.glob("*.lat"))
 
 
 @pytest.fixture(scope="module")
