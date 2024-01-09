@@ -12,8 +12,15 @@ MODULE_PATH = pathlib.Path(__file__).resolve().parent
 dataclasses_template = MODULE_PATH / "dataclasses.tpl"
 
 
+renames = {
+    "l": "length",
+    "lambda": "lambda_",
+}
+
+
 class Parameter(TypedDict):
     name: str
+    python_name: str
     type: str
     description: str
     default: Optional[Union[str, bool, int, float]]
@@ -34,7 +41,11 @@ def parse_manual_default(default_: str, type_: str) -> Tuple[str, Set[str]]:
     """
     Parse a single "default" value of a Genesis 4 manual parameter.
 
-    This
+    This is the string inside of (* *) but not including units, for example:
+
+    .. code::
+        (*double, 0
+        (*double, 0
 
     Parameters
     ----------
@@ -46,8 +57,9 @@ def parse_manual_default(default_: str, type_: str) -> Tuple[str, Set[str]]:
     str
         The default value - not yet converted to the native type.
     Set[str]
-        The "options" associated with the default value.  Several are
-        supported: matched_value, profile_label, existing_field.
+        The alternate "options" associated with the default value.  Several are
+        currently supported: matched_value, profile_label, existing_field,
+        sequence_label.
     """
     default = default_.strip()
     if default == r"\<empty>":
@@ -58,11 +70,12 @@ def parse_manual_default(default_: str, type_: str) -> Tuple[str, Set[str]]:
         (" or matched value", "matched_value"),
         (" or profile label", "profile_label"),
         (" or by existing field", "existing_field"),
+        (" or sequence label", "sequence_label"),
     ]:
         if match in default:
             options.add(option)
             default = default.replace(match, "")
-    default = default.replace("`", "").capitalize()
+    default = default.replace("`", "").strip().capitalize()
     if "from setup" in default:
         default = "None"
 
@@ -71,9 +84,10 @@ def parse_manual_default(default_: str, type_: str) -> Tuple[str, Set[str]]:
     if default in ("Gamma0", "Lambda0"):
         default = None
 
-    if not default:
+    if not default or default == "None":
         default = {
             "double": "0.0",
+            "string": "''",
         }[type_]
 
     if " or " in default:
@@ -98,6 +112,7 @@ def parse_manual_parameter(line: str) -> Parameter:
     name = line.strip("` ").split("`")[0]
     type_and_default = line[line.index("(*") : line.index("*)")].strip("(* ")
     desc = line.split("*)", 1)[1].lstrip(": ")
+    type_and_default = type_and_default.replace(", or", " or")
     info = type_and_default.split(",")
     units = None
     if len(info) == 2:
@@ -107,19 +122,24 @@ def parse_manual_parameter(line: str) -> Parameter:
     else:
         raise ValueError(f"Unexpected parameter details: {info}")
 
-    default, options = parse_manual_default(default, type_)
+    default_value, options = parse_manual_default(default, type_)
+
+    if name == "label":
+        # Require a label explicitly.
+        default_value = "None"
 
     return {
         "name": name,
+        "python_name": renames.get(name, name),
         "type": type_,
-        "default": ast.literal_eval(default),
+        "default": ast.literal_eval(default_value),
         "units": units.strip(" []") if units else None,
         "description": desc.strip(),
         "options": options,
     }
 
 
-def parse_lattice_manual(path: AnyPath) -> LatticeManual:
+def parse_manual(path: AnyPath) -> LatticeManual:
     """
     Parse the lattice manual for information about lattice elements.
 
@@ -198,7 +218,7 @@ def make_dataclasses_from_manual(
     str
         Generated Python source code.
     """
-    manual = parse_lattice_manual(path)
+    manual = parse_manual(path)
     with open(template_filename) as fp:
         template = fp.read()
     env = jinja2.Environment()
@@ -206,22 +226,57 @@ def make_dataclasses_from_manual(
     tpl = env.from_string(
         template,
     )
+
+    base_classes = {
+        # Lattice:
+        "undulator": "BeamlineElement",
+        "drift": "BeamlineElement",
+        "quadrupole": "BeamlineElement",
+        "corrector": "BeamlineElement",
+        "chicane": "BeamlineElement",
+        "phaseshifter": "BeamlineElement",
+        "marker": "BeamlineElement",
+    }
+
+    base_imports = sorted(
+        set(base_classes[cls] for cls in manual["elements"] if cls in base_classes)
+    )
+
     return tpl.render(
         manual=manual,
         type_map={
             "string": "str",
             "double": "Float",
+            "integer": "int",
         },
         docstrings={
             # Lattice:
-            "undulator": "Lattice beamline element: an undulator",
-            "drift": "Lattice beamline element: drift",
-            "quadrupole": "Lattice beamline element: quadrupole",
-            "corrector": "Lattice beamline element: corrector",
-            "chicane": "Lattice beamline element: chicane",
-            "phaseshifter": "Lattice beamline element: phase shifter",
-            "marker": "Lattice beamline element: marker",
-            "line": "Lattice beamline element: line",
+            "undulator": "Lattice beamline element: an undulator.",
+            "drift": "Lattice beamline element: drift.",
+            "quadrupole": "Lattice beamline element: quadrupole.",
+            "corrector": "Lattice beamline element: corrector.",
+            "chicane": "Lattice beamline element: chicane.",
+            "phaseshifter": "Lattice beamline element: phase shifter.",
+            "marker": "Lattice beamline element: marker.",
+            "line": "Lattice beamline element: line.",
             # Main input:
         },
+        base_classes=base_classes,
+        base_imports=base_imports,
     ).strip()
+
+
+def cli_entrypoint():
+    import sys
+
+    try:
+        filename = sys.argv[1]
+    except IndexError:
+        print(f"Usage: {sys.argv[0]} manual-filename.md", file=sys.stderr)
+        sys.exit(1)
+
+    print(make_dataclasses_from_manual(filename))
+
+
+if __name__ == "__main__":
+    cli_entrypoint()

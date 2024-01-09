@@ -4,7 +4,8 @@ import pprint
 import lark
 import pytest
 
-from ...version4.grammar import new_lattice_parser, Lattice
+from ...version4.grammar import new_lattice_parser
+from ...version4.input import Lattice
 
 
 test_v4_root = pathlib.Path(__file__).resolve().parent
