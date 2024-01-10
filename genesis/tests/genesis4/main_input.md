@@ -11,7 +11,7 @@ The following describes all supported namelist with their variables, including i
 
 ## Supported Namelists
   - [setup](#setup)
-  - [altersetup](#altersetup)
+  - [alter_setup](#alter_setup)
   - [lattice](#lattice)
   - [time](#time)
   - [profiles](#profiles)
@@ -42,7 +42,7 @@ The following describes all supported namelist with their variables, including i
 
 ### setup
 
-The namelist `setup` is a mandatory namelist and should be the first in the input deck. It contains the basic parameters to control the simulations. It can only be called once. If the user want to change some parameter the namelist `altersetup` should be used.
+The namelist `setup` is a mandatory namelist and should be the first in the input deck. It contains the basic parameters to control the simulations. It can only be called once. If the user want to change some parameter the namelist `alter_setup` should be used.
 
 - `rootname` (*string, \<empty>*): The basic string, with which all output files will start, unless the output filename is directly overwritten (see `write` namelist)
 - `lattice` (*string, \<empty>*): The name of the file which contains the undulator lattice description. This can also include some relative paths if the lattice file is not in the same directory as the input file.
@@ -70,9 +70,9 @@ The namelist `setup` is a mandatory namelist and should be the first in the inpu
 
 <div style="page-break-after: always; visibility: hidden"> \pagebreak </div>
 
-### altersetup
+### alter_setup
 
-A namelist to change some parameters within the simulation, which have been defined alread by the `setup`-namelist. The change values are stored in the setup module so that for another invocation ofaltersetupsome defaults values are use which have been defined in the preceding call ofaltersetup
+A namelist to change some parameters within the simulation, which have been defined alread by the `setup`-namelist. The change values are stored in the setup module so that for another invocation of alter_setup some defaults values are use which have been defined in the preceding call of alter_setup
 
 - `rootname` (*string, <taken from SETUP>*): The basic string, with which all output files will start, unless the output filename is directly overwritten (see `write`-namelist)
 - `beamline` (*string, \<empty>*): The name of the beamline, which has to be defined within the lattice file. This way another beamline can be selected in the case the simulation has multiple stages
