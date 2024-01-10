@@ -61,7 +61,7 @@ class Setup(NameList):
     The namelist `setup` is a mandatory namelist and should be the first in the
     input deck. It contains the basic parameters to control the simulations. It can
     only be called once. If the user want to change some parameter the namelist
-    `altersetup` should be used.
+    `alter_setup` should be used.
 
     Attributes
     ----------
@@ -175,12 +175,12 @@ class Setup(NameList):
 
 
 @dataclasses.dataclass
-class Altersetup(NameList):
+class Alter_setup(NameList):
     r"""
     A namelist to change some parameters within the simulation, which have been
     defined alread by the `setup`-namelist. The change values are stored in the
-    setup module so that for another invocation ofaltersetupsome defaults values
-    are use which have been defined in the preceding call ofaltersetup
+    setup module so that for another invocation of alter_setup some defaults values
+    are use which have been defined in the preceding call of alter_setup
 
     Attributes
     ----------
