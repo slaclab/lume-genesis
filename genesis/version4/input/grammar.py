@@ -16,7 +16,7 @@ from .generated_lattice import (
     Undulator,
 )
 
-from .base import (
+from .core import (
     Lattice,
     Line,
     DuplicatedLineItem,
@@ -26,7 +26,7 @@ from .base import (
 
 if typing.TYPE_CHECKING:
     from .generated_lattice import BeamlineElement
-    from .base import LineItem
+    from .core import LineItem
 
 LATTICE_GRAMMAR = pathlib.Path("version4") / "input" / "lattice.lark"
 
@@ -68,6 +68,26 @@ def _fix_parameters(
     cls: Type[BeamlineElement],
     params: Dict[str, lark.Token],
 ) -> Tuple[Dict[str, ValueType], Dict[str, str]]:
+    """
+    Fix parameters to beamline elements when transforming with
+    :class:``_LatticeTransformer`.
+
+    Parameters
+    ----------
+    cls : Type[BeamlineElement]
+        The dataclass associated with the beamline element.  This is used to
+        determine the attribute name and data type associated with the
+        parameter.
+    params : Dict[str, lark.Token]
+        Parameter name map to lark Token value.
+
+    Returns
+    -------
+    Dict[str, ValueType]
+        Keyword arguments for the dataclass.
+    Dict[str, str]
+        Unexpected arguments for the dataclass; unsure what to do with them.
+    """
     kwargs: Dict[str, ValueType] = {}
     extra: Dict[str, str] = {}
     for name, value in params.items():

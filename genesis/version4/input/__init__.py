@@ -1,4 +1,4 @@
-from .base import (
+from .core import (
     Line,
     Lattice,
     DuplicatedLineItem,
@@ -44,7 +44,6 @@ from .generated_main import (
 
 __all__ = [
     # Lattice:
-    "BeamlineElement",
     "Chicane",
     "Corrector",
     "Drift",

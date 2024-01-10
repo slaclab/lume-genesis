@@ -37,7 +37,7 @@ class NameList:
         return data
 
     def __str__(self) -> str:
-        from .base import python_to_namelist_value
+        from .core import python_to_namelist_value
 
         parameters = [
             f"{name} = {python_to_namelist_value(value)}"
