@@ -18,4 +18,7 @@ VALUE: /[^\r\n]+/
 parameter_set: LABEL "=" VALUE
 parameter_list: (parameter_set _NL)*
 END: "&end"
+   | "&End"
+   | "&END"
+
 namelist: "&" NAMELIST_NAME _NL+ parameter_list _NL* END _NL*
