@@ -4,6 +4,7 @@ from .core import (
     DuplicatedLineItem,
     PositionedLineItem,
     LineItem,
+    MainInput,
 )
 from .generated_lattice import (
     Chicane,
@@ -57,6 +58,7 @@ __all__ = [
     "Quadrupole",
     "Undulator",
     # Main:
+    "MainInput",
     "Setup",
     "Altersetup",
     "LatticeNamelist",
