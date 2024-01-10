@@ -9,11 +9,13 @@ from decimal import Decimal
 
 from typing import Union
 
+from .base import NameList
+
 Float = Union[Decimal, float]
 
 
 @dataclasses.dataclass
-class Setup:
+class Setup(NameList):
     r"""
     The namelist `setup` is a mandatory namelist and should be the first in the
     input deck. It contains the basic parameters to control the simulations. It can
@@ -132,7 +134,7 @@ class Setup:
 
 
 @dataclasses.dataclass
-class Altersetup:
+class Altersetup(NameList):
     r"""
     A namelist to change some parameters within the simulation, which have been
     defined alread by the `setup`-namelist. The change values are stored in the
@@ -192,7 +194,7 @@ class Altersetup:
 
 
 @dataclasses.dataclass
-class Lattice:
+class Lattice(NameList):
     r"""
     This namelist is used to change the raw lattice from the lattice file, such as
     generating errors in the position of the elements. The namelist can be defined
@@ -242,7 +244,7 @@ class Lattice:
 
 
 @dataclasses.dataclass
-class Time:
+class Time(NameList):
     r"""
     This namelist defines the time window/range for simulation with more than just
     one slice.
@@ -289,7 +291,7 @@ class Time:
 
 
 @dataclasses.dataclass
-class Profile_const:
+class Profile_const(NameList):
     r"""
     Profile_const
 
@@ -306,7 +308,7 @@ class Profile_const:
 
 
 @dataclasses.dataclass
-class Profile_gauss:
+class Profile_gauss(NameList):
     r"""
     Profile_gauss
 
@@ -329,7 +331,7 @@ class Profile_gauss:
 
 
 @dataclasses.dataclass
-class Profile_step:
+class Profile_step(NameList):
     r"""
     Profile_step
 
@@ -352,7 +354,7 @@ class Profile_step:
 
 
 @dataclasses.dataclass
-class Profile_polynom:
+class Profile_polynom(NameList):
     r"""
     Profile_polynom
 
@@ -381,7 +383,7 @@ class Profile_polynom:
 
 
 @dataclasses.dataclass
-class Profile_file:
+class Profile_file(NameList):
     r"""
     Profile_file
 
@@ -411,7 +413,7 @@ class Profile_file:
 
 
 @dataclasses.dataclass
-class Sequence_const:
+class Sequence_const(NameList):
     r"""
     Sequence_const
 
@@ -428,7 +430,7 @@ class Sequence_const:
 
 
 @dataclasses.dataclass
-class Sequence_polynom:
+class Sequence_polynom(NameList):
     r"""
     Sequence_polynom
 
@@ -457,7 +459,7 @@ class Sequence_polynom:
 
 
 @dataclasses.dataclass
-class Sequence_power:
+class Sequence_power(NameList):
     r"""
     Sequence_power
 
@@ -484,7 +486,7 @@ class Sequence_power:
 
 
 @dataclasses.dataclass
-class Sequence_random:
+class Sequence_random(NameList):
     r"""
     Sequence_random
 
@@ -511,7 +513,7 @@ class Sequence_random:
 
 
 @dataclasses.dataclass
-class Beam:
+class Beam(NameList):
     r"""
     This namelist initiates the generation of the particle distribution to be kept
     in memory. Any time-dependence has to be defined before calling this namelist.
@@ -580,7 +582,7 @@ class Beam:
 
 
 @dataclasses.dataclass
-class Field:
+class Field(NameList):
     r"""
     This namelist initiate the generation of the field distribution. It differs in
     one point from the generation of the beam. It can be called multiple times. If
@@ -651,7 +653,7 @@ class Field:
 
 
 @dataclasses.dataclass
-class Importdistribution:
+class Importdistribution(NameList):
     r"""
     This namelist controls the import of an external distribution which are
     generated from Elegant. The file has to be in HDF5 format. In the distribution
@@ -718,7 +720,7 @@ class Importdistribution:
 
 
 @dataclasses.dataclass
-class Importbeam:
+class Importbeam(NameList):
     r"""
     The modules controls the import of a Genesis 1.3 particle file to replace the
     internal generation of the particle distribution (note that the module `beam`
@@ -741,7 +743,7 @@ class Importbeam:
 
 
 @dataclasses.dataclass
-class Importfield:
+class Importfield(NameList):
     r"""
     The modules controls the import of a Genesis 1.3 field file to replace the
     internal generation of the field distribution (note that the module `field`
@@ -768,7 +770,7 @@ class Importfield:
 
 
 @dataclasses.dataclass
-class Importtransformation:
+class Importtransformation(NameList):
     r"""
     Once an electron distribution is generated the namelist can be used to
     manipulate the distribution by shifting the particle by the vector dr or
@@ -813,7 +815,7 @@ class Importtransformation:
 
 
 @dataclasses.dataclass
-class Efield:
+class Efield(NameList):
     r"""
     This namelist controls the long and short range space charge fields. The long
     range corresponds to any length scale longer than the slice length of the
@@ -852,7 +854,7 @@ class Efield:
 
 
 @dataclasses.dataclass
-class Sponrad:
+class Sponrad(NameList):
     r"""
     This enables the effect of spontaneous radiation outside of the frequency band
     of the FEL simulation.
@@ -876,7 +878,7 @@ class Sponrad:
 
 
 @dataclasses.dataclass
-class Wake:
+class Wake(NameList):
     r"""
     Genesis supports the calculation of three types of wakefields by specifying the
     typical input parameters (e.g. gap length for the geometric wakefield). It
@@ -956,7 +958,7 @@ class Wake:
 
 
 @dataclasses.dataclass
-class Write:
+class Write(NameList):
     r"""
     With this name list the field or particle distributions are dumped. The
     placeholder character `@` can be used to refer to the rootname of the
@@ -982,7 +984,7 @@ class Write:
 
 
 @dataclasses.dataclass
-class Track:
+class Track(NameList):
     r"""
     This namelist initiate the actually tracking through the undulator and then
     writing out the results. Normally all parameter should be defined before or

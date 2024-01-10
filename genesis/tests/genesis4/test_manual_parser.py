@@ -5,7 +5,7 @@ import pytest
 from ...version4.manual import (
     Parameter,
     make_dataclasses_from_manual,
-    parse_lattice_manual,
+    parse_manual,
     parse_manual_parameter,
 )
 
@@ -85,11 +85,11 @@ def test_parse_param(param: str, expected: Parameter) -> None:
 
 
 def test_parse_lattice_manual() -> None:
-    print(parse_lattice_manual(lattice_manual))
+    print(parse_manual(lattice_manual))
 
 
 def test_parse_main_manual() -> None:
-    print(parse_lattice_manual(main_manual))
+    print(parse_manual(main_manual))
 
 
 def test_make_lattice_dataclasses() -> None:

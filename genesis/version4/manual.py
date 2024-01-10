@@ -19,6 +19,8 @@ renames = {
 
 
 class Parameter(TypedDict):
+    """A named, single parameter for an input file."""
+
     name: str
     python_name: str
     type: str
@@ -29,11 +31,15 @@ class Parameter(TypedDict):
 
 
 class ManualSection(TypedDict):
+    """A section of the manual, with some parameters delineated."""
+
     header: Optional[str]
     parameters: Dict[str, Parameter]
 
 
 class LatticeManual(TypedDict):
+    """A representation of either the main manual or the lattice manual."""
+
     elements: Dict[str, ManualSection]
 
 
@@ -236,6 +242,32 @@ def make_dataclasses_from_manual(
         "chicane": "BeamlineElement",
         "phaseshifter": "BeamlineElement",
         "marker": "BeamlineElement",
+        # Main:
+        "setup": "NameList",
+        "altersetup": "NameList",
+        "lattice": "NameList",
+        "time": "NameList",
+        "profile_const": "NameList",
+        "profile_gauss": "NameList",
+        "profile_step": "NameList",
+        "profile_polynom": "NameList",
+        "profile_file": "NameList",
+        "sequence_const": "NameList",
+        "sequence_polynom": "NameList",
+        "sequence_power": "NameList",
+        "sequence_random": "NameList",
+        "beam": "NameList",
+        "field": "NameList",
+        "importdistribution": "NameList",
+        "importbeam": "NameList",
+        "importfield": "NameList",
+        "importtransformation": "NameList",
+        "efield": "NameList",
+        "sponrad": "NameList",
+        "wake": "NameList",
+        "sort": "NameList",
+        "write": "NameList",
+        "track": "NameList",
     }
 
     base_imports = sorted(
