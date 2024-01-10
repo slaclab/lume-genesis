@@ -2,58 +2,33 @@ from __future__ import annotations
 import dataclasses
 from decimal import Decimal
 import pathlib
-import textwrap
 
-from typing import ClassVar, Dict, Iterable, List, Optional, Union
+from typing import Iterable, List, Optional, Union
+import typing
 from .types import Float, ValueType, AnyPath
-from ..manual import renames
+
+if typing.TYPE_CHECKING:
+    from .generated_lattice import BeamlineElement
 
 
-@dataclasses.dataclass
-class BeamlineElement:
-    _lattice_to_attr_: ClassVar[Dict[str, str]] = renames
-    _attr_to_lattice_: ClassVar[Dict[str, str]] = dict(
-        (v, k) for k, v in _lattice_to_attr_.items()
-    )
-
-    label: str
-
-    @property
-    def parameters(self) -> Dict[str, ValueType]:
-        """Dictionary of parameters to pass to Genesis 4."""
-        skip = {"label"}
-        data = {}
-        for attr in self.__annotations__:
-            if attr.startswith("_") or attr in skip:
-                continue
-            value = getattr(self, attr)
-            default = getattr(type(self), attr, None)
-            if str(value) != str(default):
-                param = self._attr_to_lattice_.get(attr, attr)
-                data[param] = value
-        return data
-
-    def __str__(self) -> str:
-        parameters = ", ".join(
-            f"{name}={value}" for name, value in self.parameters.items()
-        )
-        type_ = type(self).__name__.upper()
-        return "".join(
-            (
-                self.label,
-                f": {type_} = " "{",
-                parameters,
-                "};",
-            )
-        )
+LineItem = Union[str, "DuplicatedLineItem", "PositionedLineItem"]
 
 
 @dataclasses.dataclass
 class DuplicatedLineItem:
-    #: Duplication count.
-    count: int
-    #: Element name.
+    """
+    A Genesis 4 lattice Line item which is at a certain position.
+
+    Attributes
+    ----------
+    label : str
+        The name/label of the line item.
+    count : int
+        The number of times to repeat the line item.
+    """
+
     label: str
+    count: int
 
     def __str__(self) -> str:
         return f"{self.count}*{self.label}"
@@ -61,20 +36,37 @@ class DuplicatedLineItem:
 
 @dataclasses.dataclass
 class PositionedLineItem:
-    #: Position in meters.
-    position: Float
-    #: Element name.
+    """
+    A Genesis 4 lattice Line item which is at a certain position.
+
+    Attributes
+    ----------
+    label : str
+        The name/label of the line item.
+    position : Float
+        The position of the element.
+    """
+
     label: str
+    position: Float
 
     def __str__(self) -> str:
         return f"{self.label}@{self.position}"
 
 
-LineItem = Union[str, DuplicatedLineItem, PositionedLineItem]
-
-
 @dataclasses.dataclass
 class Line:
+    """
+    A Genesis 4 beamline Line.
+
+    Attributes
+    ----------
+    label : str
+        The name/label of the line.
+    elements : list of LineItem
+        Elements contained in the line.
+    """
+
     label: str
     elements: List[LineItem] = dataclasses.field(default_factory=list)
 
@@ -92,6 +84,17 @@ class Line:
 
 @dataclasses.dataclass
 class Lattice:
+    """
+    A Genesis 4 beamline Lattice configuration.
+
+    Attributes
+    ----------
+    elements : list of BeamlineElement or Line
+        Elements contained in the lattice.
+    filename : pathlib.Path or None
+        The filename from which this lattice was loaded.
+    """
+
     elements: List[Union[BeamlineElement, Line]] = dataclasses.field(
         default_factory=list
     )
@@ -104,7 +107,21 @@ class Lattice:
     def from_contents(
         cls, contents: str, filename: Optional[AnyPath] = None
     ) -> Lattice:
-        from ..grammar import _LatticeTransformer, new_lattice_parser
+        """
+        Load a lattice from its file contents.
+
+        Parameters
+        ----------
+        contents : str
+            The contents of the lattice file.
+        filename : AnyPath or None, optional
+            The filename of the lattice, if known.
+
+        Returns
+        -------
+        Lattice
+        """
+        from .grammar import _LatticeTransformer, new_lattice_parser
 
         parser = new_lattice_parser()
         tree = parser.parse(contents)
@@ -113,6 +130,18 @@ class Lattice:
 
     @classmethod
     def from_file(cls, filename: AnyPath) -> Lattice:
+        """
+        Load a lattice file from disk.
+
+        Parameters
+        ----------
+        filename : AnyPath
+            The filename to load.
+
+        Returns
+        -------
+        Lattice
+        """
         with open(filename) as fp:
             contents = fp.read()
         return cls.from_contents(contents, filename=filename)
@@ -120,7 +149,18 @@ class Lattice:
 
 def python_to_namelist_value(value: ValueType) -> str:
     """
-    Convert a Python-typed value to a format supported by namelists.
+    Convert a Python value to its NameList representation.
+
+    Parameters
+    ----------
+    value : ValueType
+        The Python value to convert.
+
+    Returns
+    -------
+    str
+        Representation which can be used in a namelist as part of an input
+        file.
     """
     if isinstance(value, str):
         return value
@@ -132,40 +172,3 @@ def python_to_namelist_value(value: ValueType) -> str:
         return str(value)
     # raise NotImplementedError(type(value))
     return str(value)
-
-
-@dataclasses.dataclass
-class NameList:
-    _namelist_to_attr_: ClassVar[Dict[str, str]] = renames
-    _attr_to_namelist_: ClassVar[Dict[str, str]] = dict(
-        (v, k) for k, v in _namelist_to_attr_.items()
-    )
-
-    @property
-    def parameters(self) -> Dict[str, ValueType]:
-        """Dictionary of parameters to pass to Genesis 4."""
-        skip = {"label"}
-        data = {}
-        for attr in self.__annotations__:
-            if attr.startswith("_") or attr in skip:
-                continue
-            value = getattr(self, attr)
-            default = getattr(type(self), attr, None)
-            if str(value) != str(default):
-                param = self._attr_to_namelist_.get(attr, attr)
-                data[param] = value
-        return data
-
-    def __str__(self) -> str:
-        parameters = [
-            f"{name} = {python_to_namelist_value(value)}"
-            for name, value in self.parameters.items()
-        ]
-        type_ = type(self).__name__.lower()
-        return "\n".join(
-            (
-                f"&{type_}",
-                textwrap.indent("\n".join(parameters), "  ") if parameters else "",
-                "&end",
-            )
-        )

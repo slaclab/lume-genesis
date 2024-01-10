@@ -1,13 +1,12 @@
 from __future__ import annotations
+import typing
 import lark
 import pathlib
 from decimal import Decimal
 
 from typing import Dict, List, Optional, Tuple, Type, Union
-from .input.base import LineItem
-from .input.types import AnyPath, ValueType
-from .input import (
-    BeamlineElement,
+from .types import AnyPath, ValueType
+from .generated_lattice import (
     Chicane,
     Corrector,
     Drift,
@@ -15,6 +14,9 @@ from .input import (
     Phaseshifter,
     Quadrupole,
     Undulator,
+)
+
+from .base import (
     Lattice,
     Line,
     DuplicatedLineItem,
@@ -22,7 +24,11 @@ from .input import (
 )
 
 
-LATTICE_GRAMMAR = pathlib.Path("version4") / "lattice.lark"
+if typing.TYPE_CHECKING:
+    from .generated_lattice import BeamlineElement
+    from .base import LineItem
+
+LATTICE_GRAMMAR = pathlib.Path("version4") / "input" / "lattice.lark"
 
 
 def new_parser(filename: AnyPath, **kwargs) -> lark.Lark:
@@ -87,7 +93,7 @@ class _LatticeTransformer(lark.visitors.Transformer_InPlaceRecursive):
     Attributes
     ----------
     _filename : str
-        Filename of grammar being transformed.
+        Filename source of the input.
     """
 
     _filename: Optional[pathlib.Path]
@@ -157,8 +163,8 @@ class _LatticeTransformer(lark.visitors.Transformer_InPlaceRecursive):
         label: lark.Token,
     ) -> DuplicatedLineItem:
         return DuplicatedLineItem(
-            count=int(count),
             label=str(label),
+            count=int(count),
         )
 
     @lark.v_args(inline=True)

@@ -1,5 +1,4 @@
 from .base import (
-    BeamlineElement,
     Line,
     Lattice,
     DuplicatedLineItem,

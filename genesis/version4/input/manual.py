@@ -233,46 +233,15 @@ def make_dataclasses_from_manual(
         template,
     )
 
-    base_classes = {
-        # Lattice:
-        "undulator": "BeamlineElement",
-        "drift": "BeamlineElement",
-        "quadrupole": "BeamlineElement",
-        "corrector": "BeamlineElement",
-        "chicane": "BeamlineElement",
-        "phaseshifter": "BeamlineElement",
-        "marker": "BeamlineElement",
-        # Main:
-        "setup": "NameList",
-        "altersetup": "NameList",
-        "lattice": "NameList",
-        "time": "NameList",
-        "profile_const": "NameList",
-        "profile_gauss": "NameList",
-        "profile_step": "NameList",
-        "profile_polynom": "NameList",
-        "profile_file": "NameList",
-        "sequence_const": "NameList",
-        "sequence_polynom": "NameList",
-        "sequence_power": "NameList",
-        "sequence_random": "NameList",
-        "beam": "NameList",
-        "field": "NameList",
-        "importdistribution": "NameList",
-        "importbeam": "NameList",
-        "importfield": "NameList",
-        "importtransformation": "NameList",
-        "efield": "NameList",
-        "sponrad": "NameList",
-        "wake": "NameList",
-        "sort": "NameList",
-        "write": "NameList",
-        "track": "NameList",
-    }
-
-    base_imports = sorted(
-        set(base_classes[cls] for cls in manual["elements"] if cls in base_classes)
-    )
+    if "undulator" in manual["elements"]:
+        base_class = "BeamlineElement"
+    elif "setup" in manual["elements"]:
+        base_class = "NameList"
+    else:
+        raise ValueError(
+            f"Unsupported manual pages; expected to see 'undulator' or 'setup' "
+            f"to identify the correct page. Saw: {manual['elements']}"
+        )
 
     return tpl.render(
         manual=manual,
@@ -293,8 +262,7 @@ def make_dataclasses_from_manual(
             "line": "Lattice beamline element: line.",
             # Main input:
         },
-        base_classes=base_classes,
-        base_imports=base_imports,
+        base_class=base_class,
     ).strip()
 
 

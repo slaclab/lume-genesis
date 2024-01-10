@@ -2,7 +2,7 @@ import pathlib
 
 import pytest
 
-from ...version4.manual import (
+from ...version4.input.manual import (
     Parameter,
     make_dataclasses_from_manual,
     parse_manual,

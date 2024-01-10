@@ -4,7 +4,7 @@ import pprint
 import lark
 import pytest
 
-from ...version4.grammar import new_lattice_parser
+from ...version4.input.grammar import new_lattice_parser
 from ...version4.input import Lattice
 
 
