@@ -6,29 +6,24 @@ from decimal import Decimal
 
 from typing import Dict, List, Optional, Tuple, Type, Union
 from .types import AnyPath, ValueType
-from .generated_lattice import (
-    Chicane,
-    Corrector,
-    Drift,
-    Marker,
-    Phaseshifter,
-    Quadrupole,
-    Undulator,
-)
+from .generated_main import NameList
+from .generated_lattice import BeamlineElement
 
 from .core import (
     Lattice,
+    MainInput,
     Line,
     DuplicatedLineItem,
     PositionedLineItem,
+    Reference,
 )
 
 
 if typing.TYPE_CHECKING:
-    from .generated_lattice import BeamlineElement
     from .core import LineItem
 
 LATTICE_GRAMMAR = pathlib.Path("version4") / "input" / "lattice.lark"
+MAIN_INPUT_GRAMMAR = pathlib.Path("version4") / "input" / "main_input.lark"
 
 
 def new_parser(filename: AnyPath, **kwargs) -> lark.Lark:
@@ -64,8 +59,36 @@ def new_lattice_parser(**kwargs) -> lark.Lark:
     return new_parser(LATTICE_GRAMMAR, **kwargs)
 
 
+def new_main_input_parser(**kwargs) -> lark.Lark:
+    """
+    Get a new parser for the packaged main input file grammar.
+
+    Parameters
+    ----------
+    **kwargs :
+        See :class:`lark.lark.LarkOptions`.
+    """
+    return new_parser(MAIN_INPUT_GRAMMAR, **kwargs)
+
+
+class HiddenDecimal(Decimal):
+    """
+    A "Decimal" which hides itself in its representation.
+
+    For example, ``repr(Decimal("10.0")) = 10.0``.
+
+    Decimal is convenient for us to use to ensure that round-tripping input
+    floating point values back to the original file format does not result in a
+    significant change in representation.
+    """
+
+    def __repr__(self) -> str:
+        dec_str = super().__str__()
+        return dec_str.replace("Decimal('", "").rstrip("')")
+
+
 def _fix_parameters(
-    cls: Type[BeamlineElement],
+    cls: Union[Type[BeamlineElement], Type[NameList]],
     params: Dict[str, lark.Token],
 ) -> Tuple[Dict[str, ValueType], Dict[str, str]]:
     """
@@ -90,17 +113,22 @@ def _fix_parameters(
     """
     kwargs: Dict[str, ValueType] = {}
     extra: Dict[str, str] = {}
+    mapping = cls._parameter_to_attr_
     for name, value in params.items():
-        name = cls._lattice_to_attr_.get(name, name)
+        name = mapping.get(name, name)
         dtype = cls.__annotations__.get(name, None)
         if dtype is None:
             extra[name] = str(value)
+        elif value.startswith("@"):
+            kwargs[name] = Reference(str(value[1:]).strip())
         elif dtype == "int":
             kwargs[name] = int(value)
         elif dtype == "Float":
-            kwargs[name] = Decimal(value)
+            kwargs[name] = HiddenDecimal(value)
         elif dtype == "bool":
             kwargs[name] = value.lower() == "true"
+        elif dtype == "str":
+            kwargs[name] = value.strip()
         else:
             raise RuntimeError(f"Unexpected type annotation hit for {name}: {dtype}")
     return kwargs, extra
@@ -117,15 +145,9 @@ class _LatticeTransformer(lark.visitors.Transformer_InPlaceRecursive):
     """
 
     _filename: Optional[pathlib.Path]
+    # This maps, e.g., "UNDU" -> Undulator
     type_map: Dict[str, Type[BeamlineElement]] = {
-        "UNDU": Undulator,
-        "QUAD": Quadrupole,
-        "DRIF": Drift,
-        "CORR": Corrector,
-        "CHIC": Chicane,
-        "PHAS": Phaseshifter,
-        "MARK": Marker,
-        # "LINE": Line,
+        cls.__name__.upper()[:4]: cls for cls in BeamlineElement.__subclasses__()
     }
 
     def __init__(self, filename: AnyPath) -> None:
@@ -216,3 +238,56 @@ class _LatticeTransformer(lark.visitors.Transformer_InPlaceRecursive):
             elements,
             filename=self._filename,
         )
+
+
+class _MainInputTransformer(lark.visitors.Transformer_InPlaceRecursive):
+    """
+    Grammar transformer which takes lark objects and makes a :class:`MainInput`.
+
+    Attributes
+    ----------
+    _filename : str
+        Filename source of the input.
+    """
+
+    _filename: Optional[pathlib.Path]
+    # This maps, e.g., "setup" to the Setup dataclass
+    type_map: Dict[str, Type[NameList]] = {
+        cls.__name__.lower(): cls for cls in NameList.__subclasses__()
+    }
+
+    def __init__(self, filename: AnyPath) -> None:
+        super().__init__()
+        self._filename = pathlib.Path(filename)
+
+    @lark.v_args(inline=True)
+    def parameter_set(
+        self,
+        parameter: lark.Token,
+        value: lark.Token,
+    ) -> Tuple[str, lark.Token]:
+        return (str(parameter), value)
+
+    def parameter_list(
+        self, sets: List[Tuple[str, ValueType]]
+    ) -> List[Tuple[str, ValueType]]:
+        return list(sets)
+
+    @lark.v_args(inline=True)
+    def namelist(
+        self,
+        name: lark.Token,
+        parameter_list: List[Tuple[str, lark.Token]],
+        end: lark.Token,
+    ) -> NameList:
+        cls = self.type_map[name]
+        parameters, unknown = _fix_parameters(cls, dict(parameter_list))
+        if unknown:
+            raise ValueError(
+                f"Namelist {name} received unexpected parameter(s): " f"{unknown}"
+            )
+        return cls(**parameters)
+
+    @lark.v_args(inline=True)
+    def main_input(self, *namelists: NameList) -> MainInput:
+        return MainInput(namelists=list(namelists), filename=self._filename)

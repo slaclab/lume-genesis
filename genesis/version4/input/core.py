@@ -9,6 +9,7 @@ from .types import Float, ValueType, AnyPath
 
 if typing.TYPE_CHECKING:
     from .generated_lattice import BeamlineElement
+    from .generated_main import NameList
 
 
 LineItem = Union[str, "DuplicatedLineItem", "PositionedLineItem"]
@@ -141,6 +142,87 @@ class Lattice:
         Returns
         -------
         Lattice
+        """
+        with open(filename) as fp:
+            contents = fp.read()
+        return cls.from_contents(contents, filename=filename)
+
+
+@dataclasses.dataclass
+class Reference:
+    """
+    A Genesis 4 main input value which is a reference to another namelist or
+    value.
+
+    Attributes
+    ----------
+    label : str
+        The reference name.
+    """
+
+    label: str
+
+    def __str__(self) -> str:
+        return f"@{self.label}"
+
+
+@dataclasses.dataclass
+class MainInput:
+    """
+    A Genesis 4 main input configuration file.
+
+    Attributes
+    ----------
+    namelists : list of NameList
+        Elements contained in the lattice.
+    filename : pathlib.Path or None
+        The filename from which this was loaded.
+    """
+
+    namelists: List[NameList] = dataclasses.field(default_factory=list)
+    filename: Optional[pathlib.Path] = None
+
+    def __str__(self) -> str:
+        return "\n\n".join(str(namelist) for namelist in self.namelists)
+
+    @classmethod
+    def from_contents(
+        cls, contents: str, filename: Optional[AnyPath] = None
+    ) -> MainInput:
+        """
+        Load main input from its file contents.
+
+        Parameters
+        ----------
+        contents : str
+            The contents of the main input file.
+        filename : AnyPath or None, optional
+            The filename, if known.
+
+        Returns
+        -------
+        MainInput
+        """
+        from .grammar import _MainInputTransformer, new_main_input_parser
+
+        parser = new_main_input_parser()
+        tree = parser.parse(contents)
+        filename = filename or "unknown"
+        return _MainInputTransformer(filename).transform(tree)
+
+    @classmethod
+    def from_file(cls, filename: AnyPath) -> MainInput:
+        """
+        Load a main input file from disk.
+
+        Parameters
+        ----------
+        filename : AnyPath
+            The filename to load.
+
+        Returns
+        -------
+        MainInput
         """
         with open(filename) as fp:
             contents = fp.read()

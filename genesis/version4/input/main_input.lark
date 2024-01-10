@@ -1,0 +1,21 @@
+?start: main_input
+main_input: (namelist | _NL)+
+
+COMMENT: /\s*#[^\n\r]*/
+%ignore COMMENT
+
+WS_INLINE: (" "|/\t/)+
+%ignore WS_INLINE
+
+_NL: /[\r\n]/+
+
+// WS: /[ \t\f\r\n]/+
+// %ignore WS
+NAMELIST_NAME: /[a-z_][a-z0-9_]*/i
+LABEL: /[a-z_][a-z0-9_]*/i
+
+VALUE: /[^\r\n]+/
+parameter_set: LABEL "=" VALUE
+parameter_list: (parameter_set _NL)*
+END: "&end"
+namelist: "&" NAMELIST_NAME _NL+ parameter_list _NL* END _NL*

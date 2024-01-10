@@ -16,9 +16,9 @@ from .types import Float, ValueType
 class NameList:
     """Base class for name lists used in Genesis 4 main input files."""
 
-    _namelist_to_attr_: ClassVar[Dict[str, str]] = manual.renames
-    _attr_to_namelist_: ClassVar[Dict[str, str]] = dict(
-        (v, k) for k, v in _namelist_to_attr_.items()
+    _parameter_to_attr_: ClassVar[Dict[str, str]] = manual.renames
+    _attr_to_parameter_: ClassVar[Dict[str, str]] = dict(
+        (v, k) for k, v in _parameter_to_attr_.items()
     )
 
     @property
@@ -32,7 +32,7 @@ class NameList:
             value = getattr(self, attr)
             default = getattr(type(self), attr, None)
             if str(value) != str(default):
-                param = self._attr_to_namelist_.get(attr, attr)
+                param = self._attr_to_parameter_.get(attr, attr)
                 data[param] = value
         return data
 
