@@ -206,6 +206,17 @@ def parse_manual(path: AnyPath) -> LatticeManual:
     return manual
 
 
+def _to_class_name(genesis_name: str) -> str:
+    """Convert a Genesis 4 manual name to a dataclass name."""
+    name_chars = list(genesis_name.capitalize())
+    while "_" in name_chars:
+        idx = name_chars.index("_")
+        name_chars.pop(idx)
+        if idx < len(name_chars):
+            name_chars[idx] = name_chars[idx].upper()
+    return "".join(name_chars)
+
+
 def make_dataclasses_from_manual(
     path: AnyPath,
     *,
@@ -229,9 +240,8 @@ def make_dataclasses_from_manual(
         template = fp.read()
     env = jinja2.Environment()
     env.filters["repr"] = repr
-    tpl = env.from_string(
-        template,
-    )
+    env.filters["to_class_name"] = _to_class_name
+    tpl = env.from_string(template)
 
     if "undulator" in manual["elements"]:
         base_class = "BeamlineElement"
