@@ -11,7 +11,7 @@ import dataclasses
 from typing import ClassVar, Dict
 
 from . import manual
-from .core import python_to_namelist_value
+from .util import python_to_namelist_value
 from .types import Float, ValueType
 
 

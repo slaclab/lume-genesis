@@ -4,7 +4,7 @@ import pprint
 import lark
 import pytest
 
-from ...version4.input.grammar import new_main_input_parser
+from ...version4.input.core import new_main_input_parser
 from ...version4.input import MainInput
 
 
