@@ -38,6 +38,7 @@ The following describes all supported namelist with their variables, including i
   - [write](#write)
   - [track](#track)
 
+[Back](#supported-namelists)
 <div style="page-break-after: always; visibility: hidden"> \pagebreak </div>
 
 ### setup
@@ -45,6 +46,7 @@ The following describes all supported namelist with their variables, including i
 The namelist `setup` is a mandatory namelist and should be the first in the input deck. It contains the basic parameters to control the simulations. It can only be called once. If the user want to change some parameter the namelist `alter_setup` should be used.
 
 - `rootname` (*string, \<empty>*): The basic string, with which all output files will start, unless the output filename is directly overwritten (see `write` namelist)
+- `outputdir` (*string, \<empty>*): Output directory name.
 - `lattice` (*string, \<empty>*): The name of the file which contains the undulator lattice description. This can also include some relative paths if the lattice file is not in the same directory as the input file.
 - `beamline` (*string, \<empty>*): The name of the beamline, which has to be defined within the lattice file. For more information on the lattice file, see the next chapter.
 - `gamma0` (*double, 11350.3*): The reference energy in unites of the electron rest mass. This is the reference energy which is used in the code at various place, mostly in the calculation of the matching condition, the reference focusing strength of quadrupoles and undulator as well as the default value if an electron distribution is generated.
@@ -63,7 +65,12 @@ The namelist `setup` is a mandatory namelist and should be the first in the inpu
 - `exclude_energy_output` (*bool, false*): Flag to suppress the datasets in the output file for the mean energy and energy spread of the electron beam.
 - `exclude_aux_output` (*bool, false*): Flag to suppress the auxiliary datasets in the output file. In the moment it is the long-range longitudinal electric field as seen by the electrons.
 - `exclude_current_output` (*bool, true*): Flag to reduce the size of the current dataset for the electron beam. Under most circumstances the current profile is constant and only the initial current profile is written out. However, simulation with one-4-one set to `true` and sorting events the current profile might change. Example are ESASE/HGHG schemes. By setting the flag to false the current profile is written out at each output step similar to radiation power and bunching profile.
-
+- `exclude_field_dump` (*bool, false*): Exclude the field dump to `.fld.h5`.
+- `write_meta_file` (*bool, false*): Write a metadata file.
+- `semaphore_file_name` (*string, <derived from rootname>*): Providing a file name for the semaphore file always switches on writing the "done" semaphore file, overriding 'write_semaphore_file' flag. This allows to switch on semaphore functionality just by specifying corresponding command line argument -- no modification of G4 input file needed.
+- `write_semaphore_file` (*bool, false*): Write a semaphore file when the simulation has completed.
+- `write_semaphore_file_done` (*bool, false*): Alias for `write_semaphore_file`. This takes precedence over `write_semaphore_file` if both are specified.
+- `write_semaphore_file_started` (*bool, false*): Write a semaphore file at startup, after the setup block is parsed.
 
 [Back](#supported-namelists)
 
@@ -80,6 +87,7 @@ A namelist to change some parameters within the simulation, which have been defi
 - `harmonic` (*int, 1*): If the value is not 1 than a harmonic conversion is done. This has several consequences. The reference wavelength in `setup` is divided by the harmonic number, the sample rate in `time` is multiplied by the harmonic number, the ponderomotive phases of all macro particles are scaled with the harmonic number, all radiation fields, which are not identical to the harmonic numbers are deleted, while an existing harmonic field is changed to be at the fundamental wavelength
 - `subharmonic` (*int, 1*): If the value is not 1 than a down conversion is done. It is similar to the action of `harmonics` but in the opposite directions. For the radiation field all field definitions are deleted except for the fundamental, which is converted to a harmonic. In this case the fundamental field needs to be defined before another tracking is called.
 - `resample` (*bool, false*): If this is set to true and only if one-for-one simulations are used the harmonic and subharmonic conversion can re-sample to the new wavelength. In the case of up-conversion the slices are split and the total number of slices increases. Same with the radiation field. An previously existing harmonic field, which is now becoming the fundamental, is interpolated between the existing sample points (still needs to be implemented). If a new field is generated it has automatically the new number of slices. If also prevents that the sample rate is changed by remaining unchanged.
+- `disable` (*bool, false*): Disable non-matching radiation harmonic.
 
 
 [Back](#supported-namelists)
@@ -97,6 +105,7 @@ This namelist is used to change the raw lattice from the lattice file, such as g
 - `value` (*double, 0, or sequence label*): The new value. If a reference to a sequence is used, values can be different depending on how many elements are changed. For a double the value would be the same for all elements affected.
 - `instance` (*integer, 0*): The instances of affected elements. If a positive value is given, than only that element is changed, where its occurence matches the number. E.g. for a value of 3 only the third element is selected. For a value of 0 all elements are changed. The ability to change more than one but less than all is currently not supported.
 - `add` (*bool, true*): If the value is `true`, the changes are added to the existing value. For a value of `false`, the old values are overwritten.
+- `resolvePeriod` (*bool, false*): currently unused.
 
 [Back](#supported-namelists)
 
@@ -158,6 +167,7 @@ Profiles are defining a dependence on the position in the time frame, which then
 - `ydata` (*string, \<empty>*): Same as y data but for the function values of the look-up table.
 - `isTime` (*bool, false*): If true the `s`-position is a time variable and therefore multiplied with the speed of light `c` to get the position in meters.
 - `reverse`(*bool, false*): if true the order in the look-up table is reverse. This is sometimes needed because time and spatial coordinates differ sometimes by a minus sign.
+- `autoassign`(*bool, false*): use the HDF5 file from `xdata` (TODO more details).
 
 [Back](#supported-namelists)
 
@@ -196,7 +206,7 @@ in a line which is 6 times a Fodo Cell which each space between the quadrupoles 
 - `dc` (*double, 0*): Term scaling the growing power series before added to the constant term
 - `alpha` (*double, 0*): power of the series
 - `n0` (*integer, 1*): starting index of power growth. Otherwise the sequence uses only the constant term
--
+
 #### sequence_random
 
 - `label`(*string, \<empty>*): Name of the sequence, which is used to refer to it in the lattice
@@ -280,7 +290,12 @@ Note that this namelist will be expanded in the future, to enable tilts and matc
 - `betay` (*double, 15 or matched value*): If matching is enabled, new beta function in $y$ in meters.
 - `alphax`(*double, 0 or matched value*): If matching is enabled, new alpha function in $x$.
 - `alphay`(*double, 0 or matched value*): If matching is enabled, new alpha function in $y$.
-
+- `eval_start` (*double, 0*): evaluation start.
+- `eval_end` (*double, 1*): evaluation end.
+- `settimewindow` (*bool, true*): set time window.
+- `align` (*int, 0*): currently unused.
+- `align_start` (*double, 0*): currently unused.
+- `align_end` (*double, 1*): currently unused.
 
 
 This HDF5 file `file` should have the following datasets:
@@ -415,7 +430,66 @@ This namelist initiate the actually tracking through the undulator and then writ
 - `field_dump_step` (*int, 0*): Defines the number of integration steps before a field dump is written. Be careful because for time-dependent simulation it can generate many large output files.
 - `beam_dump_step` (*int, 0*): Defines the number of integration steps before a particle dump is written. Be careful because for time-dependent simulation it can generate many large output files.
 -  `sort_step` (*int,0*): Defines the number of steps of integration before the particle distribution is sorted. Works only for one-4-one simulations.
+- `s0` (*double, <taken from TIME module>*): Option to override the default time window start from the TIME module.
+- `slen` (*double, <taken from TIME module>*): Option to override the default time window length from the TIME module.
+- `field_dump_at_undexit` (*bool, false*): Field dumps at the exit of the undulator (one dump for each undulator in the expanded lattice).
+- `bunchharm` (*int, 1*): Bunching harmonic output setting. Must be >= 1.
+
 
 [Back](#supported-namelists)
 
 <div style="page-break-after: always; visibility: hidden"> \pagebreak </div>
+
+## Internal namelists
+
+The following namelists were not previously documented and have been extracted
+from the source code.  These may not have the same level of support when
+compared to the above section.
+
+### alter_field
+
+Field manipulator (TODO).
+
+Note that the namelist `field_manipulator` is deprecated and will be removed in
+the future. Use `alter_field` instead.
+
+- `harm` (*int, 1*): harmonic
+- `scale_power` (*double, 1.0*): power scaling factor
+- `spp_l` (*double, 0.0*): TODO
+- `spp_nsect` (*int, 0*): TODO
+- `spp_phi0` (*double, 0.0*): TODO
+
+### profile_file_multi
+
+Generates profile objects `<label_prefix>.gamma`, `<label_prefix>.delgam`,
+`<label_prefix>.current`, etc., each one corresponding to one `&profile_file`.
+
+- `file` (*string, <empty>*): HDF5 filename.
+- `label_prefix` (*string, <empty>*): prefix for each object.
+- `xdata` (*string, \<empty>*): Points to a dataset in an HDF5 file to define the `s`-position for the look-up table. The format is `filename/group1/.../groupn/datasetname`, where the naming of groups is not required if the dataset is at root level of the HDF file
+- `ydata` (*string, \<empty>*): Same as y data but for the function values of the look-up table.
+- `isTime` (*bool, false*): If true the `s`-position is a time variable and therefore multiplied with the speed of light `c` to get the position in meters.
+- `reverse`(*bool, false*): if true the order in the look-up table is reverse. This is sometimes needed because time and spatial coordinates differ sometimes by a minus sign.
+
+### sequence_list
+
+A sequence of values given as a string.
+
+- `label` (*string, <empty>*): label for the sequence.
+- `val` (*double, [<empty>]*): list of values.
+- `default` (*double, 0*): default value to use for out-of-bound indices.
+
+### sequence_filelist
+
+A sequence list with data in a file.
+
+- `label` (*string, <empty>*): label for the sequence.
+- `file` (*string, <empty>*): filename to load the sequence from with one line per value.
+
+### add_plugin_fielddiag
+
+Optionally-compiled plugin for field diagnostics.
+
+### add_plugin_beamdiag
+
+Optionally-compiled plugin for beam diagnostics.

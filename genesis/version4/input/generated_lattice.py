@@ -7,8 +7,9 @@ Do not hand-edit it.
 """
 from __future__ import annotations
 import dataclasses
+import typing
 
-from typing import ClassVar, Dict
+from typing import Dict
 
 from . import manual
 from .util import python_to_namelist_value
@@ -19,9 +20,9 @@ from .types import Float, ValueType
 class BeamlineElement:
     """Base class for beamline elements used in Genesis 4 lattice files."""
 
-    _genesis_name_: ClassVar[str] = "unknown"
-    _parameter_to_attr_: ClassVar[Dict[str, str]] = manual.renames
-    _attr_to_parameter_: ClassVar[Dict[str, str]] = dict(
+    _genesis_name_: typing.ClassVar[str] = "unknown"
+    _parameter_to_attr_: typing.ClassVar[Dict[str, str]] = manual.renames
+    _attr_to_parameter_: typing.ClassVar[Dict[str, str]] = dict(
         (v, k) for k, v in _parameter_to_attr_.items()
     )
 
@@ -66,6 +67,8 @@ class Undulator(BeamlineElement):
     r"""
     Lattice beamline element: an undulator.
 
+    Undulator corresponds to Genesis 4 `undulator`.
+
     Attributes
     ----------
     aw : Float, default=0
@@ -97,7 +100,7 @@ class Undulator(BeamlineElement):
         a_w/\partial y$.
     """
 
-    _genesis_name_: ClassVar[str] = "undulator"
+    _genesis_name_: typing.ClassVar[str] = "undulator"
     aw: Float = 0
     lambdau: Float = 0
     nwig: int = 0
@@ -115,13 +118,15 @@ class Drift(BeamlineElement):
     r"""
     Lattice beamline element: drift.
 
+    Drift corresponds to Genesis 4 `drift`.
+
     Attributes
     ----------
     length : Float, default=0
         Length of the drift in meter.
     """
 
-    _genesis_name_: ClassVar[str] = "drift"
+    _genesis_name_: typing.ClassVar[str] = "drift"
     length: Float = 0
 
 
@@ -129,6 +134,8 @@ class Drift(BeamlineElement):
 class Quadrupole(BeamlineElement):
     r"""
     Lattice beamline element: quadrupole.
+
+    Quadrupole corresponds to Genesis 4 `quadrupole`.
 
     Attributes
     ----------
@@ -142,7 +149,7 @@ class Quadrupole(BeamlineElement):
         Offset in $y$ in meter.
     """
 
-    _genesis_name_: ClassVar[str] = "quadrupole"
+    _genesis_name_: typing.ClassVar[str] = "quadrupole"
     length: Float = 0
     k1: Float = 0
     dx: Float = 0
@@ -154,6 +161,8 @@ class Corrector(BeamlineElement):
     r"""
     Lattice beamline element: corrector.
 
+    Corrector corresponds to Genesis 4 `corrector`.
+
     Attributes
     ----------
     length : Float, default=0
@@ -164,7 +173,7 @@ class Corrector(BeamlineElement):
         Kick angle in $y$ in units of $\gamma \beta_y$.
     """
 
-    _genesis_name_: ClassVar[str] = "corrector"
+    _genesis_name_: typing.ClassVar[str] = "corrector"
     length: Float = 0
     cx: Float = 0
     cy: Float = 0
@@ -174,6 +183,8 @@ class Corrector(BeamlineElement):
 class Chicane(BeamlineElement):
     r"""
     Lattice beamline element: chicane.
+
+    Chicane corresponds to Genesis 4 `chicane`.
 
     Attributes
     ----------
@@ -195,7 +206,7 @@ class Chicane(BeamlineElement):
         value. $R_{56} = 2$`delay`.
     """
 
-    _genesis_name_: ClassVar[str] = "chicane"
+    _genesis_name_: typing.ClassVar[str] = "chicane"
     length: Float = 0
     lb: Float = 0
     ld: Float = 0
@@ -207,6 +218,8 @@ class Phaseshifter(BeamlineElement):
     r"""
     Lattice beamline element: phase shifter.
 
+    Phaseshifter corresponds to Genesis 4 `phaseshifter`.
+
     Attributes
     ----------
     length : Float, default=0
@@ -217,7 +230,7 @@ class Phaseshifter(BeamlineElement):
         are not changing in ponderomotive phase in drifts.
     """
 
-    _genesis_name_: ClassVar[str] = "phaseshifter"
+    _genesis_name_: typing.ClassVar[str] = "phaseshifter"
     length: Float = 0
     phi: Float = 0
 
@@ -226,6 +239,8 @@ class Phaseshifter(BeamlineElement):
 class Marker(BeamlineElement):
     r"""
     Lattice beamline element: marker.
+
+    Marker corresponds to Genesis 4 `marker`.
 
     Attributes
     ----------
@@ -243,7 +258,7 @@ class Marker(BeamlineElement):
         integration steps which are no further calculated.
     """
 
-    _genesis_name_: ClassVar[str] = "marker"
+    _genesis_name_: typing.ClassVar[str] = "marker"
     dumpfield: int = 0
     dumpbeam: int = 0
     sort: int = 0

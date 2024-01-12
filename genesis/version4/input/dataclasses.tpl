@@ -7,27 +7,28 @@ Do not hand-edit it.
 """
 from __future__ import annotations
 import dataclasses
+import typing
 
-from typing import ClassVar, Dict
+from typing import Dict
 
 from . import manual
-from .core import python_to_namelist_value
+from .util import python_to_namelist_value
 from .types import Float, ValueType
 
 {% if base_class == "NameList" %}
 @dataclasses.dataclass
 class NameList:
     """Base class for name lists used in Genesis 4 main input files."""
-    _genesis_name_: ClassVar[str] = "unknown"
-    _parameter_to_attr_: ClassVar[Dict[str, str]] = manual.renames
-    _attr_to_parameter_: ClassVar[Dict[str, str]] = dict(
+    _genesis_name_: typing.ClassVar[str] = "unknown"
+    _parameter_to_attr_: typing.ClassVar[Dict[str, str]] = manual.renames
+    _attr_to_parameter_: typing.ClassVar[Dict[str, str]] = dict(
         (v, k) for k, v in _parameter_to_attr_.items()
     )
 
     @property
     def parameters(self) -> Dict[str, ValueType]:
         """Dictionary of parameters to pass to Genesis 4."""
-        skip = {"label"}
+        skip = {}
         data = {}
         for attr in self.__annotations__:
             if attr.startswith("_") or attr in skip:
@@ -59,9 +60,9 @@ class NameList:
 @dataclasses.dataclass
 class BeamlineElement:
     """Base class for beamline elements used in Genesis 4 lattice files."""
-    _genesis_name_: ClassVar[str] = "unknown"
-    _parameter_to_attr_: ClassVar[Dict[str, str]] = manual.renames
-    _attr_to_parameter_: ClassVar[Dict[str, str]] = dict(
+    _genesis_name_: typing.ClassVar[str] = "unknown"
+    _parameter_to_attr_: typing.ClassVar[Dict[str, str]] = manual.renames
+    _attr_to_parameter_: typing.ClassVar[Dict[str, str]] = dict(
         (v, k) for k, v in _parameter_to_attr_.items()
     )
 
@@ -111,9 +112,9 @@ class {{ name | to_class_name }}({{ base_class }}):
     {{ element.header | wordwrap | indent(4) }}
     {%- elif name in docstrings %}
     {{ docstrings[name] | wordwrap | indent(4) }}
-    {%- else %}
-    {{ name | capitalize }}
     {%- endif %}
+
+    {{ name | to_class_name }} corresponds to Genesis 4 `{{ name }}`.
 
     Attributes
     ----------
@@ -123,11 +124,15 @@ class {{ name | to_class_name }}({{ base_class }}):
         {{ param.description | wordwrap | indent(8) }}
     {%- endfor %}
     """
-    _genesis_name_: ClassVar[str] = "{{ name }}"
+    _genesis_name_: typing.ClassVar[str] = "{{ name }}"
 
     {%- for param in element.parameters.values() %}
     {%- set type_ = type_map.get(param.type, param.type) %}
+    {%- if "vector" in param.options %}
+    {{ param.python_name }}: typing.Sequence[{{ type_ }}] = dataclasses.field(default_factory=list)
+    {%- else %}
     {{ param.python_name }}: {{ type_ }} {%- if not param.default is none %} = {{ param.default | repr }}{% endif %}
+    {%- endif %}
     {%- endfor %}
 {%- endif %}
 {%- endfor %}

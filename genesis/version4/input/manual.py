@@ -68,7 +68,7 @@ def parse_manual_default(default_: str, type_: str) -> Tuple[str, Set[str]]:
         sequence_label.
     """
     default = default_.strip()
-    if default == r"\<empty>":
+    if default.lstrip("\\") == "<empty>":
         default = '""'
 
     options: Set[str] = set()
@@ -82,9 +82,8 @@ def parse_manual_default(default_: str, type_: str) -> Tuple[str, Set[str]]:
             options.add(option)
             default = default.replace(match, "")
     default = default.replace("`", "").strip().capitalize()
-    if "from setup" in default:
+    if "from" in default:
         default = "None"
-
     if default == "0/1":
         default = "0"
     if default in ("Gamma0", "Lambda0"):
@@ -95,6 +94,10 @@ def parse_manual_default(default_: str, type_: str) -> Tuple[str, Set[str]]:
             "double": "0.0",
             "string": "''",
         }[type_]
+
+    if default.startswith("["):
+        default = "[]"
+        options.add("vector")
 
     if " or " in default:
         raise ValueError(f"Unhandled default option: {default}")

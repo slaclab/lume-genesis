@@ -7,8 +7,9 @@ Do not hand-edit it.
 """
 from __future__ import annotations
 import dataclasses
+import typing
 
-from typing import ClassVar, Dict
+from typing import Dict
 
 from . import manual
 from .util import python_to_namelist_value
@@ -19,16 +20,16 @@ from .types import Float, ValueType
 class NameList:
     """Base class for name lists used in Genesis 4 main input files."""
 
-    _genesis_name_: ClassVar[str] = "unknown"
-    _parameter_to_attr_: ClassVar[Dict[str, str]] = manual.renames
-    _attr_to_parameter_: ClassVar[Dict[str, str]] = dict(
+    _genesis_name_: typing.ClassVar[str] = "unknown"
+    _parameter_to_attr_: typing.ClassVar[Dict[str, str]] = manual.renames
+    _attr_to_parameter_: typing.ClassVar[Dict[str, str]] = dict(
         (v, k) for k, v in _parameter_to_attr_.items()
     )
 
     @property
     def parameters(self) -> Dict[str, ValueType]:
         """Dictionary of parameters to pass to Genesis 4."""
-        skip = {"label"}
+        skip = {}
         data = {}
         for attr in self.__annotations__:
             if attr.startswith("_") or attr in skip:
@@ -66,11 +67,15 @@ class Setup(NameList):
     only be called once. If the user want to change some parameter the namelist
     `alter_setup` should be used.
 
+    Setup corresponds to Genesis 4 `setup`.
+
     Attributes
     ----------
     rootname : str, default=''
         The basic string, with which all output files will start, unless the output
         filename is directly overwritten (see `write` namelist)
+    outputdir : str, default=''
+        Output directory name.
     lattice : str, default=''
         The name of the file which contains the undulator lattice description. This can
         also include some relative paths if the lattice file is not in the same
@@ -154,10 +159,27 @@ class Setup(NameList):
         sorting events the current profile might change. Example are ESASE/HGHG
         schemes. By setting the flag to false the current profile is written out at
         each output step similar to radiation power and bunching profile.
+    exclude_field_dump : bool, default=False
+        Exclude the field dump to `.fld.h5`.
+    write_meta_file : bool, default=False
+        Write a metadata file.
+    semaphore_file_name : str, default=''
+        Providing a file name for the semaphore file always switches on writing the
+        "done" semaphore file, overriding 'write_semaphore_file' flag. This allows to
+        switch on semaphore functionality just by specifying corresponding command line
+        argument -- no modification of G4 input file needed.
+    write_semaphore_file : bool, default=False
+        Write a semaphore file when the simulation has completed.
+    write_semaphore_file_done : bool, default=False
+        Alias for `write_semaphore_file`. This takes precedence over
+        `write_semaphore_file` if both are specified.
+    write_semaphore_file_started : bool, default=False
+        Write a semaphore file at startup, after the setup block is parsed.
     """
 
-    _genesis_name_: ClassVar[str] = "setup"
+    _genesis_name_: typing.ClassVar[str] = "setup"
     rootname: str = ""
+    outputdir: str = ""
     lattice: str = ""
     beamline: str = ""
     gamma0: Float = 11350.3
@@ -176,6 +198,12 @@ class Setup(NameList):
     exclude_energy_output: bool = False
     exclude_aux_output: bool = False
     exclude_current_output: bool = True
+    exclude_field_dump: bool = False
+    write_meta_file: bool = False
+    semaphore_file_name: str = ""
+    write_semaphore_file: bool = False
+    write_semaphore_file_done: bool = False
+    write_semaphore_file_started: bool = False
 
 
 @dataclasses.dataclass
@@ -185,6 +213,8 @@ class AlterSetup(NameList):
     defined alread by the `setup`-namelist. The change values are stored in the
     setup module so that for another invocation of alter_setup some defaults values
     are use which have been defined in the preceding call of alter_setup
+
+    AlterSetup corresponds to Genesis 4 `alter_setup`.
 
     Attributes
     ----------
@@ -228,15 +258,18 @@ class AlterSetup(NameList):
         existing sample points (still needs to be implemented). If a new field is
         generated it has automatically the new number of slices. If also prevents that
         the sample rate is changed by remaining unchanged.
+    disable : bool, default=False
+        Disable non-matching radiation harmonic.
     """
 
-    _genesis_name_: ClassVar[str] = "alter_setup"
+    _genesis_name_: typing.ClassVar[str] = "alter_setup"
     rootname: str = ""
     beamline: str = ""
     delz: Float = 0.0
     harmonic: int = 1
     subharmonic: int = 1
     resample: bool = False
+    disable: bool = False
 
 
 @dataclasses.dataclass
@@ -245,6 +278,8 @@ class Lattice(NameList):
     This namelist is used to change the raw lattice from the lattice file, such as
     generating errors in the position of the elements. The namelist can be defined
     several times to add more than one error source to the lattice.
+
+    Lattice corresponds to Genesis 4 `lattice`.
 
     Attributes
     ----------
@@ -279,15 +314,18 @@ class Lattice(NameList):
     add : bool, default=True
         If the value is `true`, the changes are added to the existing value. For a
         value of `false`, the old values are overwritten.
+    resolvePeriod : bool, default=False
+        currently unused.
     """
 
-    _genesis_name_: ClassVar[str] = "lattice"
+    _genesis_name_: typing.ClassVar[str] = "lattice"
     zmatch: Float = 0
     element: str = ""
     field: str = ""
     value: Float = 0
     instance: int = 0
     add: bool = True
+    resolvePeriod: bool = False
 
 
 @dataclasses.dataclass
@@ -312,6 +350,8 @@ class Time(NameList):
     time-dependence but disables slippage during simulations. That way the
     radiation field is kept in the same slice, acting as steady-state simulations.
 
+    Time corresponds to Genesis 4 `time`.
+
     Attributes
     ----------
     s0 : Float, default=0
@@ -331,7 +371,7 @@ class Time(NameList):
         has to be omitted from the input deck.
     """
 
-    _genesis_name_: ClassVar[str] = "time"
+    _genesis_name_: typing.ClassVar[str] = "time"
     s0: Float = 0
     slen: Float = 0
     sample: int = 1
@@ -341,7 +381,8 @@ class Time(NameList):
 @dataclasses.dataclass
 class ProfileConst(NameList):
     r"""
-    Profile_const
+
+    ProfileConst corresponds to Genesis 4 `profile_const`.
 
     Attributes
     ----------
@@ -351,7 +392,7 @@ class ProfileConst(NameList):
         constant value to be used.
     """
 
-    _genesis_name_: ClassVar[str] = "profile_const"
+    _genesis_name_: typing.ClassVar[str] = "profile_const"
     label: str
     c0: Float = 0
 
@@ -359,7 +400,8 @@ class ProfileConst(NameList):
 @dataclasses.dataclass
 class ProfileGauss(NameList):
     r"""
-    Profile_gauss
+
+    ProfileGauss corresponds to Genesis 4 `profile_gauss`.
 
     Attributes
     ----------
@@ -373,7 +415,7 @@ class ProfileGauss(NameList):
         Standard deviation of the Gaussian distribution
     """
 
-    _genesis_name_: ClassVar[str] = "profile_gauss"
+    _genesis_name_: typing.ClassVar[str] = "profile_gauss"
     label: str
     c0: Float = 0
     s0: Float = 0
@@ -383,7 +425,8 @@ class ProfileGauss(NameList):
 @dataclasses.dataclass
 class ProfileStep(NameList):
     r"""
-    Profile_step
+
+    ProfileStep corresponds to Genesis 4 `profile_step`.
 
     Attributes
     ----------
@@ -397,7 +440,7 @@ class ProfileStep(NameList):
         Ending point of the step function
     """
 
-    _genesis_name_: ClassVar[str] = "profile_step"
+    _genesis_name_: typing.ClassVar[str] = "profile_step"
     label: str
     c0: Float = 0
     s_start: Float = 0
@@ -407,7 +450,8 @@ class ProfileStep(NameList):
 @dataclasses.dataclass
 class ProfilePolynom(NameList):
     r"""
-    Profile_polynom
+
+    ProfilePolynom corresponds to Genesis 4 `profile_polynom`.
 
     Attributes
     ----------
@@ -425,7 +469,7 @@ class ProfilePolynom(NameList):
         Term proportional to s^4
     """
 
-    _genesis_name_: ClassVar[str] = "profile_polynom"
+    _genesis_name_: typing.ClassVar[str] = "profile_polynom"
     label: str
     c0: Float = 0
     c1: Float = 0
@@ -437,7 +481,8 @@ class ProfilePolynom(NameList):
 @dataclasses.dataclass
 class ProfileFile(NameList):
     r"""
-    Profile_file
+
+    ProfileFile corresponds to Genesis 4 `profile_file`.
 
     Attributes
     ----------
@@ -455,20 +500,24 @@ class ProfileFile(NameList):
     reverse : bool, default=False
         if true the order in the look-up table is reverse. This is sometimes needed
         because time and spatial coordinates differ sometimes by a minus sign.
+    autoassign : bool, default=False
+        use the HDF5 file from `xdata` (TODO more details).
     """
 
-    _genesis_name_: ClassVar[str] = "profile_file"
+    _genesis_name_: typing.ClassVar[str] = "profile_file"
     label: str
     xdata: str = ""
     ydata: str = ""
     isTime: bool = False
     reverse: bool = False
+    autoassign: bool = False
 
 
 @dataclasses.dataclass
 class SequenceConst(NameList):
     r"""
-    Sequence_const
+
+    SequenceConst corresponds to Genesis 4 `sequence_const`.
 
     Attributes
     ----------
@@ -478,7 +527,7 @@ class SequenceConst(NameList):
         constant value to be used.
     """
 
-    _genesis_name_: ClassVar[str] = "sequence_const"
+    _genesis_name_: typing.ClassVar[str] = "sequence_const"
     label: str
     c0: Float = 0
 
@@ -486,7 +535,8 @@ class SequenceConst(NameList):
 @dataclasses.dataclass
 class SequencePolynom(NameList):
     r"""
-    Sequence_polynom
+
+    SequencePolynom corresponds to Genesis 4 `sequence_polynom`.
 
     Attributes
     ----------
@@ -504,7 +554,7 @@ class SequencePolynom(NameList):
         Term proportional to s^4
     """
 
-    _genesis_name_: ClassVar[str] = "sequence_polynom"
+    _genesis_name_: typing.ClassVar[str] = "sequence_polynom"
     label: str
     c0: Float = 0
     c1: Float = 0
@@ -516,7 +566,8 @@ class SequencePolynom(NameList):
 @dataclasses.dataclass
 class SequencePower(NameList):
     r"""
-    Sequence_power
+
+    SequencePower corresponds to Genesis 4 `sequence_power`.
 
     Attributes
     ----------
@@ -533,7 +584,7 @@ class SequencePower(NameList):
         term
     """
 
-    _genesis_name_: ClassVar[str] = "sequence_power"
+    _genesis_name_: typing.ClassVar[str] = "sequence_power"
     label: str
     c0: Float = 0
     dc: Float = 0
@@ -544,7 +595,8 @@ class SequencePower(NameList):
 @dataclasses.dataclass
 class SequenceRandom(NameList):
     r"""
-    Sequence_random
+
+    SequenceRandom corresponds to Genesis 4 `sequence_random`.
 
     Attributes
     ----------
@@ -561,7 +613,7 @@ class SequenceRandom(NameList):
         Flag for Gaussian distribution. If set to false a uniform distribution is used.
     """
 
-    _genesis_name_: ClassVar[str] = "sequence_random"
+    _genesis_name_: typing.ClassVar[str] = "sequence_random"
     label: str
     c0: Float = 0
     dc: Float = 0
@@ -574,6 +626,8 @@ class Beam(NameList):
     r"""
     This namelist initiates the generation of the particle distribution to be kept
     in memory. Any time-dependence has to be defined before calling this namelist.
+
+    Beam corresponds to Genesis 4 `beam`.
 
     Attributes
     ----------
@@ -619,7 +673,7 @@ class Beam(NameList):
         Initial phase of the energy modulation
     """
 
-    _genesis_name_: ClassVar[str] = "beam"
+    _genesis_name_: typing.ClassVar[str] = "beam"
     gamma: Float = 0.0
     delgam: Float = 0
     current: Float = 1000
@@ -647,6 +701,8 @@ class Field(NameList):
     the variable `accumulate` is set to true, it does not delete the previous
     distribution but adds up the wavefronts. That way higher mode content in either
     spatial and time direction can be created.
+
+    Field corresponds to Genesis 4 `field`.
 
     Attributes
     ----------
@@ -693,7 +749,7 @@ class Field(NameList):
         it.
     """
 
-    _genesis_name_: ClassVar[str] = "field"
+    _genesis_name_: typing.ClassVar[str] = "field"
     lambda_: Float = 0.0
     power: Float = 0
     phase: Float = 0
@@ -723,6 +779,8 @@ class Importdistribution(NameList):
 
     Note that this namelist will be expanded in the future, to enable tilts and
     match/center to a core part of the beam
+
+    Importdistribution corresponds to Genesis 4 `importdistribution`.
 
     Attributes
     ----------
@@ -760,9 +818,21 @@ class Importdistribution(NameList):
         If matching is enabled, new alpha function in $x$.
     alphay : Float, default=0
         If matching is enabled, new alpha function in $y$.
+    eval_start : Float, default=0
+        evaluation start.
+    eval_end : Float, default=1
+        evaluation end.
+    settimewindow : bool, default=True
+        set time window.
+    align : int, default=0
+        currently unused.
+    align_start : Float, default=0
+        currently unused.
+    align_end : Float, default=1
+        currently unused.
     """
 
-    _genesis_name_: ClassVar[str] = "importdistribution"
+    _genesis_name_: typing.ClassVar[str] = "importdistribution"
     file: str = ""
     charge: Float = 0
     slicewidth: Float = 0.01
@@ -777,6 +847,12 @@ class Importdistribution(NameList):
     betay: Float = 15
     alphax: Float = 0
     alphay: Float = 0
+    eval_start: Float = 0
+    eval_end: Float = 1
+    settimewindow: bool = True
+    align: int = 0
+    align_start: Float = 0
+    align_end: Float = 1
 
 
 @dataclasses.dataclass
@@ -786,6 +862,8 @@ class Importbeam(NameList):
     internal generation of the particle distribution (note that the module `beam`
     should not be called). The routine defines also the parameter for a time-
     dependent run if the `time`-namelist hasn’t been defined yet.
+
+    Importbeam corresponds to Genesis 4 `importbeam`.
 
     Attributes
     ----------
@@ -798,7 +876,7 @@ class Importbeam(NameList):
         and long-range collective effects in the simulation
     """
 
-    _genesis_name_: ClassVar[str] = "importbeam"
+    _genesis_name_: typing.ClassVar[str] = "importbeam"
     file: str = ""
     time: bool = True
 
@@ -811,6 +889,8 @@ class Importfield(NameList):
     should only be called afterwards with the `accumulate`-option enabled). The
     routine defines also the parameter for a time-dependent run if the
     `time`-namelist hasn’t been defined yet.
+
+    Importfield corresponds to Genesis 4 `importfield`.
 
     Attributes
     ----------
@@ -825,7 +905,7 @@ class Importfield(NameList):
         and long-range collective effects in the simulation
     """
 
-    _genesis_name_: ClassVar[str] = "importfield"
+    _genesis_name_: typing.ClassVar[str] = "importfield"
     file: str = ""
     harmonic: int = 1
     time: bool = True
@@ -853,6 +933,8 @@ class Importtransformation(NameList):
     `slen` should be also specified. In the case that `n=1` or `slen=0` only a
     global transformation is applied.
 
+    Importtransformation corresponds to Genesis 4 `importtransformation`.
+
     Attributes
     ----------
     file : str, default=''
@@ -870,7 +952,7 @@ class Importtransformation(NameList):
         using the first entry.
     """
 
-    _genesis_name_: ClassVar[str] = "importtransformation"
+    _genesis_name_: typing.ClassVar[str] = "importtransformation"
     file: str = ""
     vector: str = ""
     matrix: str = ""
@@ -888,6 +970,8 @@ class Efield(NameList):
     centered to the centroid position of the electron slice, while the long range
     is the sum of the space charge field in the rest frame where each slice is
     treated as a uniform disk.
+
+    Efield corresponds to Genesis 4 `efield`.
 
     Attributes
     ----------
@@ -909,7 +993,7 @@ class Efield(NameList):
         field.
     """
 
-    _genesis_name_: ClassVar[str] = "efield"
+    _genesis_name_: typing.ClassVar[str] = "efield"
     longrange: bool = False
     rmax: Float = 0
     nz: int = 0
@@ -922,6 +1006,8 @@ class Sponrad(NameList):
     r"""
     This enables the effect of spontaneous radiation outside of the frequency band
     of the FEL simulation.
+
+    Sponrad corresponds to Genesis 4 `sponrad`.
 
     Attributes
     ----------
@@ -936,7 +1022,7 @@ class Sponrad(NameList):
         emission of hard photons of the spontaneous radiation.
     """
 
-    _genesis_name_: ClassVar[str] = "sponrad"
+    _genesis_name_: typing.ClassVar[str] = "sponrad"
     seed: int = 1234
     doLoss: bool = False
     doSpread: bool = False
@@ -955,6 +1041,8 @@ class Wake(NameList):
 
     *Note that this functionality hasn't been fully tested yet or optimized for
     rapid calculation*
+
+    Wake corresponds to Genesis 4 `wake`.
 
     Attributes
     ----------
@@ -1008,7 +1096,7 @@ class Wake(NameList):
         has passed that point.
     """
 
-    _genesis_name_: ClassVar[str] = "wake"
+    _genesis_name_: typing.ClassVar[str] = "wake"
     loss: Float = 0
     radius: Float = 0.0025
     roundpipe: bool = True
@@ -1030,6 +1118,8 @@ class Write(NameList):
     placeholder character `@` can be used to refer to the rootname of the
     simulation run, e.g. `field = @.final`
 
+    Write corresponds to Genesis 4 `write`.
+
     Attributes
     ----------
     field : str, default=''
@@ -1044,7 +1134,7 @@ class Write(NameList):
         by only writing each *stride*th particle to the dump file.
     """
 
-    _genesis_name_: ClassVar[str] = "write"
+    _genesis_name_: typing.ClassVar[str] = "write"
     field: str = ""
     beam: str = ""
     stride: int = 1
@@ -1057,6 +1147,8 @@ class Track(NameList):
     writing out the results. Normally all parameter should be defined before or
     defined in the lattice but the namelist allows some ’last minute’ change of the
     behavior of the code
+
+    Track corresponds to Genesis 4 `track`.
 
     Attributes
     ----------
@@ -1077,11 +1169,136 @@ class Track(NameList):
     sort_step : int, default=0
         Defines the number of steps of integration before the particle distribution is
         sorted. Works only for one-4-one simulations.
+    s0 : Float, default=0.0
+        Option to override the default time window start from the TIME module.
+    slen : Float, default=0.0
+        Option to override the default time window length from the TIME module.
+    field_dump_at_undexit : bool, default=False
+        Field dumps at the exit of the undulator (one dump for each undulator in the
+        expanded lattice).
+    bunchharm : int, default=1
+        Bunching harmonic output setting. Must be >= 1.
     """
 
-    _genesis_name_: ClassVar[str] = "track"
+    _genesis_name_: typing.ClassVar[str] = "track"
     zstop: Float = 1000000000.0
     output_step: int = 1
     field_dump_step: int = 0
     beam_dump_step: int = 0
     sort_step: int = 0
+    s0: Float = 0.0
+    slen: Float = 0.0
+    field_dump_at_undexit: bool = False
+    bunchharm: int = 1
+
+
+@dataclasses.dataclass
+class AlterField(NameList):
+    r"""
+    Field manipulator (TODO).
+
+    Note that the namelist `field_manipulator` is deprecated and will be removed in
+    the future. Use `alter_field` instead.
+
+    AlterField corresponds to Genesis 4 `alter_field`.
+
+    Attributes
+    ----------
+    harm : int, default=1
+        harmonic
+    scale_power : Float, default=1.0
+        power scaling factor
+    spp_l : Float, default=0.0
+        TODO
+    spp_nsect : int, default=0
+        TODO
+    spp_phi0 : Float, default=0.0
+        TODO
+    """
+
+    _genesis_name_: typing.ClassVar[str] = "alter_field"
+    harm: int = 1
+    scale_power: Float = 1.0
+    spp_l: Float = 0.0
+    spp_nsect: int = 0
+    spp_phi0: Float = 0.0
+
+
+@dataclasses.dataclass
+class ProfileFileMulti(NameList):
+    r"""
+    Generates profile objects `<label_prefix>.gamma`, `<label_prefix>.delgam`,
+    `<label_prefix>.current`, etc., each one corresponding to one `&profile_file`.
+
+    ProfileFileMulti corresponds to Genesis 4 `profile_file_multi`.
+
+    Attributes
+    ----------
+    file : str, default=''
+        HDF5 filename.
+    label_prefix : str, default=''
+        prefix for each object.
+    xdata : str, default=''
+        Points to a dataset in an HDF5 file to define the `s`-position for the look-up
+        table. The format is `filename/group1/.../groupn/datasetname`, where the naming
+        of groups is not required if the dataset is at root level of the HDF file
+    ydata : str, default=''
+        Same as y data but for the function values of the look-up table.
+    isTime : bool, default=False
+        If true the `s`-position is a time variable and therefore multiplied with the
+        speed of light `c` to get the position in meters.
+    reverse : bool, default=False
+        if true the order in the look-up table is reverse. This is sometimes needed
+        because time and spatial coordinates differ sometimes by a minus sign.
+    """
+
+    _genesis_name_: typing.ClassVar[str] = "profile_file_multi"
+    file: str = ""
+    label_prefix: str = ""
+    xdata: str = ""
+    ydata: str = ""
+    isTime: bool = False
+    reverse: bool = False
+
+
+@dataclasses.dataclass
+class SequenceList(NameList):
+    r"""
+    A sequence of values given as a string.
+
+    SequenceList corresponds to Genesis 4 `sequence_list`.
+
+    Attributes
+    ----------
+    label : str
+        label for the sequence.
+    val : Float, default=[]
+        list of values.
+    default : Float, default=0
+        default value to use for out-of-bound indices.
+    """
+
+    _genesis_name_: typing.ClassVar[str] = "sequence_list"
+    label: str
+    val: typing.Sequence[Float] = dataclasses.field(default_factory=list)
+    default: Float = 0
+
+
+@dataclasses.dataclass
+class SequenceFilelist(NameList):
+    r"""
+    A sequence list with data in a file.
+
+    SequenceFilelist corresponds to Genesis 4 `sequence_filelist`.
+
+    Attributes
+    ----------
+    label : str
+        label for the sequence.
+    file : str, default=''
+        filename to load the sequence from with one line per value.
+    """
+
+    _genesis_name_: typing.ClassVar[str] = "sequence_filelist"
+    label: str
+    file: str = ""
