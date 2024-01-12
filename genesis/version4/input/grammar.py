@@ -253,7 +253,7 @@ class _MainInputTransformer(lark.visitors.Transformer_InPlaceRecursive):
     _filename: Optional[pathlib.Path]
     # This maps, e.g., "setup" to the Setup dataclass
     type_map: Dict[str, Type[NameList]] = {
-        cls.__name__.lower(): cls for cls in NameList.__subclasses__()
+        cls._genesis_name_: cls for cls in NameList.__subclasses__()
     }
 
     def __init__(self, filename: AnyPath) -> None:

@@ -24,6 +24,7 @@ def main_input_parser() -> lark.Lark:
         pytest.param("&namelist\nvar=value\n&end"),
         pytest.param("&namelist\n  var=value\n&end"),
         pytest.param("&namelist\n  var=value \n&end\n"),
+        pytest.param("&namelist\n  # comment \n  var=value \n&end\n"),
     ],
 )
 def test_elements(main_input_parser: lark.Lark, source: str) -> None:
