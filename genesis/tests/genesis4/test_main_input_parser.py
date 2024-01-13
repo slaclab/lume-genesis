@@ -31,6 +31,16 @@ def test_elements(main_input_parser: lark.Lark, source: str) -> None:
     print(main_input_parser.parse(source))
 
 
+def test_inline_comment(main_input_parser: lark.Lark) -> None:
+    namelist = main_input_parser.parse(
+        "&namelist\n  # comment \n  var=value# comment\n&end\n"
+    )
+    parameter_set = list(namelist.find_data("parameter_set"))[0]
+    var, value = parameter_set.children
+    assert str(var) == "var"
+    assert str(value) == "value"
+
+
 @pytest.mark.parametrize(
     "filename", [pytest.param(fn, id=fn.name) for fn in genesis4_input_files]
 )
