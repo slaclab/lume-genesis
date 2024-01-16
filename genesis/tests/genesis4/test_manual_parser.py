@@ -63,7 +63,7 @@ lattice_manual = test_v4_root / "lattice.md"
                 "default": 0,
                 "units": None,
                 "description": "Loss in $eV/m$. This is",
-                "options": {"profile_label"},
+                "options": {"profile_label", "reference"},
             },
         ),
         pytest.param(
@@ -75,7 +75,7 @@ lattice_manual = test_v4_root / "lattice.md"
                 "default": 15,
                 "units": None,
                 "description": "Initial beta-function in",
-                "options": {"matched_value", "profile_label"},
+                "options": {"matched_value", "profile_label", "reference"},
             },
         ),
     ],

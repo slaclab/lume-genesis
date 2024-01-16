@@ -11,16 +11,33 @@ import typing
 
 from typing import Dict
 
-from . import manual
-from .util import python_to_namelist_value
+from . import util
 from .types import Float, ValueType
 
 {% if base_class == "NameList" %}
 @dataclasses.dataclass
+class Reference:
+    """
+    A Genesis 4 main input value which is a reference to another namelist or
+    value.
+
+    Attributes
+    ----------
+    label : str
+        The reference name.
+    """
+
+    label: str
+
+    def __str__(self) -> str:
+        return f"@{self.label}"
+
+
+@dataclasses.dataclass
 class NameList:
     """Base class for name lists used in Genesis 4 main input files."""
     _genesis_name_: typing.ClassVar[str] = "unknown"
-    _parameter_to_attr_: typing.ClassVar[Dict[str, str]] = manual.renames
+    _parameter_to_attr_: typing.ClassVar[Dict[str, str]] = util.renames
     _attr_to_parameter_: typing.ClassVar[Dict[str, str]] = dict(
         (v, k) for k, v in _parameter_to_attr_.items()
     )
@@ -43,7 +60,7 @@ class NameList:
     def to_genesis(self) -> str:
         """Create a Genesis 4-compatible namelist from this instance."""
         parameters = (
-            f"  {name} = {python_to_namelist_value(value)}"
+            f"  {name} = {util.python_to_namelist_value(value)}"
             for name, value in self.parameters.items()
         )
         return "\n".join(
@@ -61,7 +78,7 @@ class NameList:
 class BeamlineElement:
     """Base class for beamline elements used in Genesis 4 lattice files."""
     _genesis_name_: typing.ClassVar[str] = "unknown"
-    _parameter_to_attr_: typing.ClassVar[Dict[str, str]] = manual.renames
+    _parameter_to_attr_: typing.ClassVar[Dict[str, str]] = util.renames
     _attr_to_parameter_: typing.ClassVar[Dict[str, str]] = dict(
         (v, k) for k, v in _parameter_to_attr_.items()
     )
@@ -86,7 +103,7 @@ class BeamlineElement:
     def to_genesis(self) -> str:
         """Create a Genesis 4 compatible element from this instance."""
         parameters = ", ".join(
-            f"{name}={python_to_namelist_value(value)}"
+            f"{name}={util.python_to_namelist_value(value)}"
             for name, value in self.parameters.items()
         )
         return "".join(
@@ -128,10 +145,15 @@ class {{ name | to_class_name }}({{ base_class }}):
 
     {%- for param in element.parameters.values() %}
     {%- set type_ = type_map.get(param.type, param.type) %}
-    {%- if "vector" in param.options %}
-    {{ param.python_name }}: typing.Sequence[{{ type_ }}] = dataclasses.field(default_factory=list)
+    {%- if "reference" in param.options %}
+    {%- set ref_suffix = " | Reference" %}
     {%- else %}
-    {{ param.python_name }}: {{ type_ }} {%- if not param.default is none %} = {{ param.default | repr }}{% endif %}
+    {%- set ref_suffix = "" %}
+    {%- endif %}
+    {%- if "vector" in param.options %}
+    {{ param.python_name }}: typing.Sequence[{{ type_ }}]{{ ref_suffix}} = dataclasses.field(default_factory=list)
+    {%- else %}
+    {{ param.python_name }}: {{ type_ }}{{ ref_suffix}} {%- if not param.default is none %} = {{ param.default | repr }}{% endif %}
     {%- endif %}
     {%- endfor %}
 {%- endif %}

@@ -11,9 +11,26 @@ import typing
 
 from typing import Dict
 
-from . import manual
-from .util import python_to_namelist_value
+from . import util
 from .types import Float, ValueType
+
+
+@dataclasses.dataclass
+class Reference:
+    """
+    A Genesis 4 main input value which is a reference to another namelist or
+    value.
+
+    Attributes
+    ----------
+    label : str
+        The reference name.
+    """
+
+    label: str
+
+    def __str__(self) -> str:
+        return f"@{self.label}"
 
 
 @dataclasses.dataclass
@@ -21,7 +38,7 @@ class NameList:
     """Base class for name lists used in Genesis 4 main input files."""
 
     _genesis_name_: typing.ClassVar[str] = "unknown"
-    _parameter_to_attr_: typing.ClassVar[Dict[str, str]] = manual.renames
+    _parameter_to_attr_: typing.ClassVar[Dict[str, str]] = util.renames
     _attr_to_parameter_: typing.ClassVar[Dict[str, str]] = dict(
         (v, k) for k, v in _parameter_to_attr_.items()
     )
@@ -44,7 +61,7 @@ class NameList:
     def to_genesis(self) -> str:
         """Create a Genesis 4-compatible namelist from this instance."""
         parameters = (
-            f"  {name} = {python_to_namelist_value(value)}"
+            f"  {name} = {util.python_to_namelist_value(value)}"
             for name, value in self.parameters.items()
         )
         return "\n".join(
@@ -322,7 +339,7 @@ class Lattice(NameList):
     zmatch: Float = 0
     element: str = ""
     field: str = ""
-    value: Float = 0
+    value: Float | Reference = 0
     instance: int = 0
     add: bool = True
     resolvePeriod: bool = False
@@ -674,23 +691,23 @@ class Beam(NameList):
     """
 
     _genesis_name_: typing.ClassVar[str] = "beam"
-    gamma: Float = 0.0
-    delgam: Float = 0
-    current: Float = 1000
-    ex: Float = 3e-07
-    ey: Float = 3e-07
-    betax: Float = 15
-    betay: Float = 15
-    alphax: Float = 0
-    alphay: Float = 0
-    xcenter: Float = 0
-    ycenter: Float = 0
-    pxcenter: Float = 0
-    pycenter: Float = 0
-    bunch: Float = 0
-    bunchphase: Float = 0
-    emod: Float = 0
-    emodphase: Float = 0
+    gamma: Float | Reference = 0.0
+    delgam: Float | Reference = 0
+    current: Float | Reference = 1000
+    ex: Float | Reference = 3e-07
+    ey: Float | Reference = 3e-07
+    betax: Float | Reference = 15
+    betay: Float | Reference = 15
+    alphax: Float | Reference = 0
+    alphay: Float | Reference = 0
+    xcenter: Float | Reference = 0
+    ycenter: Float | Reference = 0
+    pxcenter: Float | Reference = 0
+    pycenter: Float | Reference = 0
+    bunch: Float | Reference = 0
+    bunchphase: Float | Reference = 0
+    emod: Float | Reference = 0
+    emodphase: Float | Reference = 0
 
 
 @dataclasses.dataclass
@@ -751,10 +768,10 @@ class Field(NameList):
 
     _genesis_name_: typing.ClassVar[str] = "field"
     lambda_: Float = 0.0
-    power: Float = 0
-    phase: Float = 0
-    waist_pos: Float = 0
-    waist_size: Float = 1e-07
+    power: Float | Reference = 0
+    phase: Float | Reference = 0
+    waist_pos: Float | Reference = 0
+    waist_size: Float | Reference = 1e-07
     xcenter: Float = 0
     ycenter: Float = 0
     xangle: Float = 0
@@ -1097,7 +1114,7 @@ class Wake(NameList):
     """
 
     _genesis_name_: typing.ClassVar[str] = "wake"
-    loss: Float = 0
+    loss: Float | Reference = 0
     radius: Float = 0.0025
     roundpipe: bool = True
     conductivity: Float = 0

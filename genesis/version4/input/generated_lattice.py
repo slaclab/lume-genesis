@@ -11,8 +11,7 @@ import typing
 
 from typing import Dict
 
-from . import manual
-from .util import python_to_namelist_value
+from . import util
 from .types import Float, ValueType
 
 
@@ -21,7 +20,7 @@ class BeamlineElement:
     """Base class for beamline elements used in Genesis 4 lattice files."""
 
     _genesis_name_: typing.ClassVar[str] = "unknown"
-    _parameter_to_attr_: typing.ClassVar[Dict[str, str]] = manual.renames
+    _parameter_to_attr_: typing.ClassVar[Dict[str, str]] = util.renames
     _attr_to_parameter_: typing.ClassVar[Dict[str, str]] = dict(
         (v, k) for k, v in _parameter_to_attr_.items()
     )
@@ -46,7 +45,7 @@ class BeamlineElement:
     def to_genesis(self) -> str:
         """Create a Genesis 4 compatible element from this instance."""
         parameters = ", ".join(
-            f"{name}={python_to_namelist_value(value)}"
+            f"{name}={util.python_to_namelist_value(value)}"
             for name, value in self.parameters.items()
         )
         return "".join(

@@ -6,16 +6,12 @@ import jinja2
 
 from typing import Dict, Optional, Set, TypedDict, Tuple, Union
 
+from . import util
+
 AnyPath = Union[pathlib.Path, str]
 
 MODULE_PATH = pathlib.Path(__file__).resolve().parent
 dataclasses_template = MODULE_PATH / "dataclasses.tpl"
-
-
-renames = {
-    "l": "length",
-    "lambda": "lambda_",
-}
 
 
 class Parameter(TypedDict):
@@ -72,14 +68,18 @@ def parse_manual_default(default_: str, type_: str) -> Tuple[str, Set[str]]:
         default = '""'
 
     options: Set[str] = set()
-    for match, option in [
+    for match, *add_options in [
+        # Lattice-held value
         (" or matched value", "matched_value"),
-        (" or profile label", "profile_label"),
+        # Data taken from already-existing field at the given harmonic:
         (" or by existing field", "existing_field"),
-        (" or sequence label", "sequence_label"),
+        # Reference to label name of profile
+        (" or profile label", "profile_label", "reference"),
+        # Reference to label name of sequence
+        (" or sequence label", "sequence_label", "reference"),
     ]:
         if match in default:
-            options.add(option)
+            options = options.union(add_options)
             default = default.replace(match, "")
     default = default.replace("`", "").strip().capitalize()
     if "from" in default:
@@ -139,7 +139,7 @@ def parse_manual_parameter(line: str) -> Parameter:
 
     return {
         "name": name,
-        "python_name": renames.get(name, name),
+        "python_name": util.renames.get(name, name),
         "type": type_,
         "default": ast.literal_eval(default_value),
         "units": units.strip(" []") if units else None,

@@ -8,7 +8,7 @@ from typing import Dict, List, Optional, Tuple, Type, Union
 import lark
 
 from .generated_lattice import BeamlineElement
-from .generated_main import NameList
+from .generated_main import NameList, Reference
 from .types import AnyPath, Float, ValueType
 from .util import HiddenDecimal
 
@@ -150,24 +150,6 @@ class Lattice:
 
 
 @dataclasses.dataclass
-class Reference:
-    """
-    A Genesis 4 main input value which is a reference to another namelist or
-    value.
-
-    Attributes
-    ----------
-    label : str
-        The reference name.
-    """
-
-    label: str
-
-    def __str__(self) -> str:
-        return f"@{self.label}"
-
-
-@dataclasses.dataclass
 class MainInput:
     """
     A Genesis 4 main input configuration file.
@@ -303,9 +285,11 @@ def _fix_parameters(
     for name, value in params.items():
         name = mapping.get(name, name)
         dtype = cls.__annotations__.get(name, None)
+        allow_reference = "| Reference" in dtype
+        dtype = dtype.replace("| Reference", "").strip()
         if dtype is None:
             extra[name] = str(value)
-        elif value.startswith("@"):
+        elif value.startswith("@") and allow_reference:
             kwargs[name] = Reference(str(value[1:]).strip())
         elif dtype == "int":
             kwargs[name] = int(value)

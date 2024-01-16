@@ -2,6 +2,12 @@ from decimal import Decimal
 from .types import ValueType
 from typing import Iterable
 
+# Genesis manual to Python attribute naming map:
+renames = {
+    "l": "length",
+    "lambda": "lambda_",
+}
+
 
 class HiddenDecimal(Decimal):
     """
