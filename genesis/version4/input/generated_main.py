@@ -29,6 +29,9 @@ class Reference:
 
     label: str
 
+    def serialize(self) -> str:
+        return str(self)
+
     def __str__(self) -> str:
         return f"@{self.label}"
 
@@ -42,6 +45,56 @@ class NameList:
     _attr_to_parameter_: typing.ClassVar[Dict[str, str]] = dict(
         (v, k) for k, v in _parameter_to_attr_.items()
     )
+
+    def __post_init__(self) -> None:
+        # Fix up any references or types for convenience (and deserialization)
+        # TODO/NOTE: anything more complicated than this will call for
+        # msgspec / apischema / pydantic for (de)serialization
+        for attr, annotation in self.__annotations__.items():
+            if attr.startswith("_"):
+                pass
+            elif "Reference" in annotation:
+                value = getattr(self, attr)
+                if isinstance(value, str) and value.startswith("@"):
+                    setattr(self, attr, Reference(label=value.lstrip("@ ")))
+                elif isinstance(value, dict) and "label" in value:
+                    setattr(self, attr, Reference(**value))
+
+    def serialize(self) -> Dict:
+        """
+        Get a serialized (dictionary representation) of this namelist.
+        """
+        data = dataclasses.asdict(self)
+        return {
+            "type": self._genesis_name_,
+            **data,
+        }
+
+    @classmethod
+    def deserialize(cls, dct: Dict) -> NameList:
+        """
+        Deserialize a dictionary into a NameList instance.
+
+        Parameters
+        ----------
+        dct : dict
+            Dictionary of parameters, where "type" is a required key.
+
+        Returns
+        -------
+        NameList
+            A specific subclass instance, such as a :class:`Setup`.
+        """
+        type_ = dct.get("type", None)
+        if type_ is None:
+            raise ValueError("The input dictionary does not contain a 'type'")
+        for cls in cls.__subclasses__():
+            if cls._genesis_name_ == type_:
+                params = dict(dct)
+                params.pop("type")
+                return cls(**params)
+
+        raise ValueError(f"Unsupported namelist type: {type_!r}")
 
     @property
     def parameters(self) -> Dict[str, ValueType]:

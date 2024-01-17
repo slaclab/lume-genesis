@@ -64,3 +64,21 @@ def test_load_file(main_input_parser: lark.Lark, filename: pathlib.Path) -> None
     print("\n\nChecking file output vs initial dataclasses..")
     second_inp = MainInput.from_contents(round_tripped)
     assert str(inp) == str(second_inp)
+
+
+@pytest.mark.parametrize(
+    "filename", [pytest.param(fn, id=fn.name) for fn in genesis4_input_files]
+)
+def test_serialize_file(filename: pathlib.Path) -> None:
+    inp = MainInput.from_file(filename)
+
+    print(filename)
+    pprint.pprint(inp)
+
+    print("Is serialized as follows:")
+    serialized = inp.serialize()
+    pprint.pprint(serialized)
+
+    print("Deserialized back to dataclasses:")
+    deserialized = MainInput.deserialize(serialized, filename=filename)
+    assert inp == deserialized

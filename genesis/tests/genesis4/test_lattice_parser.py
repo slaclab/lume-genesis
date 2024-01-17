@@ -61,3 +61,21 @@ def test_load_file(lattice_parser: lark.Lark, filename: pathlib.Path) -> None:
     print("\n\nChecking file output vs initial dataclasses..")
     second_lattice = Lattice.from_contents(round_tripped)
     assert str(lattice) == str(second_lattice)
+
+
+@pytest.mark.parametrize(
+    "filename", [pytest.param(fn, id=fn.name) for fn in genesis4_lattices]
+)
+def test_serialize(filename: pathlib.Path) -> None:
+    lattice = Lattice.from_file(filename)
+
+    print("This lattice:")
+    pprint.pprint(lattice)
+
+    print("Is serialized as follows:")
+    serialized = lattice.serialize()
+    pprint.pprint(serialized)
+
+    print("Deserialized back to dataclasses:")
+    deserialized = Lattice.deserialize(serialized, filename=filename)
+    assert lattice == deserialized

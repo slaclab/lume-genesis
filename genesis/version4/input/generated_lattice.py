@@ -27,6 +27,38 @@ class BeamlineElement:
 
     label: str
 
+    def serialize(self) -> Dict:
+        """
+        Get a serialized (dictionary representation) of this beamline element.
+        """
+        return {"type": self._genesis_name_, **dataclasses.asdict(self)}
+
+    @classmethod
+    def deserialize(cls, dct: Dict) -> BeamlineElement:
+        """
+        Deserialize a dictionary into a BeamlineElement instance.
+
+        Parameters
+        ----------
+        dct : dict
+            Dictionary of parameters, where "type" is a required key.
+
+        Returns
+        -------
+        BeamlineElement
+            A specific subclass instance, such as a :class:`Undulator`.
+        """
+        type_ = dct.get("type", None)
+        if type_ is None:
+            raise ValueError("The input dictionary does not contain a 'type'")
+        for cls in cls.__subclasses__():
+            if cls._genesis_name_ == type_:
+                params = dict(dct)
+                params.pop("type")
+                return cls(**params)
+
+        raise ValueError(f"Unsupported namelist type: {type_!r}")
+
     @property
     def parameters(self) -> Dict[str, ValueType]:
         """Dictionary of parameters to pass to Genesis 4."""

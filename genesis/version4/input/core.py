@@ -3,7 +3,7 @@ from __future__ import annotations
 import dataclasses
 import pathlib
 from decimal import Decimal
-from typing import Dict, List, Optional, Tuple, Type, Union
+from typing import ClassVar, Dict, List, Optional, Sequence, Tuple, Type, Union
 
 import lark
 
@@ -34,6 +34,14 @@ class DuplicatedLineItem:
     label: str
     count: int
 
+    @classmethod
+    def from_string(cls, value: str) -> DuplicatedLineItem:
+        count, label = value.split("*", 1)
+        return cls(
+            label=label.strip(),
+            count=int(count),
+        )
+
     def __str__(self) -> str:
         return f"{self.count}*{self.label}"
 
@@ -54,12 +62,32 @@ class PositionedLineItem:
     label: str
     position: Float
 
+    @classmethod
+    def from_string(cls, value: str) -> PositionedLineItem:
+        label, position = value.split("@", 1)
+        return cls(
+            label=label.strip(),
+            position=HiddenDecimal(position.strip()),
+        )
+
     def __str__(self) -> str:
         return f"{self.label}@{self.position}"
 
 
+def _fix_line_item(line_item: LineItem) -> LineItem:
+    """Make the appropriate dataclass for a serialized line item, if necessary."""
+    if isinstance(line_item, (DuplicatedLineItem, PositionedLineItem)):
+        return line_item
+
+    if "@" in line_item:
+        return PositionedLineItem.from_string(line_item)
+    if "*" in line_item:
+        return DuplicatedLineItem.from_string(line_item)
+    return line_item
+
+
 @dataclasses.dataclass
-class Line:
+class Line(BeamlineElement):
     """
     A Genesis 4 beamline Line.
 
@@ -71,8 +99,22 @@ class Line:
         Elements contained in the line.
     """
 
+    _genesis_name_: ClassVar[str] = "line"
     label: str
     elements: List[LineItem] = dataclasses.field(default_factory=list)
+
+    def __post_init__(self) -> None:
+        self.elements = [_fix_line_item(item) for item in self.elements]
+
+    def serialize(self) -> Dict:
+        """
+        Get a serialized (dictionary representation) of this beamline element.
+        """
+        return {
+            "type": "line",
+            "label": self.label,
+            "elements": [str(element) for element in self.elements],
+        }
 
     def __str__(self) -> str:
         elements = ", ".join(str(element) for element in self.elements)
@@ -106,6 +148,31 @@ class Lattice:
 
     def __str__(self) -> str:
         return "\n".join(str(element) for element in self.elements)
+
+    def serialize(self) -> List[Dict]:
+        """Serialize this lattice to a list of dictionaries."""
+        return [element.serialize() for element in self.elements]
+
+    @classmethod
+    def deserialize(
+        cls, contents: Sequence[Dict], filename: Optional[pathlib.Path] = None
+    ) -> Lattice:
+        """
+        Load a Lattice instance from a list of serialized dictionaries.
+
+        Parameters
+        ----------
+        contents : sequence of dict
+            The serialized contents of the lattice.
+
+        Returns
+        -------
+        Lattice
+        """
+        return cls(
+            elements=[BeamlineElement.deserialize(dct) for dct in contents],
+            filename=filename,
+        )
 
     @classmethod
     def from_contents(
@@ -167,6 +234,31 @@ class MainInput:
 
     def __str__(self) -> str:
         return "\n\n".join(str(namelist) for namelist in self.namelists)
+
+    def serialize(self) -> List[Dict]:
+        """Serialize this main input to a list of dictionaries."""
+        return [namelist.serialize() for namelist in self.namelists]
+
+    @classmethod
+    def deserialize(
+        cls, contents: Sequence[Dict], filename: Optional[pathlib.Path] = None
+    ) -> MainInput:
+        """
+        Load main input from a list of serialized dictionaries.
+
+        Parameters
+        ----------
+        contents : sequence of dict
+            The serialized contents of the main input file.
+
+        Returns
+        -------
+        MainInput
+        """
+        return cls(
+            namelists=[NameList.deserialize(dct) for dct in contents],
+            filename=filename,
+        )
 
     @classmethod
     def from_contents(
