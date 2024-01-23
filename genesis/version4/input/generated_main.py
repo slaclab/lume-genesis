@@ -12,7 +12,7 @@ import typing
 from typing import Dict
 
 from . import util
-from .types import Float, ValueType
+from .types import Float, SerializedReference, ValueType
 
 
 @dataclasses.dataclass
@@ -35,6 +35,18 @@ class Reference:
     def __str__(self) -> str:
         return f"@{self.label}"
 
+    @classmethod
+    def from_namelist(
+        cls, value: typing.Union[Reference, SerializedReference, str]
+    ) -> Reference:
+        if isinstance(value, Reference):
+            return value
+        if isinstance(value, str) and value.startswith("@"):
+            return cls(label=value.lstrip("@ "))
+        if isinstance(value, dict):
+            return cls(**value)
+        raise ValueError(f"Unexpected type for a Reference in a NameList: {value}")
+
 
 @dataclasses.dataclass
 class NameList:
@@ -54,11 +66,14 @@ class NameList:
             if attr.startswith("_"):
                 pass
             elif "Reference" in annotation:
-                value = getattr(self, attr)
-                if isinstance(value, str) and value.startswith("@"):
-                    setattr(self, attr, Reference(label=value.lstrip("@ ")))
-                elif isinstance(value, dict) and "label" in value:
-                    setattr(self, attr, Reference(**value))
+                try:
+                    value = Reference.from_namelist(getattr(self, attr))
+                except ValueError:
+                    # Not a reference type to be deserialized
+                    ...
+                else:
+                    # Update the attribute with the Reference instance.
+                    setattr(self, attr, value)
 
     def serialize(self) -> Dict:
         """
