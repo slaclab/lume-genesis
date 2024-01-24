@@ -1,21 +1,37 @@
 from __future__ import annotations
+import logging
+from contextlib import contextmanager
 
 import dataclasses
 import pathlib
 from decimal import Decimal
-from typing import ClassVar, Dict, List, Optional, Sequence, Tuple, Type, Union
+from typing import (
+    ClassVar,
+    Dict,
+    Generator,
+    List,
+    Optional,
+    Sequence,
+    Tuple,
+    Type,
+    Union,
+)
 
 import lark
+import h5py
 
+from . import util
 from .generated_lattice import BeamlineElement
-from .generated_main import NameList, Reference
-from .types import AnyPath, Float, ValueType
+from .generated_main import NameList, Reference, ProfileFile
+from .types import AnyPath, ArrayType, Float, ValueType
 from .util import HiddenDecimal
 
 LATTICE_GRAMMAR = pathlib.Path("version4") / "input" / "lattice.lark"
 MAIN_INPUT_GRAMMAR = pathlib.Path("version4") / "input" / "main_input.lark"
 
-LineItem = Union[str, "DuplicatedLineItem", "PositionedLineItem"]
+logger = logging.getLogger(__name__)
+
+LineItem = Union[str, "DuplicatedLineItem", "PositionedLineItem", BeamlineElement]
 
 
 @dataclasses.dataclass
@@ -78,7 +94,8 @@ def _fix_line_item(line_item: LineItem) -> LineItem:
     """Make the appropriate dataclass for a serialized line item, if necessary."""
     if isinstance(line_item, (DuplicatedLineItem, PositionedLineItem)):
         return line_item
-
+    if isinstance(line_item, BeamlineElement):
+        return line_item
     if "@" in line_item:
         return PositionedLineItem.from_string(line_item)
     if "*" in line_item:
@@ -86,25 +103,32 @@ def _fix_line_item(line_item: LineItem) -> LineItem:
     return line_item
 
 
-@dataclasses.dataclass
+@dataclasses.dataclass(repr=False)
 class Line(BeamlineElement):
     """
     A Genesis 4 beamline Line.
 
     Attributes
     ----------
-    label : str
-        The name/label of the line.
     elements : list of LineItem
         Elements contained in the line.
+    label : str, optional
+        An optional label to attach to the line.
     """
 
     _genesis_name_: ClassVar[str] = "line"
-    label: str
     elements: List[LineItem] = dataclasses.field(default_factory=list)
+    label: str = ""
 
     def __post_init__(self) -> None:
         self.elements = [_fix_line_item(item) for item in self.elements]
+
+    @property
+    def _string_elements(self) -> List[str]:
+        return [
+            elem.label if isinstance(elem, BeamlineElement) else str(elem)
+            for elem in self.elements
+        ]
 
     def serialize(self) -> Dict:
         """
@@ -112,12 +136,11 @@ class Line(BeamlineElement):
         """
         return {
             "type": "line",
-            "label": self.label,
-            "elements": [str(element) for element in self.elements],
+            "elements": self._string_elements,
         }
 
     def __str__(self) -> str:
-        elements = ", ".join(str(element) for element in self.elements)
+        elements = ", ".join(self._string_elements)
         return "".join(
             (
                 self.label,
@@ -127,8 +150,33 @@ class Line(BeamlineElement):
             )
         )
 
+    def __repr__(self) -> str:
+        return util.get_non_default_repr(self)
 
-@dataclasses.dataclass
+    @classmethod
+    def from_labels(
+        cls,
+        elements: Dict[str, BeamlineElement],
+        *element_labels: str,
+        label: str = "",
+    ) -> Line:
+        try:
+            return cls(
+                elements=[
+                    elements[label]
+                    for labels in element_labels
+                    for label in labels.split()
+                ],
+                label=label,
+            )
+        except KeyError as ex:
+            raise ValueError(
+                f"Label {ex} is not present in the beamline element dictionary. "
+                f"The following are valid: {tuple(elements.keys())}"
+            )
+
+
+@dataclasses.dataclass(repr=False)
 class Lattice:
     """
     A Genesis 4 beamline Lattice configuration.
@@ -141,36 +189,59 @@ class Lattice:
         The filename from which this lattice was loaded.
     """
 
-    elements: List[Union[BeamlineElement, Line]] = dataclasses.field(
-        default_factory=list
+    elements: Dict[str, Union[BeamlineElement, Line]] = dataclasses.field(
+        default_factory=dict
     )
     filename: Optional[pathlib.Path] = None
 
     def __str__(self) -> str:
-        return "\n".join(str(element) for element in self.elements)
+        return self.to_genesis()
 
-    def serialize(self) -> List[Dict]:
+    def to_genesis(self) -> str:
+        self.fix_labels()
+        return "\n".join(str(element) for element in self.elements.values())
+
+    def __repr__(self) -> str:
+        return util.get_non_default_repr(self)
+
+    def fix_labels(self) -> None:
+        for label, element in self.elements.items():
+            if element.label != label:
+                if element.label:
+                    logger.warning(
+                        "Renaming beamline element in lattice from %s to %s",
+                        element.label,
+                        label,
+                    )
+                element.label = label
+
+    def serialize(self) -> Dict[str, Dict]:
         """Serialize this lattice to a list of dictionaries."""
-        return [element.serialize() for element in self.elements]
+        self.fix_labels()
+        return {label: element.serialize() for label, element in self.elements.items()}
 
     @classmethod
     def deserialize(
-        cls, contents: Sequence[Dict], filename: Optional[pathlib.Path] = None
+        cls, contents: Dict[str, Dict], filename: Optional[pathlib.Path] = None
     ) -> Lattice:
         """
-        Load a Lattice instance from a list of serialized dictionaries.
+        Load a Lattice instance from a serialized dictionary.
 
         Parameters
         ----------
-        contents : sequence of dict
+        contents : dict of label to element dict
             The serialized contents of the lattice.
 
         Returns
         -------
         Lattice
         """
+        elements = {}
+        for label, dct in contents.items():
+            elements[label] = BeamlineElement.deserialize(dct)
+            elements[label].label = label
         return cls(
-            elements=[BeamlineElement.deserialize(dct) for dct in contents],
+            elements=elements,
             filename=filename,
         )
 
@@ -214,6 +285,86 @@ class Lattice:
         with open(filename) as fp:
             contents = fp.read()
         return cls.from_contents(contents, filename=filename)
+
+
+@dataclasses.dataclass
+class ProfileArray(NameList):
+    r"""
+    ProfileArray is a lume-genesis convenience class for generating
+    ``profile_file`` namelists.
+
+    Attributes
+    ----------
+    x_label : str
+        Name of the profile, which is used to refer to it in later calls of namelists
+    xdata : list of float or np.ndarray, default=''
+        The `s`-position for the look-up table.
+    ydata : list of float or np.ndarray, default=''
+        The function values of the look-up table.
+    isTime : bool, default=False
+        If true the `s`-position is a time variable and therefore multiplied with the
+        speed of light `c` to get the position in meters.
+    reverse : bool, default=False
+        if true the order in the look-up table is reverse. This is sometimes needed
+        because time and spatial coordinates differ sometimes by a minus sign.
+    _filename : str, optional
+        By default, this is a randomly-generated filename that lume-genesis
+        manages for you.  If desirable, you may set a fixed filename relative
+        to the main input file.  Path delimiters (such as ``/``) are not
+        allowed.
+    """
+
+    _genesis_name_: ClassVar[str] = ""
+    label: str
+    xdata: ArrayType
+    ydata: ArrayType
+    isTime: bool = False
+    reverse: bool = False
+    autoassign: bool = False
+    _filename: str = dataclasses.field(
+        default_factory=util.get_temporary_filename,
+    )
+    _x_label: str = "x"
+    _y_label: str = "y"
+
+    def write(self, base_path: AnyPath) -> pathlib.Path:
+        if "/" in self._filename:
+            raise ValueError(
+                "Filename is not allowed to contain the path separator "
+                "forward slash (/).  Genesis 4 interprets these as part of "
+                "the HDF group."
+            )
+        path = pathlib.Path(base_path) / self._filename
+        with h5py.File(path, "w") as fp:
+            # for key, value in self.hdf_data.items():
+            #     fp[key] = value
+            fp.update(self.get_hdf_data())
+        return path
+
+    def get_hdf_data(self) -> Dict[str, ArrayType]:
+        return {
+            self._x_label: self.xdata,
+            self._y_label: self.ydata,
+        }
+
+    def to_profile_file(self) -> ProfileFile:
+        return ProfileFile(
+            label=self.label,
+            xdata=f"{self._filename}/self._x_label",
+            ydata=f"{self._filename}/self._y_label",
+            isTime=self.isTime,
+            reverse=self.reverse,
+            autoassign=self.autoassign,
+        )
+
+    @contextmanager
+    def write_context(self, base_path: AnyPath) -> Generator[pathlib.Path, None, None]:
+        path = self.write(base_path)
+        yield path
+        path.unlink(missing_ok=True)
+
+    def to_genesis(self) -> str:
+        return self.to_profile_file().to_genesis()
 
 
 @dataclasses.dataclass
@@ -420,13 +571,10 @@ class _LatticeTransformer(lark.visitors.Transformer_InPlaceRecursive):
     def line(
         self,
         label: lark.Token,
-        line: lark.Token,
+        _: lark.Token,  # line
         element_list: List[LineItem],
-    ) -> Line:
-        return Line(
-            label=str(label),
-            elements=element_list,
-        )
+    ) -> Tuple[str, Line]:
+        return str(label), Line(elements=element_list)
 
     @lark.v_args(inline=True)
     def parameter_set(
@@ -434,7 +582,7 @@ class _LatticeTransformer(lark.visitors.Transformer_InPlaceRecursive):
         parameter: lark.Token,
         value: lark.Token,
     ) -> Tuple[str, lark.Token]:
-        return (str(parameter), value)
+        return str(parameter), value
 
     def parameter_list(
         self, sets: List[Tuple[str, ValueType]]
@@ -447,7 +595,7 @@ class _LatticeTransformer(lark.visitors.Transformer_InPlaceRecursive):
         label: lark.Token,
         type_: lark.Token,
         parameter_list: List[Tuple[str, lark.Token]],
-    ) -> BeamlineElement:
+    ) -> Tuple[str, BeamlineElement]:
         cls = self.type_map[type_.upper()[:4]]
         parameters, unknown = _fix_parameters(cls, dict(parameter_list))
         if unknown:
@@ -455,10 +603,7 @@ class _LatticeTransformer(lark.visitors.Transformer_InPlaceRecursive):
                 f"Beamline element {label} received unexpected parameter(s): "
                 f"{unknown}"
             )
-        return cls(
-            label=str(label),
-            **parameters,
-        )
+        return str(label), cls(**parameters)
 
     @lark.v_args(inline=True)
     def duplicate_item(
@@ -495,9 +640,11 @@ class _LatticeTransformer(lark.visitors.Transformer_InPlaceRecursive):
     ) -> List[Union[lark.Token, DuplicatedLineItem, PositionedLineItem]]:
         return items
 
-    def lattice(self, elements: List[Union[BeamlineElement, Line]]) -> Lattice:
+    def lattice(
+        self, elements: List[Tuple[str, Union[BeamlineElement, Line]]]
+    ) -> Lattice:
         return Lattice(
-            elements,
+            dict(elements),
             filename=self._filename,
         )
 
@@ -540,7 +687,7 @@ class _MainInputTransformer(lark.visitors.Transformer_InPlaceRecursive):
         self,
         name: lark.Token,
         parameter_list: List[Tuple[str, lark.Token]],
-        end: lark.Token,
+        _: lark.Token,  # end
     ) -> NameList:
         cls = self.type_map[name]
         parameters, unknown = _fix_parameters(cls, dict(parameter_list))

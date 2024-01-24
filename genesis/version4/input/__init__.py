@@ -5,6 +5,7 @@ from .core import (
     PositionedLineItem,
     LineItem,
     MainInput,
+    ProfileArray,
 )
 from .generated_lattice import (
     Chicane,
@@ -64,6 +65,7 @@ __all__ = [
     "AlterSetup",
     "LatticeNamelist",
     "Time",
+    "ProfileArray",
     "ProfileConst",
     "ProfileGauss",
     "ProfileStep",

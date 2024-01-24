@@ -1,11 +1,17 @@
+import dataclasses
+import uuid
+
 from decimal import Decimal
 from .types import ValueType
-from typing import Iterable
+from typing import Iterable, Dict, List
 
 # Genesis manual to Python attribute naming map:
 renames = {
-    "l": "length",
+    "l": "L",
     "lambda": "lambda_",
+    # Mapping to common bmad names:
+    "dx": "x_offset",
+    "dy": "y_offset",
 }
 
 
@@ -50,3 +56,62 @@ def python_to_namelist_value(value: ValueType) -> str:
         return str(value)
     # raise NotImplementedError(type(value))
     return str(value)
+
+
+def get_temporary_filename(extension: str = ".h5") -> str:
+    """Get a temporary filename for use with Genesis 4 inputs."""
+    random_start = str(uuid.uuid4())[:8]
+    return "".join((random_start, extension))
+
+
+def get_non_default_attrs(obj: object) -> Dict[str, ValueType]:
+    """Dictionary of non-default parameters of an annotated [data]class."""
+    data = {}
+    for attr in obj.__annotations__:
+        if attr.startswith("_"):
+            continue
+        value = getattr(obj, attr)
+        default = getattr(type(obj), attr, None)
+        # Whether Genesis will interpret them as the same means we
+        # care about the string representation rather than the Python
+        # type.
+        if str(value) != str(default):
+            data[attr] = value
+    return data
+
+
+def _indent_parameters(
+    parameters: List[str], prefix: str, suffix: str, indent: int = 4
+) -> str:
+    full_length = sum(len(param) for param in parameters)
+    if parameters and (len(parameters) > 3 or full_length > 40):
+        join_by = "".join((",\n", " " * indent))
+    else:
+        join_by = ", "
+    result = join_by.join(parameters)
+    return "".join((prefix, result.rstrip(","), suffix))
+
+
+def get_non_default_repr(obj: object, indent: int = 4) -> str:
+    def format_value(value, indent):
+        if dataclasses.is_dataclass(value):
+            return get_non_default_repr(value, indent=indent + 4)
+        if isinstance(value, dict):
+            return _indent_parameters(
+                prefix="{",
+                parameters=[
+                    f'"{key}": {format_value(val, indent)}'
+                    for key, val in value.items()
+                ],
+                suffix="}",
+            )
+        return repr(value)
+
+    parameters = list(
+        f"{name}={format_value(value, indent)}"
+        for name, value in get_non_default_attrs(obj).items()
+    )
+    formatted = _indent_parameters(
+        prefix=f"{obj.__class__.__name__}(", parameters=parameters, suffix=")"
+    )
+    return formatted

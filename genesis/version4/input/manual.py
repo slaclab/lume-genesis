@@ -220,6 +220,12 @@ def _to_class_name(genesis_name: str) -> str:
     return "".join(name_chars)
 
 
+def _custom_repr(obj) -> str:
+    """A tweaked ``repr`` to always return double quotes."""
+    result = repr(obj)
+    return result.replace("'", '"')
+
+
 def make_dataclasses_from_manual(
     path: AnyPath,
     *,
@@ -242,7 +248,7 @@ def make_dataclasses_from_manual(
     with open(template_filename) as fp:
         template = fp.read()
     env = jinja2.Environment()
-    env.filters["repr"] = repr
+    env.filters["repr"] = _custom_repr
     env.filters["to_class_name"] = _to_class_name
     tpl = env.from_string(template)
 

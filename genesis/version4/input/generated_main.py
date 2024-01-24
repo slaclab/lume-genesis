@@ -48,7 +48,7 @@ class Reference:
         raise ValueError(f"Unexpected type for a Reference in a NameList: {value}")
 
 
-@dataclasses.dataclass
+@dataclasses.dataclass(repr=False)
 class NameList:
     """Base class for name lists used in Genesis 4 main input files."""
 
@@ -112,25 +112,18 @@ class NameList:
         raise ValueError(f"Unsupported namelist type: {type_!r}")
 
     @property
-    def parameters(self) -> Dict[str, ValueType]:
+    def genesis_parameters(self) -> Dict[str, ValueType]:
         """Dictionary of parameters to pass to Genesis 4."""
-        skip = {}
-        data = {}
-        for attr in self.__annotations__:
-            if attr.startswith("_") or attr in skip:
-                continue
-            value = getattr(self, attr)
-            default = getattr(type(self), attr, None)
-            if str(value) != str(default):
-                param = self._attr_to_parameter_.get(attr, attr)
-                data[param] = value
-        return data
+        return {
+            self._attr_to_parameter_.get(attr, attr): value
+            for attr, value in util.get_non_default_attrs(self).items()
+        }
 
     def to_genesis(self) -> str:
         """Create a Genesis 4-compatible namelist from this instance."""
         parameters = (
             f"  {name} = {util.python_to_namelist_value(value)}"
-            for name, value in self.parameters.items()
+            for name, value in self.genesis_parameters.items()
         )
         return "\n".join(
             (
@@ -143,8 +136,11 @@ class NameList:
     def __str__(self) -> str:
         return self.to_genesis()
 
+    def __repr__(self) -> str:
+        return util.get_non_default_repr(self)
 
-@dataclasses.dataclass
+
+@dataclasses.dataclass(repr=False)
 class Setup(NameList):
     r"""
     The namelist `setup` is a mandatory namelist and should be the first in the
@@ -156,16 +152,16 @@ class Setup(NameList):
 
     Attributes
     ----------
-    rootname : str, default=''
+    rootname : str, default=""
         The basic string, with which all output files will start, unless the output
         filename is directly overwritten (see `write` namelist)
-    outputdir : str, default=''
+    outputdir : str, default=""
         Output directory name.
-    lattice : str, default=''
+    lattice : str, default=""
         The name of the file which contains the undulator lattice description. This can
         also include some relative paths if the lattice file is not in the same
         directory as the input file.
-    beamline : str, default=''
+    beamline : str, default=""
         The name of the beamline, which has to be defined within the lattice file. For
         more information on the lattice file, see the next chapter.
     gamma0 : Float, default=11350.3
@@ -248,7 +244,7 @@ class Setup(NameList):
         Exclude the field dump to `.fld.h5`.
     write_meta_file : bool, default=False
         Write a metadata file.
-    semaphore_file_name : str, default=''
+    semaphore_file_name : str, default=""
         Providing a file name for the semaphore file always switches on writing the
         "done" semaphore file, overriding 'write_semaphore_file' flag. This allows to
         switch on semaphore functionality just by specifying corresponding command line
@@ -291,7 +287,7 @@ class Setup(NameList):
     write_semaphore_file_started: bool = False
 
 
-@dataclasses.dataclass
+@dataclasses.dataclass(repr=False)
 class AlterSetup(NameList):
     r"""
     A namelist to change some parameters within the simulation, which have been
@@ -303,10 +299,10 @@ class AlterSetup(NameList):
 
     Attributes
     ----------
-    rootname : str, default=''
+    rootname : str, default=""
         The basic string, with which all output files will start, unless the output
         filename is directly overwritten (see `write`-namelist)
-    beamline : str, default=''
+    beamline : str, default=""
         The name of the beamline, which has to be defined within the lattice file. This
         way another beamline can be selected in the case the simulation has multiple
         stages
@@ -357,7 +353,7 @@ class AlterSetup(NameList):
     disable: bool = False
 
 
-@dataclasses.dataclass
+@dataclasses.dataclass(repr=False)
 class Lattice(NameList):
     r"""
     This namelist is used to change the raw lattice from the lattice file, such as
@@ -376,13 +372,13 @@ class Lattice(NameList):
         optical functions need to be defined any longer. If the lattice is highly non-
         periodic it is recommended    to find the matching condition with an external
         program such as MAdX.
-    element : str, default=''
+    element : str, default=""
         Name of the element type, which will be changed, e.g. Undulator if undulator
         modules are altered. Only the first 4 letters need to be defined. If there is
         no match, e.g. due to a type, nothing will be changed. It acts rather as a
         filter than a mandatory element. Elements of the type `MARKER` are not
         supported.
-    field : str, default=''
+    field : str, default=""
         attribute name for a given element. The names are the same as in the definition
         of the lattice file. The field acts as a filter again. With non-matching events
         nothing will be changed.
@@ -413,7 +409,7 @@ class Lattice(NameList):
     resolvePeriod: bool = False
 
 
-@dataclasses.dataclass
+@dataclasses.dataclass(repr=False)
 class Time(NameList):
     r"""
     This namelist defines the time window/range for simulation with more than just
@@ -463,7 +459,7 @@ class Time(NameList):
     time: bool = True
 
 
-@dataclasses.dataclass
+@dataclasses.dataclass(repr=False)
 class ProfileConst(NameList):
     r"""
 
@@ -482,7 +478,7 @@ class ProfileConst(NameList):
     c0: Float = 0
 
 
-@dataclasses.dataclass
+@dataclasses.dataclass(repr=False)
 class ProfileGauss(NameList):
     r"""
 
@@ -507,7 +503,7 @@ class ProfileGauss(NameList):
     sig: Float = 0
 
 
-@dataclasses.dataclass
+@dataclasses.dataclass(repr=False)
 class ProfileStep(NameList):
     r"""
 
@@ -532,7 +528,7 @@ class ProfileStep(NameList):
     s_end: Float = 0
 
 
-@dataclasses.dataclass
+@dataclasses.dataclass(repr=False)
 class ProfilePolynom(NameList):
     r"""
 
@@ -563,7 +559,7 @@ class ProfilePolynom(NameList):
     c4: Float = 0
 
 
-@dataclasses.dataclass
+@dataclasses.dataclass(repr=False)
 class ProfileFile(NameList):
     r"""
 
@@ -573,11 +569,11 @@ class ProfileFile(NameList):
     ----------
     label : str
         Name of the profile, which is used to refer to it in later calls of namelists
-    xdata : str, default=''
+    xdata : str, default=""
         Points to a dataset in an HDF5 file to define the `s`-position for the look-up
         table. The format is `filename/group1/.../groupn/datasetname`, where the naming
         of groups is not required if the dataset is at root level of the HDF file
-    ydata : str, default=''
+    ydata : str, default=""
         Same as y data but for the function values of the look-up table.
     isTime : bool, default=False
         If true the `s`-position is a time variable and therefore multiplied with the
@@ -598,7 +594,7 @@ class ProfileFile(NameList):
     autoassign: bool = False
 
 
-@dataclasses.dataclass
+@dataclasses.dataclass(repr=False)
 class SequenceConst(NameList):
     r"""
 
@@ -617,7 +613,7 @@ class SequenceConst(NameList):
     c0: Float = 0
 
 
-@dataclasses.dataclass
+@dataclasses.dataclass(repr=False)
 class SequencePolynom(NameList):
     r"""
 
@@ -648,7 +644,7 @@ class SequencePolynom(NameList):
     c4: Float = 0
 
 
-@dataclasses.dataclass
+@dataclasses.dataclass(repr=False)
 class SequencePower(NameList):
     r"""
 
@@ -677,7 +673,7 @@ class SequencePower(NameList):
     n0: int = 1
 
 
-@dataclasses.dataclass
+@dataclasses.dataclass(repr=False)
 class SequenceRandom(NameList):
     r"""
 
@@ -706,7 +702,7 @@ class SequenceRandom(NameList):
     normal: bool = True
 
 
-@dataclasses.dataclass
+@dataclasses.dataclass(repr=False)
 class Beam(NameList):
     r"""
     This namelist initiates the generation of the particle distribution to be kept
@@ -778,7 +774,7 @@ class Beam(NameList):
     emodphase: Float | Reference = 0
 
 
-@dataclasses.dataclass
+@dataclasses.dataclass(repr=False)
 class Field(NameList):
     r"""
     This namelist initiate the generation of the field distribution. It differs in
@@ -852,7 +848,7 @@ class Field(NameList):
     accumulate: bool = False
 
 
-@dataclasses.dataclass
+@dataclasses.dataclass(repr=False)
 class Importdistribution(NameList):
     r"""
     This namelist controls the import of an external distribution which are
@@ -869,7 +865,7 @@ class Importdistribution(NameList):
 
     Attributes
     ----------
-    file : str, default=''
+    file : str, default=""
         The file name of the distribution, including possible relative directories.
     charge : Float, default=0
         Total charge of the distribution to calculate the current and individual charge
@@ -940,7 +936,7 @@ class Importdistribution(NameList):
     align_end: Float = 1
 
 
-@dataclasses.dataclass
+@dataclasses.dataclass(repr=False)
 class Importbeam(NameList):
     r"""
     The modules controls the import of a Genesis 1.3 particle file to replace the
@@ -952,7 +948,7 @@ class Importbeam(NameList):
 
     Attributes
     ----------
-    file : str, default=''
+    file : str, default=""
         File name of a hdf5 complient datafile to contain the slice-wise particle
         distribution. It has to follow the internal Genesis 1.3 syntax.
     time : bool, default=True
@@ -966,7 +962,7 @@ class Importbeam(NameList):
     time: bool = True
 
 
-@dataclasses.dataclass
+@dataclasses.dataclass(repr=False)
 class Importfield(NameList):
     r"""
     The modules controls the import of a Genesis 1.3 field file to replace the
@@ -979,7 +975,7 @@ class Importfield(NameList):
 
     Attributes
     ----------
-    file : str, default=''
+    file : str, default=""
         File name of a hdf5 compliant datafile to contain the slice-wise particle
         distribution. It has to follow the internal Genesis 1.3 syntax.
     harmonic : int, default=1
@@ -996,7 +992,7 @@ class Importfield(NameList):
     time: bool = True
 
 
-@dataclasses.dataclass
+@dataclasses.dataclass(repr=False)
 class Importtransformation(NameList):
     r"""
     Once an electron distribution is generated the namelist can be used to
@@ -1022,13 +1018,13 @@ class Importtransformation(NameList):
 
     Attributes
     ----------
-    file : str, default=''
+    file : str, default=""
         File name of a hdf5 compliant datafile to contain the vector and matrix
         informations
-    vector : str, default=''
+    vector : str, default=""
         Name of the dataset which contains the vector information. The shape must be
         either (6) or (n,6)
-    matrix : str, default=''
+    matrix : str, default=""
         Name of the dataset which contains the matrix information. The shape must be
         either (6,6) or (n,6,6)
     slen : Float, default=0
@@ -1044,7 +1040,7 @@ class Importtransformation(NameList):
     slen: Float = 0
 
 
-@dataclasses.dataclass
+@dataclasses.dataclass(repr=False)
 class Efield(NameList):
     r"""
     This namelist controls the long and short range space charge fields. The long
@@ -1086,7 +1082,7 @@ class Efield(NameList):
     ngrid: int = 100
 
 
-@dataclasses.dataclass
+@dataclasses.dataclass(repr=False)
 class Sponrad(NameList):
     r"""
     This enables the effect of spontaneous radiation outside of the frequency band
@@ -1113,7 +1109,7 @@ class Sponrad(NameList):
     doSpread: bool = False
 
 
-@dataclasses.dataclass
+@dataclasses.dataclass(repr=False)
 class Wake(NameList):
     r"""
     Genesis supports the calculation of three types of wakefields by specifying the
@@ -1147,7 +1143,7 @@ class Wake(NameList):
     relaxation : Float, default=0
         Relaxation distance (aka the mean free path of the electron in the vacuum
         material) for the resistive wall wakefields
-    material : str, default=''
+    material : str, default=""
         String literal to define conductivity and relaxation distance for either copper
         or aluminum by using the two character label ’CU’ or ’AL’ repectively. This
         overwrites also any explicit definition of the conductivity and relaxation
@@ -1196,7 +1192,7 @@ class Wake(NameList):
     ztrans: Float = 0
 
 
-@dataclasses.dataclass
+@dataclasses.dataclass(repr=False)
 class Write(NameList):
     r"""
     With this name list the field or particle distributions are dumped. The
@@ -1207,11 +1203,11 @@ class Write(NameList):
 
     Attributes
     ----------
-    field : str, default=''
+    field : str, default=""
         if a filename is defined, Genesis writes out the field distribution of all
         harmonics. The harmonics are indicated by the suffix ’.hxxx.’ where xxx is the
         harmonic number. The filename gets the extension.fld.h5 automatically
-    beam : str, default=''
+    beam : str, default=""
         if a filename is defined, Genesis writes out the particle distribution. The
         filename gets the `extension.par.h5` automatically
     stride : int, default=1
@@ -1225,7 +1221,7 @@ class Write(NameList):
     stride: int = 1
 
 
-@dataclasses.dataclass
+@dataclasses.dataclass(repr=False)
 class Track(NameList):
     r"""
     This namelist initiate the actually tracking through the undulator and then
@@ -1277,7 +1273,7 @@ class Track(NameList):
     bunchharm: int = 1
 
 
-@dataclasses.dataclass
+@dataclasses.dataclass(repr=False)
 class AlterField(NameList):
     r"""
     Field manipulator (TODO).
@@ -1309,7 +1305,7 @@ class AlterField(NameList):
     spp_phi0: Float = 0.0
 
 
-@dataclasses.dataclass
+@dataclasses.dataclass(repr=False)
 class ProfileFileMulti(NameList):
     r"""
     Generates profile objects `<label_prefix>.gamma`, `<label_prefix>.delgam`,
@@ -1319,15 +1315,15 @@ class ProfileFileMulti(NameList):
 
     Attributes
     ----------
-    file : str, default=''
+    file : str, default=""
         HDF5 filename.
-    label_prefix : str, default=''
+    label_prefix : str, default=""
         prefix for each object.
-    xdata : str, default=''
+    xdata : str, default=""
         Points to a dataset in an HDF5 file to define the `s`-position for the look-up
         table. The format is `filename/group1/.../groupn/datasetname`, where the naming
         of groups is not required if the dataset is at root level of the HDF file
-    ydata : str, default=''
+    ydata : str, default=""
         Same as y data but for the function values of the look-up table.
     isTime : bool, default=False
         If true the `s`-position is a time variable and therefore multiplied with the
@@ -1346,7 +1342,7 @@ class ProfileFileMulti(NameList):
     reverse: bool = False
 
 
-@dataclasses.dataclass
+@dataclasses.dataclass(repr=False)
 class SequenceList(NameList):
     r"""
     A sequence of values given as a string.
@@ -1369,7 +1365,7 @@ class SequenceList(NameList):
     default: Float = 0
 
 
-@dataclasses.dataclass
+@dataclasses.dataclass(repr=False)
 class SequenceFilelist(NameList):
     r"""
     A sequence list with data in a file.
@@ -1380,7 +1376,7 @@ class SequenceFilelist(NameList):
     ----------
     label : str
         label for the sequence.
-    file : str, default=''
+    file : str, default=""
         filename to load the sequence from with one line per value.
     """
 

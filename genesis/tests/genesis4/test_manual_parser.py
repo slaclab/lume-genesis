@@ -22,7 +22,7 @@ lattice_manual = test_v4_root / "lattice.md"
             "- `l` (*double, 0, [m]*): Length of the chicane, ",
             {
                 "name": "l",
-                "python_name": "length",
+                "python_name": "L",
                 "type": "double",
                 "default": 0,
                 "units": "m",
@@ -34,7 +34,7 @@ lattice_manual = test_v4_root / "lattice.md"
             "- `l` (*double, 0*): Length of the chicane, ",
             {
                 "name": "l",
-                "python_name": "length",
+                "python_name": "L",
                 "type": "double",
                 "default": 0,
                 "units": None,

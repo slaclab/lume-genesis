@@ -15,7 +15,7 @@ from . import util
 from .types import Float, ValueType
 
 
-@dataclasses.dataclass
+@dataclasses.dataclass(repr=False)
 class BeamlineElement:
     """Base class for beamline elements used in Genesis 4 lattice files."""
 
@@ -24,8 +24,6 @@ class BeamlineElement:
     _attr_to_parameter_: typing.ClassVar[Dict[str, str]] = dict(
         (v, k) for k, v in _parameter_to_attr_.items()
     )
-
-    label: str
 
     def serialize(self) -> Dict:
         """
@@ -60,30 +58,25 @@ class BeamlineElement:
         raise ValueError(f"Unsupported namelist type: {type_!r}")
 
     @property
-    def parameters(self) -> Dict[str, ValueType]:
+    def genesis_parameters(self) -> Dict[str, ValueType]:
         """Dictionary of parameters to pass to Genesis 4."""
-        skip = {"label"}
-        data = {}
-        for attr in self.__annotations__:
-            if attr.startswith("_") or attr in skip:
-                continue
-            value = getattr(self, attr)
-            default = getattr(type(self), attr, None)
-            if str(value) != str(default):
-                param = self._attr_to_parameter_.get(attr, attr)
-                data[param] = value
-        return data
+        return {
+            self._attr_to_parameter_.get(attr, attr): value
+            for attr, value in util.get_non_default_attrs(self).items()
+        }
 
     def to_genesis(self) -> str:
         """Create a Genesis 4 compatible element from this instance."""
         parameters = ", ".join(
             f"{name}={util.python_to_namelist_value(value)}"
-            for name, value in self.parameters.items()
+            for name, value in self.genesis_parameters.items()
+            if name not in {"label"}
         )
         return "".join(
             (
                 self.label,
-                f": {self._genesis_name_} = " "{",
+                f": {self._genesis_name_} = ",
+                "{",
                 parameters,
                 "};",
             )
@@ -92,8 +85,20 @@ class BeamlineElement:
     def __str__(self) -> str:
         return self.to_genesis()
 
+    def __repr__(self) -> str:
+        return util.get_non_default_repr(self)
 
-@dataclasses.dataclass
+    @property
+    def label(self) -> str:
+        # Note: see subclass 'label' attribute. It's used with the dataclass.
+        raise NotImplementedError("Internal error; subclass should add 'label'")
+
+    @label.setter
+    def label(self, value: str) -> None:
+        raise NotImplementedError("Internal error; subclass should add 'label'")
+
+
+@dataclasses.dataclass(repr=False)
 class Undulator(BeamlineElement):
     r"""
     Lattice beamline element: an undulator.
@@ -142,9 +147,10 @@ class Undulator(BeamlineElement):
     ay: Float = 0
     gradx: Float = 0
     grady: Float = 0
+    label: str = ""
 
 
-@dataclasses.dataclass
+@dataclasses.dataclass(repr=False)
 class Drift(BeamlineElement):
     r"""
     Lattice beamline element: drift.
@@ -153,15 +159,16 @@ class Drift(BeamlineElement):
 
     Attributes
     ----------
-    length : Float, default=0
+    L : Float, default=0
         Length of the drift in meter.
     """
 
     _genesis_name_: typing.ClassVar[str] = "drift"
-    length: Float = 0
+    L: Float = 0
+    label: str = ""
 
 
-@dataclasses.dataclass
+@dataclasses.dataclass(repr=False)
 class Quadrupole(BeamlineElement):
     r"""
     Lattice beamline element: quadrupole.
@@ -170,24 +177,25 @@ class Quadrupole(BeamlineElement):
 
     Attributes
     ----------
-    length : Float, default=0
+    L : Float, default=0
         Length of the quadrupole in meter.
     k1 : Float, default=0
         Normalized focusing strength in 1/m^2.
-    dx : Float, default=0
+    x_offset : Float, default=0
         Offset in $x$ in meter.
-    dy : Float, default=0
+    y_offset : Float, default=0
         Offset in $y$ in meter.
     """
 
     _genesis_name_: typing.ClassVar[str] = "quadrupole"
-    length: Float = 0
+    L: Float = 0
     k1: Float = 0
-    dx: Float = 0
-    dy: Float = 0
+    x_offset: Float = 0
+    y_offset: Float = 0
+    label: str = ""
 
 
-@dataclasses.dataclass
+@dataclasses.dataclass(repr=False)
 class Corrector(BeamlineElement):
     r"""
     Lattice beamline element: corrector.
@@ -196,7 +204,7 @@ class Corrector(BeamlineElement):
 
     Attributes
     ----------
-    length : Float, default=0
+    L : Float, default=0
         Length of the corrector in meter.
     cx : Float, default=0
         Kick angle in $x$ in units of $\gamma \beta_x$.
@@ -205,12 +213,13 @@ class Corrector(BeamlineElement):
     """
 
     _genesis_name_: typing.ClassVar[str] = "corrector"
-    length: Float = 0
+    L: Float = 0
     cx: Float = 0
     cy: Float = 0
+    label: str = ""
 
 
-@dataclasses.dataclass
+@dataclasses.dataclass(repr=False)
 class Chicane(BeamlineElement):
     r"""
     Lattice beamline element: chicane.
@@ -219,7 +228,7 @@ class Chicane(BeamlineElement):
 
     Attributes
     ----------
-    length : Float, default=0
+    L : Float, default=0
         Length of the chicane, which consists out of 4 dipoles without focusing. The
         first and last are placed at the beginning and end of the reserved space. The
         inner ones are defined by the drift length in between. Any remaining distance,
@@ -238,13 +247,14 @@ class Chicane(BeamlineElement):
     """
 
     _genesis_name_: typing.ClassVar[str] = "chicane"
-    length: Float = 0
+    L: Float = 0
     lb: Float = 0
     ld: Float = 0
     delay: Float = 0
+    label: str = ""
 
 
-@dataclasses.dataclass
+@dataclasses.dataclass(repr=False)
 class Phaseshifter(BeamlineElement):
     r"""
     Lattice beamline element: phase shifter.
@@ -253,7 +263,7 @@ class Phaseshifter(BeamlineElement):
 
     Attributes
     ----------
-    length : Float, default=0
+    L : Float, default=0
         Length of the phase shifter in meter.
     phi : Float, default=0
         Change in the ponderomotive phase of the electrons in units of rad. Note that
@@ -262,11 +272,12 @@ class Phaseshifter(BeamlineElement):
     """
 
     _genesis_name_: typing.ClassVar[str] = "phaseshifter"
-    length: Float = 0
+    L: Float = 0
     phi: Float = 0
+    label: str = ""
 
 
-@dataclasses.dataclass
+@dataclasses.dataclass(repr=False)
 class Marker(BeamlineElement):
     r"""
     Lattice beamline element: marker.
@@ -294,3 +305,4 @@ class Marker(BeamlineElement):
     dumpbeam: int = 0
     sort: int = 0
     stop: int = 0
+    label: str = ""

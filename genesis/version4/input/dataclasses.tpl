@@ -46,7 +46,7 @@ class Reference:
         raise ValueError(f"Unexpected type for a Reference in a NameList: {value}")
 
 
-@dataclasses.dataclass
+@dataclasses.dataclass(repr=False)
 class NameList:
     """Base class for name lists used in Genesis 4 main input files."""
     _genesis_name_: typing.ClassVar[str] = "unknown"
@@ -111,25 +111,18 @@ class NameList:
         raise ValueError(f"Unsupported namelist type: {type_!r}")
 
     @property
-    def parameters(self) -> Dict[str, ValueType]:
+    def genesis_parameters(self) -> Dict[str, ValueType]:
         """Dictionary of parameters to pass to Genesis 4."""
-        skip = {}
-        data = {}
-        for attr in self.__annotations__:
-            if attr.startswith("_") or attr in skip:
-                continue
-            value = getattr(self, attr)
-            default = getattr(type(self), attr, None)
-            if str(value) != str(default):
-                param = self._attr_to_parameter_.get(attr, attr)
-                data[param] = value
-        return data
+        return {
+            self._attr_to_parameter_.get(attr, attr): value
+            for attr, value in util.get_non_default_attrs(self).items()
+        }
 
     def to_genesis(self) -> str:
         """Create a Genesis 4-compatible namelist from this instance."""
         parameters = (
             f"  {name} = {util.python_to_namelist_value(value)}"
-            for name, value in self.parameters.items()
+            for name, value in self.genesis_parameters.items()
         )
         return "\n".join(
             (
@@ -141,8 +134,11 @@ class NameList:
 
     def __str__(self) -> str:
         return self.to_genesis()
+
+    def __repr__(self) -> str:
+        return util.get_non_default_repr(self)
 {%- elif base_class == "BeamlineElement" %}
-@dataclasses.dataclass
+@dataclasses.dataclass(repr=False)
 class BeamlineElement:
     """Base class for beamline elements used in Genesis 4 lattice files."""
     _genesis_name_: typing.ClassVar[str] = "unknown"
@@ -150,8 +146,6 @@ class BeamlineElement:
     _attr_to_parameter_: typing.ClassVar[Dict[str, str]] = dict(
         (v, k) for k, v in _parameter_to_attr_.items()
     )
-
-    label: str
 
     def serialize(self) -> Dict:
         """
@@ -191,30 +185,25 @@ class BeamlineElement:
         raise ValueError(f"Unsupported namelist type: {type_!r}")
 
     @property
-    def parameters(self) -> Dict[str, ValueType]:
+    def genesis_parameters(self) -> Dict[str, ValueType]:
         """Dictionary of parameters to pass to Genesis 4."""
-        skip = {"label"}
-        data = {}
-        for attr in self.__annotations__:
-            if attr.startswith("_") or attr in skip:
-                continue
-            value = getattr(self, attr)
-            default = getattr(type(self), attr, None)
-            if str(value) != str(default):
-                param = self._attr_to_parameter_.get(attr, attr)
-                data[param] = value
-        return data
+        return {
+            self._attr_to_parameter_.get(attr, attr): value
+            for attr, value in util.get_non_default_attrs(self).items()
+        }
 
     def to_genesis(self) -> str:
         """Create a Genesis 4 compatible element from this instance."""
         parameters = ", ".join(
             f"{name}={util.python_to_namelist_value(value)}"
-            for name, value in self.parameters.items()
+            for name, value in self.genesis_parameters.items()
+            if name not in {"label"}
         )
         return "".join(
             (
                 self.label,
-                f": {self._genesis_name_} = " "{",
+                f": {self._genesis_name_} = ",
+                "{",
                 parameters,
                 "};",
             )
@@ -222,12 +211,24 @@ class BeamlineElement:
 
     def __str__(self) -> str:
         return self.to_genesis()
+
+    def __repr__(self) -> str:
+        return util.get_non_default_repr(self)
+
+    @property
+    def label(self) -> str:
+        # Note: see subclass 'label' attribute. It's used with the dataclass.
+        raise NotImplementedError("Internal error; subclass should add 'label'")
+
+    @label.setter
+    def label(self, value: str) -> None:
+        raise NotImplementedError("Internal error; subclass should add 'label'")
 {%- endif %}
 {%- for name, element in manual.elements.items() %}
 {%- if element.parameters | length %}
 
 
-@dataclasses.dataclass
+@dataclasses.dataclass(repr=False)
 class {{ name | to_class_name }}({{ base_class }}):
     r"""
     {%- if element.header %}
@@ -261,5 +262,8 @@ class {{ name | to_class_name }}({{ base_class }}):
     {{ param.python_name }}: {{ type_ }}{{ ref_suffix}} {%- if not param.default is none %} = {{ param.default | repr }}{% endif %}
     {%- endif %}
     {%- endfor %}
+    {%- if base_class == "BeamlineElement" %}
+    label: str = ""
+    {%- endif %}
 {%- endif %}
 {%- endfor %}
