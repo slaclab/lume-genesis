@@ -19,10 +19,11 @@ from typing import (
 
 import lark
 import h5py
+from pmd_beamphysics import ParticleGroup
 
 from . import util
 from .generated_lattice import BeamlineElement
-from .generated_main import NameList, Reference, ProfileFile
+from .generated_main import NameList, Reference, ProfileFile, Setup
 from .types import AnyPath, ArrayType, Float, ValueType
 from .util import HiddenDecimal
 
@@ -130,7 +131,7 @@ class Line(BeamlineElement):
             for elem in self.elements
         ]
 
-    def serialize(self) -> Dict:
+    def to_dict(self) -> Dict:
         """
         Get a serialized (dictionary representation) of this beamline element.
         """
@@ -215,13 +216,13 @@ class Lattice:
                     )
                 element.label = label
 
-    def serialize(self) -> Dict[str, Dict]:
+    def to_dict(self) -> Dict[str, Dict]:
         """Serialize this lattice to a list of dictionaries."""
         self.fix_labels()
-        return {label: element.serialize() for label, element in self.elements.items()}
+        return {label: element.to_dict() for label, element in self.elements.items()}
 
     @classmethod
-    def deserialize(
+    def from_dict(
         cls, contents: Dict[str, Dict], filename: Optional[pathlib.Path] = None
     ) -> Lattice:
         """
@@ -238,7 +239,7 @@ class Lattice:
         """
         elements = {}
         for label, dct in contents.items():
-            elements[label] = BeamlineElement.deserialize(dct)
+            elements[label] = BeamlineElement.from_dict(dct)
             elements[label].label = label
         return cls(
             elements=elements,
@@ -339,6 +340,7 @@ class ProfileArray(NameList):
             # for key, value in self.hdf_data.items():
             #     fp[key] = value
             fp.update(self.get_hdf_data())
+        logger.debug("Saved %s to %s", self.label, path)
         return path
 
     def get_hdf_data(self) -> Dict[str, ArrayType]:
@@ -350,8 +352,8 @@ class ProfileArray(NameList):
     def to_profile_file(self) -> ProfileFile:
         return ProfileFile(
             label=self.label,
-            xdata=f"{self._filename}/self._x_label",
-            ydata=f"{self._filename}/self._y_label",
+            xdata=f"{self._filename}/{self._x_label}",
+            ydata=f"{self._filename}/{self._y_label}",
             isTime=self.isTime,
             reverse=self.reverse,
             autoassign=self.autoassign,
@@ -384,14 +386,35 @@ class MainInput:
     filename: Optional[pathlib.Path] = None
 
     def __str__(self) -> str:
+        return self.to_genesis()
+
+    def to_genesis(self) -> str:
         return "\n\n".join(str(namelist) for namelist in self.namelists)
 
-    def serialize(self) -> List[Dict]:
+    @property
+    def by_namelist(self) -> Dict[Type[NameList], List[NameList]]:
+        """Get namelists organized by their class."""
+        by_namelist = {}
+        for namelist in self.namelists:
+            by_namelist.setdefault(type(namelist), [])
+            by_namelist[type(namelist)].append(namelist)
+        return by_namelist
+
+    def get_setup(self) -> Setup:
+        """Get the required setup namelist."""
+        setups = self.by_namelist.get(Setup, [])
+        if len(setups) == 0:
+            raise ValueError("Setup is not defined in the input.")
+        if len(setups) > 1:
+            raise ValueError("Multiple setup namelists were defined in the input. ")
+        return setups[0]
+
+    def to_dicts(self) -> List[Dict]:
         """Serialize this main input to a list of dictionaries."""
-        return [namelist.serialize() for namelist in self.namelists]
+        return [namelist.to_dict() for namelist in self.namelists]
 
     @classmethod
-    def deserialize(
+    def from_dicts(
         cls, contents: Sequence[Dict], filename: Optional[pathlib.Path] = None
     ) -> MainInput:
         """
@@ -407,7 +430,7 @@ class MainInput:
         MainInput
         """
         return cls(
-            namelists=[NameList.deserialize(dct) for dct in contents],
+            namelists=[NameList.from_dict(dct) for dct in contents],
             filename=filename,
         )
 
@@ -451,6 +474,123 @@ class MainInput:
         with open(filename) as fp:
             contents = fp.read()
         return cls.from_contents(contents, filename=filename)
+
+
+@dataclasses.dataclass
+class Genesis4CommandInput:
+    main: MainInput
+    lattice: Lattice
+    initial_particles: Optional[ParticleGroup] = None
+    beamline: Optional[str] = None
+    lattice_name: Optional[str] = None
+    seed: Optional[str] = None
+    output_path: Optional[AnyPath] = None
+    lattice_filename: str = "genesis.lat"
+    input_filename: str = "input.in"
+    particles_filename: str = "genesis4_importdistribution.h5"
+
+    def get_arguments(self, workdir: AnyPath = pathlib.Path(".")) -> List[str]:
+        path = pathlib.Path(workdir)
+        optional_args = []
+        if self.beamline:
+            optional_args.extend(["-b", self.beamline])
+        if self.lattice_name:
+            optional_args.extend(["-l", self.lattice_name])
+        if self.seed is not None:
+            optional_args.extend(["-s", self.seed])
+        if self.output_path is not None:
+            optional_args.extend(["-o", str(path / self.output_path)])
+        return [
+            *optional_args,
+            "-l",
+            str(path / self.lattice_filename),
+            str(path / self.input_filename),
+        ]
+
+    def write(self, workdir: AnyPath = pathlib.Path(".")) -> List[pathlib.Path]:
+        path = pathlib.Path(workdir)
+        path.mkdir(parents=True, mode=0o755, exist_ok=True)
+        with open(path / self.input_filename, "wt") as fp:
+            print(self.main.to_genesis(), file=fp)
+        with open(path / self.lattice_filename, "wt") as fp:
+            print(self.lattice.to_genesis(), file=fp)
+
+        extra_paths = []
+        for idx, namelist in enumerate(self.main.by_namelist.get(ProfileArray, [])):
+            namelist: ProfileArray
+            namelist._filename = f"profile_array_{idx}.h5"
+            extra_paths.append(namelist.write(workdir))
+
+        if self.initial_particles is not None:
+            extra_paths.append(self.write_initial_particles())
+
+        return [path / self.input_filename, path / self.lattice_filename, *extra_paths]
+
+    @contextmanager
+    def write_context(
+        self, workdir: AnyPath
+    ) -> Generator[List[pathlib.Path], None, None]:
+        paths = self.write(workdir)
+        yield paths
+        for path in paths:
+            path.unlink(missing_ok=True)
+
+    def write_initial_particles(self, update_input=True):
+        """
+        Writes initial particles (ParicleGroup) if present.
+
+        """
+        raise NotImplementedError()
+        # # Particles
+        # p.write_genesis4_distribution(fout)
+        # self.vprint(f"Initial particles written to {fout}")
+        #
+        # # Input
+        # if update_input:
+        #     d1 = {"type": "importdistribution", "file": fout, "charge": p.charge}
+        #
+        #     main_input = self.input["main"]
+        #
+        #     # Remove any existing 'beam', update slen
+        #     ixpop = []
+        #     for ix, d in enumerate(main_input):
+        #         if d["type"] == "beam":
+        #             ixpop.append(ix)
+        #         elif d["type"] == "time":
+        #             slen = max(c_light * p.t.ptp(), p.z.ptp())
+        #             d["slen"] = slen
+        #             self.vprint(f"Updated slen = {slen}")
+        #
+        #     if len(ixpop) > 0:
+        #         if len(ixpop) > 1:
+        #             raise NotImplementedError("Multiple 'beam' encountered")
+        #         main_input.pop(ixpop[0])
+        #         self.vprint(
+        #             "Removed 'beam' from input, will be replaced by 'importdistribution'"
+        #         )
+        #     # else:
+        #     #    self.vprint('No existing beam encountered')
+        #
+        #     # look for existing importdistribution
+        #     for ix, d in enumerate(main_input):
+        #         if d["type"] == "importdistribution":
+        #             found = True
+        #             d.update(d1)
+        #             self.vprint("Updated existing importdistribution")
+        #             return
+        #
+        #     # Now try to insert before the first track or write statement
+        #     for ix, d in enumerate(main_input):
+        #         if d["type"] in ("track", "write"):
+        #             main_input.insert(ix, d1)
+        #             self.vprint(
+        #                 f"Added new importdistribution before the first {d['type']}"
+        #             )
+        #             return
+        #
+        #     # Just append at the end. Note that a track will still be needed!
+        #     self.vprint("Nothing found, inserting at the end")
+        #     main_input.append(d1)
 
 
 def new_parser(filename: AnyPath, **kwargs) -> lark.Lark:

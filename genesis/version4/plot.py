@@ -6,7 +6,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 
-def plot_stats(genesis4_object, keys=["beam_xsize", "beam_ysize"], tex=False, **kwargs):
+def plot_stats(genesis4_object, keys=("beam_xsize", "beam_ysize"), tex=False, **kwargs):
     """
     Plots stats
 
@@ -55,7 +55,6 @@ def add_layout_to_axes(
         zmin, zmax = bounds
     ax.set_xlim(zmin, zmax)
 
-    dat = {}
     ax2 = ax.twinx()
 
     ax.set_xlabel(r"$z$ (m)")
@@ -71,8 +70,7 @@ def add_layout_to_axes(
 
         y, factor, prefix = nice_array(fz)
 
-        line = ax1.fill_between(zlist / xfactor, y, color=color, label=label, alpha=0.5)
-        # lines += line
+        ax1.fill_between(zlist / xfactor, y, color=color, label=label, alpha=0.5)
 
         ylabel = f"{label} ({prefix}{units})"
         ax1.set_ylabel(ylabel)
@@ -82,20 +80,16 @@ def add_layout_to_axes(
         ax.legend(lines, labels)
 
 
-from pmd_beamphysics.units import nice_array, nice_scale_prefix
-from pmd_beamphysics.labels import mathlabel
-
-
 def plot_stats_with_layout(
     genesis4_object,
     ykeys="field_energy",
-    ykeys2=[],
+    ykeys2=(),
     xkey="zplot",
     xlim=None,
     ylim=None,
     ylim2=None,
-    yscale='linear',
-    yscale2='linear',
+    yscale="linear",
+    yscale2="linear",
     nice=True,
     tex=False,
     include_layout=True,
@@ -213,7 +207,7 @@ def plot_stats_with_layout(
         # Handle tex labels
         ylabel = mathlabel(*keys, units=unit, tex=tex)
         ax.set_ylabel(ylabel)
-        
+
         # Scaling(e.g. "linear", "log", "symlog", "logit")
         if ix == 0:
             ax.set_yscale(yscale)

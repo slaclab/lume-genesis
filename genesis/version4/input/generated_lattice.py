@@ -25,14 +25,14 @@ class BeamlineElement:
         (v, k) for k, v in _parameter_to_attr_.items()
     )
 
-    def serialize(self) -> Dict:
+    def to_dict(self) -> Dict:
         """
         Get a serialized (dictionary representation) of this beamline element.
         """
         return {"type": self._genesis_name_, **dataclasses.asdict(self)}
 
     @classmethod
-    def deserialize(cls, dct: Dict) -> BeamlineElement:
+    def from_dict(cls, dct: Dict) -> BeamlineElement:
         """
         Deserialize a dictionary into a BeamlineElement instance.
 

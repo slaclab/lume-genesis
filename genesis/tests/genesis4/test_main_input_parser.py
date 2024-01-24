@@ -76,9 +76,9 @@ def test_serialize_file(filename: pathlib.Path) -> None:
     pprint.pprint(inp)
 
     print("Is serialized as follows:")
-    serialized = inp.serialize()
+    serialized = inp.to_dicts()
     pprint.pprint(serialized)
 
     print("Deserialized back to dataclasses:")
-    deserialized = MainInput.deserialize(serialized, filename=filename)
+    deserialized = MainInput.from_dicts(serialized, filename=filename)
     assert inp == deserialized

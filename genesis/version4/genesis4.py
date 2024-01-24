@@ -1,17 +1,29 @@
+import logging
 import os
+import pathlib
 import platform
+import shlex
 import shutil
-from time import time
-import multiprocessing
-import numpy as np
+from time import time, monotonic
+from typing import Optional
+
 import h5py
-from . import parsers, writers, readers
-from .plot import plot_stats_with_layout
+import numpy as np
+from lume import tools
+from lume.base import CommandWrapper
 from pmd_beamphysics import ParticleGroup
 from pmd_beamphysics.interfaces.genesis import genesis4_par_to_data
-from pmd_beamphysics.units import c_light, known_unit, pmd_unit, mec2
-from lume.base import CommandWrapper
-from lume import tools
+from pmd_beamphysics.units import c_light
+
+from genesis.version4.output import Genesis4CommandOutput, RunInfo
+
+from . import parsers, readers, writers
+from .input.core import Genesis4CommandInput
+from .output import projected_variance_from_slice_data
+from .plot import plot_stats_with_layout
+
+logger = logging.getLogger(__name__)
+
 
 def find_mpirun():
     """
@@ -22,25 +34,25 @@ def find_mpirun():
     for p in ["/opt/local/bin/mpirun", "/opt/homebrew/bin/mpirun"]:
         if os.path.exists(p):
             return p + " -n {nproc} {command_mpi}"
-        
-    if os.environ.get('NERSC_HOST') == 'perlmutter':
-        srun = 'srun -n {nproc} --ntasks-per-node {nproc} -c 1 {command_mpi}'
+
+    if os.environ.get("NERSC_HOST") == "perlmutter":
+        srun = "srun -n {nproc} --ntasks-per-node {nproc} -c 1 {command_mpi}"
         hostname = platform.node()
-        assert hostname # This must exist
-        if hostname.startswith('nid'):
+        assert hostname  # This must exist
+        if hostname.startswith("nid"):
             # Compute node
             return srun
         else:
             # This will work on a login node
-            return 'salloc -N {nnode} -C cpu -q interactive -t 04:00:00 ' + srun
-        
-      
-    # Default    
+            return "salloc -N {nnode} -C cpu -q interactive -t 04:00:00 " + srun
+
+    # Default
     return "mpirun -n {nproc} {command_mpi}"
 
+
 def find_workdir():
-    if os.environ.get('NERSC_HOST') == 'perlmutter':
-        return os.environ.get('SCRATCH')
+    if os.environ.get("NERSC_HOST") == "perlmutter":
+        return os.environ.get("SCRATCH")
     else:
         return None
 
@@ -115,7 +127,9 @@ class Genesis4(CommandWrapper):
         # Call configure
         if self.input_file:
             infile = tools.full_path(self.input_file)
-            assert os.path.exists(infile), f"Genesis4 input file does not exist: {infile}"
+            assert os.path.exists(
+                infile
+            ), f"Genesis4 input file does not exist: {infile}"
             self.load_input(self.input_file)
             self.configure()
 
@@ -128,8 +142,6 @@ class Genesis4(CommandWrapper):
         """
         Configure and set up for run.
         """
-
-    def configure(self):
         self.setup_workdir(self._workdir)
         self.vprint("Configured to run in:", self.path)
         self.configured = True
@@ -173,7 +185,6 @@ class Genesis4(CommandWrapper):
         else:
             # Interactive output, for Jupyter
             log = []
-            counter = 0
             for path in tools.execute(runscript.split(), cwd=self.path):
                 self.vprint(path, end="")
                 # print(f'{path.strip()}, elapsed: {time()-t1:5.1f} s')
@@ -232,12 +243,17 @@ class Genesis4(CommandWrapper):
         # _, infile = os.path.split(self.input_file)
         infile = "genesis4.in"
 
-        if self.nproc !=1 and not self.use_mpi:
+        if self.nproc != 1 and not self.use_mpi:
             self.vprint(f"Setting use_mpi = True because nproc = {self.nproc}")
             self.use_mpi = True
 
         if self.use_mpi:
-            runscript = [self.mpi_run.format(nnode=self.nnode, nproc=self.nproc, command_mpi=exe), infile]
+            runscript = [
+                self.mpi_run.format(
+                    nnode=self.nnode, nproc=self.nproc, command_mpi=exe
+                ),
+                infile,
+            ]
         else:
             runscript = [exe, infile]
 
@@ -262,22 +278,22 @@ class Genesis4(CommandWrapper):
     @nproc.setter
     def nproc(self, n):
         self._nproc = n
-        
+
     @property
     def nnode(self):
         """
         Number of MPI nodes to use
         """
         return self._nnode
-    
+
     @nnode.setter
     def nnode(self, n):
-        self._nnode = n        
+        self._nnode = n
 
     @property
     def particles(self):
-        return self.output["particles"]        
-        
+        return self.output["particles"]
+
     @property
     def field(self):
         return self.output["field"]
@@ -302,96 +318,102 @@ class Genesis4(CommandWrapper):
         """
 
         # Derived stats
-        if key.startswith('beam_sigma_'):
+        if key.startswith("beam_sigma_"):
             comp = key[11:]
-            if comp not in ('x', 'px', 'y', 'py', 'energy'):
+            if comp not in ("x", "px", "y", "py", "energy"):
                 raise NotImplementedError(f"Unsupported component for f{key}: '{comp}'")
 
-            current = np.nan_to_num(self.output['Beam/current'])
+            current = np.nan_to_num(self.output["Beam/current"])
 
-            if comp in ('x', 'y'):
-                k2 = f'Beam/{comp}size'
-                k1 = f'Beam/{comp}position'
-            elif comp in ('energy'):
-                k2 = f'Beam/energyspread'
-                k1 = f'Beam/energy'
+            if comp in ("x", "y"):
+                k2 = f"Beam/{comp}size"
+                k1 = f"Beam/{comp}position"
+            elif comp in ("energy"):
+                k2 = "Beam/energyspread"
+                k1 = "Beam/energy"
             else:
                 # TODO: emittance from alpha, beta, etc.
-                raise  NotImplementedError(f"TODO: {key}")
-            x2 = np.nan_to_num(self.output[k2]**2) # <x^2>_islice
-            x1 =  np.nan_to_num(self.output[k1]) # <x>_islice
+                raise NotImplementedError(f"TODO: {key}")
+            x2 = np.nan_to_num(self.output[k2] ** 2)  # <x^2>_islice
+            x1 = np.nan_to_num(self.output[k1])  # <x>_islice
             sigma_X2 = projected_variance_from_slice_data(x2, x1, current)
-            
-            return np.sqrt(sigma_X2) 
+
+            return np.sqrt(sigma_X2)
 
         # Original stats
         key = self.expand_alias(key)
-        
+
         # Peak power
-        if 'power' in key.lower():
-            if 'field' in key.lower():
+        if "power" in key.lower():
+            if "field" in key.lower():
                 dat = self.output[key]
             else:
-                dat = self.output['Field/power']
+                dat = self.output["Field/power"]
             return np.max(dat, axis=1)
-        
-        if key.startswith('Lattice'):
+
+        if key.startswith("Lattice"):
             return self.get_array(key)
-        
-        if key.startswith('Beam'):
+
+        if key.startswith("Beam"):
             dat = self.get_array(key)
-            skey = key.split('/')[1]
-            
+            skey = key.split("/")[1]
+
             # Average over the beam taking to account the weighting (current)
-            current = np.nan_to_num(self.output['Beam/current'])
-        
-            if skey in ('xsize', 'ysize'):
+            current = np.nan_to_num(self.output["Beam/current"])
+
+            if skey in ("xsize", "ysize"):
                 # TODO: emitx, emity
                 # Properly calculated the projected value
                 plane = skey[0]
-                x =  np.nan_to_num(self.output[f'Beam/{plane}position']) # <x>_islice
-                x2 = np.nan_to_num(self.output[f'Beam/{plane}size']**2) # <x^2>_islice
+                x = np.nan_to_num(self.output[f"Beam/{plane}position"])  # <x>_islice
+                x2 = np.nan_to_num(
+                    self.output[f"Beam/{plane}size"] ** 2
+                )  # <x^2>_islice
                 norm = np.sum(current, axis=1)
                 # Total projected sigma_x
-                sigma_x2 = np.sum( (x2 + x**2) * current, axis = 1)/norm - (np.sum(x * current, axis=1)/norm)**2
+                sigma_x2 = (
+                    np.sum((x2 + x**2) * current, axis=1) / norm
+                    - (np.sum(x * current, axis=1) / norm) ** 2
+                )
 
-                output = np.sqrt(sigma_x2)               
-            elif skey == 'bunching':
+                output = np.sqrt(sigma_x2)
+            elif skey == "bunching":
                 # The bunching calc needs to take the phase into account.
-                dat = np.nan_to_num(dat) # Convert any nan to zero for averaging.
-                phase = np.nan_to_num(self.output['Beam/bunchingphase'])
-                output = np.abs(np.sum(np.exp(1j*phase)*dat * current, axis=1)) / np.sum(current, axis=1)
-                         
+                dat = np.nan_to_num(dat)  # Convert any nan to zero for averaging.
+                phase = np.nan_to_num(self.output["Beam/bunchingphase"])
+                output = np.abs(
+                    np.sum(np.exp(1j * phase) * dat * current, axis=1)
+                ) / np.sum(current, axis=1)
+
             else:
                 # Simple stat
-                dat = np.nan_to_num(dat) # Convert any nan to zero for averaging.
+                dat = np.nan_to_num(dat)  # Convert any nan to zero for averaging.
                 output = np.sum(dat * current, axis=1) / np.sum(current, axis=1)
 
             return output
-        
-        elif key.lower() in ['field_energy', 'pulse_energy']:
-            dat = self.output['Field/power']
-            
+
+        elif key.lower() in ["field_energy", "pulse_energy"]:
+            dat = self.output["Field/power"]
+
             # Integrate to get J
             nslice = dat.shape[1]
-            slen = self.output['Global/slen']            
-            ds = slen/nslice
+            slen = self.output["Global/slen"]
+            ds = slen / nslice
             return np.sum(dat, axis=1) * ds / c_light
-            
-        elif key.startswith('Field'):
+
+        elif key.startswith("Field"):
             dat = self.get_array(key)
-            skey = key.split('/')[1]
-            if skey in ['xposition', 'xsize',
-                        'yposition', 'ysize',
-                       ]:
+            skey = key.split("/")[1]
+            if skey in [
+                "xposition",
+                "xsize",
+                "yposition",
+                "ysize",
+            ]:
                 return np.mean(dat, axis=1)
-            
 
-        
         raise ValueError(f"Cannot compute stat for: '{key}'")
-            
 
-        
     def get_array(self, key):
         """
         Gets an array, considering aliases
@@ -402,12 +424,9 @@ class Genesis4(CommandWrapper):
         # Try alias
         key = self.expand_alias(key)
         if key in self.output:
-            return self.output[key]    
-        
-        raise ValueError(f'unknwon key: {key}')
-        
-        
-    
+            return self.output[key]
+
+        raise ValueError(f"unknwon key: {key}")
 
     def archive(self, h5=None):
         """
@@ -435,8 +454,6 @@ class Genesis4(CommandWrapper):
             # fname = os.path.expandvars(h5)
             # g = h5py.File(fname, 'w')
             # self.vprint(f'Archiving to file {fname}')
-        else:
-            g = h5
 
         return h5
 
@@ -468,7 +485,7 @@ class Genesis4(CommandWrapper):
         assert os.path.exists(path)
 
         filePath = os.path.join(path, input_filename)
-        
+
         # Write initial particles
         self.write_initial_particles()
 
@@ -499,75 +516,74 @@ class Genesis4(CommandWrapper):
 
         return d
 
-    
-    def write_initial_particles(self, update_input=True, filename='genesis4_importdistribution.h5'):
+    def write_initial_particles(
+        self, update_input=True, filename="genesis4_importdistribution.h5"
+    ):
         """
         Writes initial particles (ParicleGroup) if present.
-        
+
         """
         p = self.initial_particles
         if not p:
             return
-        
+
         fout = os.path.join(self.path, filename)
-        
+
         # Particles
         p.write_genesis4_distribution(fout)
-        self.vprint(f'Initial particles written to {fout}')
-        
+        self.vprint(f"Initial particles written to {fout}")
+
         # Input
         if update_input:
-            d1 = {'type': 'importdistribution',
-               'file': fout,
-               'charge': p.charge}            
-            
-            main_input = self.input['main']
+            d1 = {"type": "importdistribution", "file": fout, "charge": p.charge}
 
+            main_input = self.input["main"]
 
             # Remove any existing 'beam', update slen
             ixpop = []
             for ix, d in enumerate(main_input):
-                if d['type'] == 'beam':
+                if d["type"] == "beam":
                     ixpop.append(ix)
-                elif d['type'] == 'time':
-                    slen = max(c_light * p.t.ptp() , p.z.ptp() ) 
-                    d['slen'] = slen
+                elif d["type"] == "time":
+                    slen = max(c_light * p.t.ptp(), p.z.ptp())
+                    d["slen"] = slen
                     self.vprint(f"Updated slen = {slen}")
 
             if len(ixpop) > 0:
                 if len(ixpop) > 1:
-                    raise NotImplementedError("Multiple 'beam' encountered")                    
+                    raise NotImplementedError("Multiple 'beam' encountered")
                 main_input.pop(ixpop[0])
-                self.vprint("Removed 'beam' from input, will be replaced by 'importdistribution'")
-            #else:
+                self.vprint(
+                    "Removed 'beam' from input, will be replaced by 'importdistribution'"
+                )
+            # else:
             #    self.vprint('No existing beam encountered')
 
             # look for existing importdistribution
             for ix, d in enumerate(main_input):
-                if d['type'] == 'importdistribution':
-                    found = True
+                if d["type"] == "importdistribution":
                     d.update(d1)
                     self.vprint("Updated existing importdistribution")
                     return
-                
+
             # Now try to insert before the first track or write statement
             for ix, d in enumerate(main_input):
-                if d['type'] in ('track', 'write'):
-                    main_input.insert(ix, d1)          
-                    self.vprint(f"Added new importdistribution before the first {d['type']}")
+                if d["type"] in ("track", "write"):
+                    main_input.insert(ix, d1)
+                    self.vprint(
+                        f"Added new importdistribution before the first {d['type']}"
+                    )
                     return
 
-
-                                              
             # Just append at the end. Note that a track will still be needed!
             self.vprint("Nothing found, inserting at the end")
-            main_input.append(d1)    
+            main_input.append(d1)
 
     def load_output(self, load_fields=False, **kwargs):
         """
         Reads and load into `.output` the outputs generated by the code.
         """
-        
+
         # Main ouput
         outfile = self.input["main"][0]["rootname"] + ".out.h5"
         outfile = os.path.join(self.path, outfile)
@@ -575,7 +591,7 @@ class Genesis4(CommandWrapper):
             outfile = None
             self.vprint("Warning: no main output file was created. Skipping.")
         self.output["outfile"] = outfile
-        
+
         # Extract all data
         if outfile:
             self.vprint(f"Loading main output: {outfile}")
@@ -584,7 +600,7 @@ class Genesis4(CommandWrapper):
             self._units.update(unit)
 
             for k, v in data.items():
-                self.output[k] = v        
+                self.output[k] = v
 
         # Find any field files
         self.output["field"] = {}
@@ -593,7 +609,9 @@ class Genesis4(CommandWrapper):
             for f in os.listdir(self.path)
             if f.endswith("fld.h5")
         ]
-        self.output["field_files"] = sorted(fld_files, key = lambda k: parsers.dumpfile_step(k))
+        self.output["field_files"] = sorted(
+            fld_files, key=lambda k: parsers.dumpfile_step(k)
+        )
 
         # Find any particle files
         self.output["particles"] = {}
@@ -601,10 +619,10 @@ class Genesis4(CommandWrapper):
             os.path.join(self.path, f)
             for f in os.listdir(self.path)
             if f.endswith("par.h5")
-        ]        
-        self.output["particle_files"] = sorted(par_files, key = lambda k: parsers.dumpfile_step(k))
-
-
+        ]
+        self.output["particle_files"] = sorted(
+            par_files, key=lambda k: parsers.dumpfile_step(k)
+        )
 
         self._alias = parsers.extract_aliases(self.output)
         for k, key in self._alias.items():
@@ -615,35 +633,36 @@ class Genesis4(CommandWrapper):
         """
         Loads a single particle file into openPMD-beamphysics
         ParticleGroup object.
-        
-        If smear = True (default), will smear the phase over 
-        the sample (skipped) slices, preserving the modulus. 
+
+        If smear = True (default), will smear the phase over
+        the sample (skipped) slices, preserving the modulus.
         """
-        P = ParticleGroup(data = genesis4_par_to_data(filename, smear=smear))
-        
+        P = ParticleGroup(data=genesis4_par_to_data(filename, smear=smear))
+
         file = os.path.split(filename)[1]
         if file.endswith("par.h5"):
             label = file[:-7]
         else:
             label = file
-            
+
         self.output["particles"][label] = P
-        self.vprint(f"Loaded particle data: '{label}' as a ParticleGroup with {len(P)} particles")
-        
+        self.vprint(
+            f"Loaded particle data: '{label}' as a ParticleGroup with {len(P)} particles"
+        )
+
     def load_particles(self, smear=True):
         """
         Loads all particle files produced.
         """
         for file in self.output["particle_files"]:
-            self.load_particle_file(file, smear=smear)        
-                
+            self.load_particle_file(file, smear=smear)
+
     def load_fields(self):
         """
         Loads all field files produced.
         """
         for file in self.output["field_files"]:
             self.load_field_file(file)
-            
 
     def load_field_file(self, filename):
         """
@@ -670,8 +689,8 @@ class Genesis4(CommandWrapper):
         xlim=None,
         ylim=None,
         ylim2=None,
-        yscale='linear',
-        yscale2='linear',        
+        yscale="linear",
+        yscale2="linear",
         y2=[],
         nice=True,
         include_layout=True,
@@ -698,7 +717,7 @@ class Genesis4(CommandWrapper):
         yscale: str
             one of "linear", "log", "symlog", "logit", ... for the Y axis
         yscale2: str
-            one of "linear", "log", "symlog", "logit", ... for the secondary Y axis      
+            one of "linear", "log", "symlog", "logit", ... for the secondary Y axis
         y2 : list
             List of keys to be displayed on the secondary Y axis
         nice : bool
@@ -718,20 +737,19 @@ class Genesis4(CommandWrapper):
         fig : matplotlib.pyplot.figure.Figure
             The plot figure for further customizations or `None` if `return_figure` is set to False.
         """
-        
-        
+
         # Expand keys
         if isinstance(y, str):
             y = y.split()
-        if isinstance(y2, str):            
+        if isinstance(y2, str):
             y2 = y2.split()
-        
+
         # Special case
         for yk in (y, y2):
             for i, key in enumerate(yk):
-                if 'power' in key:
-                    yk[i] = 'peak_power'   
-        
+                if "power" in key:
+                    yk[i] = "peak_power"
+
         return plot_stats_with_layout(
             self,
             ykeys=y,
@@ -749,17 +767,15 @@ class Genesis4(CommandWrapper):
             return_figure=return_figure,
             **kwargs,
         )
-    
-    
+
     def output_info(self):
-        print('Output data\n')
+        print("Output data\n")
         print("key                       value              unit")
-        print(50*'-')
+        print(50 * "-")
         for k in sorted(list(self.output)):
             line = self.output_description_line(k)
             print(line)
-    
-    
+
     def output_description_line(self, k):
         """
         Returns a line describing an output
@@ -767,57 +783,296 @@ class Genesis4(CommandWrapper):
         v = self.output[k]
         u = self.units(k)
         if u is None:
-            u = ''
-        
+            u = ""
+
         if isinstance(v, dict):
-            return ''
-        
+            return ""
+
         if isinstance(v, str):
             if len(v) > 200:
-                descrip = 'long str: '+ v[0:20].replace('\n', ' ') + '...'
+                descrip = "long str: " + v[0:20].replace("\n", " ") + "..."
             else:
-                descrip = v  
+                descrip = v
         elif np.isscalar(v):
-            descrip = f'{v} {u} '
+            descrip = f"{v} {u} "
         elif isinstance(v, np.ndarray):
-            descrip = f'array: {str(v.shape):10}  {u}'
+            descrip = f"array: {str(v.shape):10}  {u}"
         elif isinstance(v, list):
             descrip = str(v)
         else:
-            raise ValueError(f'Cannot describe {k}')
+            raise ValueError(f"Cannot describe {k}")
 
-            
-        line = f'{k:25} {descrip}'
-        return line    
-
+        line = f"{k:25} {descrip}"
+        return line
 
 
-def projected_variance_from_slice_data(x2, x1, current):
+class Genesis4Python(CommandWrapper):
     """
-    Slice variance data individually removes the mean values.
-    This restores that in a proper projection calc.
+    Genesis 4 command wrapper for Python-defined configurations and lattices.
+
+    Files will be written into a temporary directory within workdir.
+    If workdir=None, a location will be determined by the system.
 
     Parameters
-    ----------
-     x2: numpy.ndarray
-         2D <x^2 - <x> >_islice array
-     x: numpy.ndarray
-         2D <x>_islice
-     current: numpy.ndarray
-         1D current array
+    ---------
+    input_file: str
+        Default: None
 
-    Returns
-    -------
-    projected_variance
-     
-    """    
-    norm = np.sum(current, axis=1)
-    
-    return np.sum( (x2 + x1**2) * current, axis = 1)/norm - (np.sum(x1 * current, axis=1)/norm)**2
+    initial_particle: ParticleGroup
+        Default: None
+
+    command: str
+        Default: "genesis4"
+
+    command_mpi: str
+        Default: "genesis4"
+
+    use_mpi: bool
+        Default: False
+
+    mpi_run: str
+        Default: ""
+
+    use_temp_dir: bool
+        Default: True
+
+    workdir: path-like
+        Default: None
+
+    verbose: bool
+        Default: False
+
+    timeout: float
+        Default: None
 
 
-    
+    """
 
+    COMMAND = "genesis4"
+    COMMAND_MPI = "genesis4"
+    MPI_RUN = find_mpirun()
+    WORKDIR = find_workdir()
 
+    # Environmental variables to search for executables
+    command_env = "GENESIS4_BIN"
+    command_mpi_env = "GENESIS4_BIN"
 
+    input: Genesis4CommandInput
+    output: Optional[Genesis4CommandOutput]
 
+    def __init__(
+        self,
+        input: Genesis4CommandInput,
+        *,
+        initial_particles: Optional[ParticleGroup] = None,
+        command=None,
+        command_mpi=None,
+        use_mpi=False,
+        mpi_run="",
+        use_temp_dir=True,
+        workdir=None,
+        verbose=False,
+        timeout=None,
+        **kwargs,
+    ):
+        super().__init__(
+            initial_particles=initial_particles,
+            command=command,
+            command_mpi=command_mpi,
+            use_mpi=use_mpi,
+            mpi_run=mpi_run,
+            use_temp_dir=use_temp_dir,
+            workdir=workdir,
+            verbose=verbose,
+            timeout=timeout,
+            **kwargs,
+        )
+        # Data
+        self.input = input
+        self.output = None
+
+        # Internal
+        self._units = parsers.known_unit.copy()
+        self._alias = {}
+
+        # MPI
+        self.nproc = 1
+        self.nnode = 1
+
+    def configure(self):
+        """
+        Configure and set up for run.
+        """
+        self.setup_workdir(self._workdir)
+        self.vprint("Configured to run in:", self.path)
+        self.configured = True
+
+    def run(self) -> Genesis4CommandOutput:
+        """
+        Execute the code.
+        """
+        # Auto-configure for convenience
+        if not self.configured:
+            self.configure()
+
+        if self.path is None:
+            raise ValueError("path (base_path) not yet set")
+
+        # Clear output
+        # Run script, gets executables
+        runscript = self.get_run_script()
+
+        start_time = monotonic()
+        self.vprint(f"Running Genesis4 in {self.path}")
+        self.vprint(runscript)
+
+        # Write input
+        self.write_input()
+
+        # if self.timeout:
+        print("Running", runscript)
+        res = tools.execute2(
+            shlex.split(runscript), timeout=self.timeout, cwd=self.path
+        )
+        log = res["log"]
+        error = res["error"]
+        error_reason = res["why_error"]
+        # else:
+        #     # Interactive output, for Jupyter
+        #     log = []
+        #     for line in tools.execute(shlex.split(runscript), cwd=self.path):
+        #         self.vprint(line, end="")
+        #         log.append(line)
+        #     self.vprint("Finished.")
+        #     log = "\n".join(log)
+
+        self.load_output()
+
+        end_time = monotonic()
+        run_time = end_time - start_time
+
+        self.finished = True
+        run_info = RunInfo(
+            run_script=runscript,
+            error=error,
+            error_reason=error_reason,
+            start_time=start_time,
+            end_time=end_time,
+            run_time=run_time,
+            output_log=log,
+        )
+        output = Genesis4CommandOutput.from_input_settings(
+            self.input,
+            workdir=pathlib.Path(self.path),
+            load_fields=False,
+        )
+        output.run = run_info
+        self.output = output
+        return output
+
+    def get_executable(self):
+        """
+        Gets the full path of the executable from .command, .command_mpi
+        Will search environmental variables:
+                Genesis4.command_env='GENESIS4_BIN'
+                Genesis4.command_mpi_env='GENESIS4_BIN'
+        """
+        if self.use_mpi:
+            exe = tools.find_executable(
+                exename=self.command_mpi, envname=self.command_mpi_env
+            )
+        else:
+            exe = tools.find_executable(exename=self.command, envname=self.command_env)
+        return exe
+
+    def get_run_prefix(self):
+        exe = self.get_executable()
+
+        if self.nproc != 1 and not self.use_mpi:
+            self.vprint(f"Setting use_mpi = True because nproc = {self.nproc}")
+            self.use_mpi = True
+
+        if self.use_mpi:
+            return self.mpi_run.format(
+                nnode=self.nnode, nproc=self.nproc, command_mpi=exe
+            )
+        return exe
+
+    def get_run_script(self, write_to_path=False, path=None, scriptname="run"):
+        """
+        Assembles the run script using self.mpi_run string of the form:
+            'mpirun -n {n} {command_mpi}'
+        Optionally writes a file 'run' with this line to path.
+
+        mpi_exe could be a complicated string like:
+            'srun -N 1 --cpu_bind=cores {n} {command_mpi}'
+            or
+            'mpirun -n {n} {command_mpi}'
+        """
+        if self.path is None:
+            raise ValueError("path (base_path) not yet set")
+
+        runscript = [
+            self.get_run_prefix(),
+            *self.input.get_arguments(workdir=self.path),
+        ]
+
+        if write_to_path:
+            raise NotImplementedError("todo")
+            if path is None:
+                path = self.path
+            path = os.path.join(path, scriptname)
+            with open(path, "w") as f:
+                f.write(runscript)
+            tools.make_executable(path)
+        return shlex.join(runscript)
+
+    def write_input(self, path=None):
+        """
+        Write the input parameters into the file.
+
+        Parameters
+        ----------
+        input_filename : str
+            The file in which to write the input parameters
+        """
+        if path is None:
+            path = self.path
+
+        if path is None:
+            raise ValueError("Path has not yet been set; cannot write input.")
+        return self.input.write(workdir=path)
+        # assert os.path.exists(path)
+
+        # filePath = os.path.join(path, input_filename)
+
+        # Write initial particles
+        # TODO
+        # self.write_initial_particles()
+
+        # Write main input file. This should come last.
+        # writers.write_main_input(filePath, self.input["main"])
+
+        # Write run script
+        # self.get_run_script(write_to_path=True, path=path)
+
+    def archive(self, *args, **kwargs):
+        return self.output.archive(*args, **kwargs)
+
+    def load_archive(self, *args, **kwargs):
+        return Genesis4CommandOutput.from_archive(*args, **kwargs)
+
+    def load_output(self, load_fields: bool = False):
+        if self.path is None:
+            raise ValueError("Cannot load the output if path is not set.")
+        return Genesis4CommandOutput.from_input_settings(
+            input=self.input,
+            workdir=pathlib.Path(self.path),
+            load_fields=load_fields,
+        )
+
+    def plot(self, *args, **kwargs):
+        return self.output.plot(*args, **kwargs)
+
+    def input_parser(self, *args, **kwargs):
+        raise NotImplementedError()

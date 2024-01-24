@@ -75,7 +75,7 @@ class NameList:
                     # Update the attribute with the Reference instance.
                     setattr(self, attr, value)
 
-    def serialize(self) -> Dict:
+    def to_dict(self) -> Dict:
         """
         Get a serialized (dictionary representation) of this namelist.
         """
@@ -86,7 +86,7 @@ class NameList:
         }
 
     @classmethod
-    def deserialize(cls, dct: Dict) -> NameList:
+    def from_dict(cls, dct: Dict) -> NameList:
         """
         Deserialize a dictionary into a NameList instance.
 
