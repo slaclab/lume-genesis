@@ -930,7 +930,6 @@ class Genesis4Python(CommandWrapper):
         self.write_input()
 
         # if self.timeout:
-        print("Running", runscript)
         res = tools.execute2(
             shlex.split(runscript), timeout=self.timeout, cwd=self.path
         )
@@ -938,6 +937,7 @@ class Genesis4Python(CommandWrapper):
         error = res["error"]
         error_reason = res["why_error"]
         # else:
+        #     # TODO
         #     # Interactive output, for Jupyter
         #     log = []
         #     for line in tools.execute(shlex.split(runscript), cwd=self.path):
@@ -946,13 +946,18 @@ class Genesis4Python(CommandWrapper):
         #     self.vprint("Finished.")
         #     log = "\n".join(log)
 
-        self.load_output()
-
         end_time = monotonic()
         run_time = end_time - start_time
 
         self.finished = True
-        run_info = RunInfo(
+        try:
+            self.output = self.load_output()
+        except Exception as ex:
+            error = True
+            error_reason = f"Failed to load output file. {ex.__class__.__name__}: {ex}"
+            self.output = Genesis4CommandOutput()
+
+        self.output.run = RunInfo(
             run_script=runscript,
             error=error,
             error_reason=error_reason,
@@ -961,14 +966,7 @@ class Genesis4Python(CommandWrapper):
             run_time=run_time,
             output_log=log,
         )
-        output = Genesis4CommandOutput.from_input_settings(
-            self.input,
-            workdir=pathlib.Path(self.path),
-            load_fields=False,
-        )
-        output.run = run_info
-        self.output = output
-        return output
+        return self.output
 
     def get_executable(self):
         """

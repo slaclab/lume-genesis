@@ -14,16 +14,18 @@ from typing import (
     Sequence,
     Tuple,
     Type,
+    TypeVar,
     Union,
 )
 
 import lark
 import h5py
 from pmd_beamphysics import ParticleGroup
+from pmd_beamphysics.units import c_light
 
 from . import util
 from .generated_lattice import BeamlineElement
-from .generated_main import NameList, Reference, ProfileFile, Setup
+from .generated_main import Importdistribution, NameList, Reference, ProfileFile, Setup
 from .types import AnyPath, ArrayType, Float, ValueType
 from .util import HiddenDecimal
 
@@ -340,7 +342,7 @@ class ProfileArray(NameList):
             # for key, value in self.hdf_data.items():
             #     fp[key] = value
             fp.update(self.get_hdf_data())
-        logger.debug("Saved %s to %s", self.label, path)
+        logger.info("Saved %s to %s", self.label, path)
         return path
 
     def get_hdf_data(self) -> Dict[str, ArrayType]:
@@ -370,6 +372,76 @@ class ProfileArray(NameList):
 
 
 @dataclasses.dataclass
+class InitialParticles(NameList):
+    r"""
+    InitialParticles is a lume-genesis convenience class for generating
+    ``importdistribution`` namelists.
+
+    Attributes
+    ----------
+    particles : ParticleGroup
+        Initial particles.
+    _filename : str, optional
+        By default, this is a randomly-generated filename that lume-genesis
+        manages for you.  If desirable, you may set a fixed filename relative
+        to the main input file.  Path delimiters (such as ``/``) are not
+        allowed.
+    """
+
+    _genesis_name_: ClassVar[str] = ""
+    particles: ParticleGroup
+    _filename: str = dataclasses.field(
+        default_factory=util.get_temporary_filename,
+    )
+
+    @property
+    def slen(self) -> float:
+        """
+        Length of the time window in meters.
+
+        Note that for parallel jobs this might be adjusted towards larger
+        values.
+
+        This can be used to update the Time namelist with information
+        from this initial particle distribution.
+        """
+        return max(
+            c_light * self.particles.t.ptp(),
+            self.particles.z.ptp(),
+        )
+
+    def write(self, base_path: AnyPath) -> pathlib.Path:
+        if "/" in self._filename:
+            raise ValueError(
+                "Filename is not allowed to contain the path separator "
+                "forward slash (/).  Genesis 4 interprets these as part of "
+                "the HDF group."
+            )
+        path = pathlib.Path(base_path) / self._filename
+        self.particles.write_genesis4_distribution(str(path))
+        logger.info("Saved particles to %s", path)
+        return path
+
+    def to_import_distribution(self) -> Importdistribution:
+        return Importdistribution(
+            file=self._filename,
+            charge=self.particles.charge,
+        )
+
+    @contextmanager
+    def write_context(self, base_path: AnyPath) -> Generator[pathlib.Path, None, None]:
+        path = self.write(base_path)
+        yield path
+        path.unlink(missing_ok=True)
+
+    def to_genesis(self) -> str:
+        return self.to_import_distribution().to_genesis()
+
+
+T_NameList = TypeVar("T_NameList", bound=NameList)
+
+
+@dataclasses.dataclass
 class MainInput:
     """
     A Genesis 4 main input configuration file.
@@ -392,7 +464,7 @@ class MainInput:
         return "\n\n".join(str(namelist) for namelist in self.namelists)
 
     @property
-    def by_namelist(self) -> Dict[Type[NameList], List[NameList]]:
+    def by_namelist(self) -> Dict[Type[T_NameList], List[T_NameList]]:
         """Get namelists organized by their class."""
         by_namelist = {}
         for namelist in self.namelists:
@@ -406,7 +478,7 @@ class MainInput:
         if len(setups) == 0:
             raise ValueError("Setup is not defined in the input.")
         if len(setups) > 1:
-            raise ValueError("Multiple setup namelists were defined in the input. ")
+            raise ValueError("Multiple setup namelists were defined in the input.")
         return setups[0]
 
     def to_dicts(self) -> List[Dict]:
@@ -480,7 +552,6 @@ class MainInput:
 class Genesis4CommandInput:
     main: MainInput
     lattice: Lattice
-    initial_particles: Optional[ParticleGroup] = None
     beamline: Optional[str] = None
     lattice_name: Optional[str] = None
     seed: Optional[str] = None
@@ -510,19 +581,34 @@ class Genesis4CommandInput:
     def write(self, workdir: AnyPath = pathlib.Path(".")) -> List[pathlib.Path]:
         path = pathlib.Path(workdir)
         path.mkdir(parents=True, mode=0o755, exist_ok=True)
-        with open(path / self.input_filename, "wt") as fp:
-            print(self.main.to_genesis(), file=fp)
-        with open(path / self.lattice_filename, "wt") as fp:
-            print(self.lattice.to_genesis(), file=fp)
 
         extra_paths = []
-        for idx, namelist in enumerate(self.main.by_namelist.get(ProfileArray, [])):
-            namelist: ProfileArray
-            namelist._filename = f"profile_array_{idx}.h5"
-            extra_paths.append(namelist.write(workdir))
 
-        if self.initial_particles is not None:
-            extra_paths.append(self.write_initial_particles())
+        for cls in (ProfileArray, InitialParticles):
+            for idx, namelist in enumerate(self.main.by_namelist.get(cls, [])):
+                assert isinstance(namelist, cls)
+                namelist._filename = f"{cls.__name__}_{idx}.h5"
+                extra_paths.append(namelist.write(workdir))
+
+        main_config = self.main.to_genesis()
+        with open(path / self.input_filename, "wt") as fp:
+            print(main_config, file=fp)
+
+        logger.debug(
+            "Wrote main config to %s:\n%s",
+            main_config,
+            path / self.input_filename,
+        )
+
+        lattice = self.lattice.to_genesis()
+        with open(path / self.lattice_filename, "wt") as fp:
+            print(lattice, file=fp)
+
+        logger.debug(
+            "Wrote lattice to %s:\n%s",
+            lattice,
+            path / self.lattice_filename,
+        )
 
         return [path / self.input_filename, path / self.lattice_filename, *extra_paths]
 
@@ -534,63 +620,6 @@ class Genesis4CommandInput:
         yield paths
         for path in paths:
             path.unlink(missing_ok=True)
-
-    def write_initial_particles(self, update_input=True):
-        """
-        Writes initial particles (ParicleGroup) if present.
-
-        """
-        raise NotImplementedError()
-        # # Particles
-        # p.write_genesis4_distribution(fout)
-        # self.vprint(f"Initial particles written to {fout}")
-        #
-        # # Input
-        # if update_input:
-        #     d1 = {"type": "importdistribution", "file": fout, "charge": p.charge}
-        #
-        #     main_input = self.input["main"]
-        #
-        #     # Remove any existing 'beam', update slen
-        #     ixpop = []
-        #     for ix, d in enumerate(main_input):
-        #         if d["type"] == "beam":
-        #             ixpop.append(ix)
-        #         elif d["type"] == "time":
-        #             slen = max(c_light * p.t.ptp(), p.z.ptp())
-        #             d["slen"] = slen
-        #             self.vprint(f"Updated slen = {slen}")
-        #
-        #     if len(ixpop) > 0:
-        #         if len(ixpop) > 1:
-        #             raise NotImplementedError("Multiple 'beam' encountered")
-        #         main_input.pop(ixpop[0])
-        #         self.vprint(
-        #             "Removed 'beam' from input, will be replaced by 'importdistribution'"
-        #         )
-        #     # else:
-        #     #    self.vprint('No existing beam encountered')
-        #
-        #     # look for existing importdistribution
-        #     for ix, d in enumerate(main_input):
-        #         if d["type"] == "importdistribution":
-        #             found = True
-        #             d.update(d1)
-        #             self.vprint("Updated existing importdistribution")
-        #             return
-        #
-        #     # Now try to insert before the first track or write statement
-        #     for ix, d in enumerate(main_input):
-        #         if d["type"] in ("track", "write"):
-        #             main_input.insert(ix, d1)
-        #             self.vprint(
-        #                 f"Added new importdistribution before the first {d['type']}"
-        #             )
-        #             return
-        #
-        #     # Just append at the end. Note that a track will still be needed!
-        #     self.vprint("Nothing found, inserting at the end")
-        #     main_input.append(d1)
 
 
 def new_parser(filename: AnyPath, **kwargs) -> lark.Lark:
