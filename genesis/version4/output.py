@@ -11,7 +11,17 @@ import numpy as np
 from pmd_beamphysics import ParticleGroup
 from pmd_beamphysics.interfaces.genesis import genesis4_par_to_data
 from pmd_beamphysics.units import pmd_unit, c_light
-from typing import Any, Dict, List, Optional, Tuple, TypedDict
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    Generic,
+    List,
+    Optional,
+    Tuple,
+    TypeVar,
+    TypedDict,
+)
 
 from .input.types import AnyPath
 from . import parsers, readers
@@ -191,8 +201,33 @@ FieldFileDict = TypedDict(
 )
 
 
-class LazyLoadedFile:
-    ...
+T = TypeVar("T")
+
+
+class LazyLoadHDF5(Generic[T]):
+    """Lazy loading helper."""
+
+    loaded: Optional[T]
+
+    def __init__(self, key: str, filename: pathlib.Path, loader: Callable[..., T]):
+        self.key = key
+        self.filename = filename
+        self.h5 = h5py.File(filename)
+        self._loader = loader
+        self._loaded = None
+
+    def load(self, *args, **kwargs) -> T:
+        if self.h5 is None:
+            assert self._loaded is not None
+            return self._loaded
+        self._loaded = self._loader(self.h5, *args, **kwargs)
+        self.h5.close()
+        self.h5 = None
+        return self._loaded
+
+
+def _load_particle_group(h5: h5py.File, smear: bool = True) -> ParticleGroup:
+    return ParticleGroup(data=genesis4_par_to_data(h5, smear=smear))
 
 
 @dataclasses.dataclass
@@ -218,7 +253,8 @@ class Genesis4Output:
     unit_info: Dict[str, pmd_unit] = dataclasses.field(default_factory=dict, repr=False)
     run: RunInfo = dataclasses.field(default_factory=lambda: RunInfo(), repr=False)
     alias: Dict[str, str] = dataclasses.field(default_factory=dict)
-    particle_files: Dict[str, h5py.File] = dataclasses.field(default_factory=dict)
+    field_files: Dict[str, LazyLoadHDF5] = dataclasses.field(default_factory=dict)
+    particle_files: Dict[str, LazyLoadHDF5] = dataclasses.field(default_factory=dict)
 
     @property
     def beam(self) -> BeamDict:
@@ -255,6 +291,11 @@ class Genesis4Output:
         """Loaded particles."""
         return self.data.get("particles", {})
 
+    @property
+    def fields(self) -> dict:
+        """Loaded fields."""
+        return self.data.get("fields", {})
+
     def _split_data(self, prefix: str) -> Dict[str, Any]:
         res = {}
         for key, value in self.data.items():
@@ -279,7 +320,7 @@ class Genesis4Output:
         cls,
         input: Genesis4Input,
         workdir: pathlib.Path,
-        load_fields=False,
+        load_fields: bool = False,
         load_particles: bool = False,
         smear: bool = True,
     ) -> Genesis4Output:
@@ -346,32 +387,46 @@ class Genesis4Output:
             data, loaded_units = parsers.extract_data_and_unit(h5)
 
         units.update(loaded_units)
+        data["fields"] = {}
         data["particles"] = {}
-        data["fields"] = dict(
-            load_field_file(fn) for fn in output_root.glob("*.fld.h5")
-        )
-
-        # GOAL always load into memory and avoid accesing temporary files
-        # after this point.
-        # TODO user access of these things?
-        particles = {
-            fn.name.split(".")[0]: h5py.File(fn)
-            # ParticleGroup(
-            #     data=genesis4_par_to_data(str(filename), smear=smear)
-            # )
+        fields = [
+            LazyLoadHDF5(
+                key=fn.name,
+                filename=fn,
+                loader=load_field_file,
+            )
+            for fn in output_root.glob("*.fld.h5")
+        ]
+        particles = [
+            LazyLoadHDF5(
+                key=fn.name.split(".")[0],
+                filename=fn,
+                loader=_load_particle_group,
+            )
             for fn in output_root.glob("*.par.h5")
-        }
+        ]
 
         alias = parsers.extract_aliases(data)
         for alias_from, alias_to in alias.items():
             if alias_to in units:
                 units[alias_from] = units[alias_to]
 
+        if load_fields:
+            for field in fields:
+                data["fields"][field.key] = field.load()
+            fields = []
+
+        if load_particles:
+            for particle in particles:
+                data["particles"][particle.key] = particle.load(smear=smear)
+            particles = []
+
         return cls(
             data=data,
             unit_info=units,
             alias=alias,
-            particle_files=particles,
+            field_files={field.key: field for field in fields},
+            particle_files={particle.key: particle for particle in particles},
         )
 
     def load_particles_by_name(self, label: str, smear: bool = True) -> ParticleGroup:
@@ -387,12 +442,8 @@ class Genesis4Output:
             If set, will smear the phase over the sample (skipped) slices,
             preserving the modulus.
         """
-        group = ParticleGroup(
-            data=genesis4_par_to_data(
-                self.particle_files[label],
-                smear=smear,
-            )
-        )
+        lazy = self.particle_files[label]
+        group = lazy.load(smear=smear)
         self.data["particles"][label] = group
         logger.info(
             f"Loaded particle data: '{label}' as a ParticleGroup with "
@@ -403,18 +454,37 @@ class Genesis4Output:
     def load_all_particles(self, smear: bool = True) -> List[str]:
         """
         Loads all particle files produced.
-        """
-        for name in self.particle_files:
-            self.load_particles_by_name(name, smear=smear)
-        return list(self.particle_files)
 
-    # def load_fields(self):
-    #     """
-    #     Loads all field files produced.
-    #     """
-    #     for file in self.data["field_files"]:
-    #         self.load_field_file(file)
-    #
+        Parameters
+        ----------
+        smear : bool, default=True
+            If set, for particles, this will smear the phase over the sample
+            (skipped) slices, preserving the modulus.
+
+        Returns
+        -------
+        list of str
+            Key names of all loaded particles.
+        """
+        to_load = list(self.particle_files)
+        for name in to_load:
+            self.load_particles_by_name(name, smear=smear)
+        return list(to_load)
+
+    def load_all_fields(self) -> List[str]:
+        """
+        Loads all field files produced.
+
+        Returns
+        -------
+        list of str
+            Key names of all loaded fields.
+        """
+        to_load = list(self.field_files)
+        for file in to_load:
+            self.load_field_file(file)
+        return to_load
+
     def units(self, key: str) -> Optional[pmd_unit]:
         """pmd_unit of a given key"""
         return self.unit_info.get(key, None)

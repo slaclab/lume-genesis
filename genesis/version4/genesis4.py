@@ -974,6 +974,7 @@ class Genesis4Python(CommandWrapper):
             error = True
             error_reason = f"Failed to load output file. {ex.__class__.__name__}: {ex}"
             self.output = Genesis4Output()
+            # TODO: dump out details when on Jupyter
 
         self.output.run = RunInfo(
             run_script=runscript,
