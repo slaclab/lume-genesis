@@ -163,12 +163,29 @@ class Line(BeamlineElement):
         *element_labels: str,
         label: str = "",
     ) -> Line:
+        """
+        Create a `Line` from labeled beamline elements.
+
+        Parameters
+        ----------
+        elements : Dict[str, BeamlineElement]
+            The element dictionary.
+        *element_labels : str
+            Labels of elements.  May be either a single label per argument or a
+            whitespace-delimited string of labels.
+        label : str
+            Label name for the line.
+
+        Returns
+        -------
+        Line
+        """
         try:
             return cls(
                 elements=[
                     elements[label]
                     for labels in element_labels
-                    for label in labels.split()
+                    for label in labels.strip().split()
                 ],
                 label=label,
             )
@@ -346,12 +363,14 @@ class ProfileArray(NameList):
         return path
 
     def get_hdf_data(self) -> Dict[str, ArrayType]:
+        """Get all HDF5 data to be written for Genesis 4."""
         return {
             self._x_label: self.xdata,
             self._y_label: self.ydata,
         }
 
     def to_profile_file(self) -> ProfileFile:
+        """Convert this ProfileArray into a 'profile_file' namelist for Genesis 4."""
         return ProfileFile(
             label=self.label,
             xdata=f"{self._filename}/{self._x_label}",
@@ -360,12 +379,6 @@ class ProfileArray(NameList):
             reverse=self.reverse,
             autoassign=self.autoassign,
         )
-
-    @contextmanager
-    def write_context(self, base_path: AnyPath) -> Generator[pathlib.Path, None, None]:
-        path = self.write(base_path)
-        yield path
-        path.unlink(missing_ok=True)
 
     def to_genesis(self) -> str:
         return self.to_profile_file().to_genesis()
@@ -411,6 +424,23 @@ class InitialParticles(NameList):
         )
 
     def write(self, base_path: AnyPath) -> pathlib.Path:
+        """
+        Write the particles to disk for usage with Genesis 4.
+
+        Lume-genesis will assign a filename using this base path. Except for
+        expert-level usage, you should not need to configure the specific
+        filename as it is transparent to the user.
+
+        Parameters
+        ----------
+        base_path : AnyPath
+            The directory to write to.
+
+        Returns
+        -------
+        pathlib.Path
+            [TODO:description]
+        """
         if "/" in self._filename:
             raise ValueError(
                 "Filename is not allowed to contain the path separator "
@@ -427,12 +457,6 @@ class InitialParticles(NameList):
             file=self._filename,
             charge=self.particles.charge,
         )
-
-    @contextmanager
-    def write_context(self, base_path: AnyPath) -> Generator[pathlib.Path, None, None]:
-        path = self.write(base_path)
-        yield path
-        path.unlink(missing_ok=True)
 
     def to_genesis(self) -> str:
         return self.to_import_distribution().to_genesis()
@@ -549,7 +573,35 @@ class MainInput:
 
 
 @dataclasses.dataclass
-class Genesis4CommandInput:
+class Genesis4Input:
+    """
+    All Genesis 4-related command input.
+
+    Attributes
+    ----------
+    main : MainInput
+        The main input. This contains all the namelists, starting with
+        `&setup`.
+    lattice : Lattice
+        The lattice definition.
+    beamline : str, optional
+        Optional override for `beamline` in the setup namelist.
+    lattice_name : str, optional
+        Optional override for `lattice` in the setup namelist.
+    seed : str, optional
+        Optional override for `seed` in the setup namelist.
+    output_path : Optional[AnyPath] = None
+        Optional override for `rootname` in the setup namelist.
+    lattice_filename : str = "genesis.lat"
+        The filename to use when writing the lattice.  As a user,
+        you should not need to worry about this as Genesis4Input will
+        handle it for you.
+    input_filename : str = "input.in"
+        The filename to use when writing the main input file. As a user, you
+        should not need to worry about this as Genesis4Input will handle it for
+        you.
+    """
+
     main: MainInput
     lattice: Lattice
     beamline: Optional[str] = None
@@ -558,9 +610,22 @@ class Genesis4CommandInput:
     output_path: Optional[AnyPath] = None
     lattice_filename: str = "genesis.lat"
     input_filename: str = "input.in"
-    particles_filename: str = "genesis4_importdistribution.h5"
 
     def get_arguments(self, workdir: AnyPath = pathlib.Path(".")) -> List[str]:
+        """
+        Get all of the command-line arguments for running Genesis 4.
+
+        Parameters
+        ----------
+        workdir : str or pathlib.Path
+            The working directory for Genesis 4. This will be where all
+            input and output files are written.
+
+        Returns
+        -------
+        list of str
+            Individual arguments to pass to Genesis 4.
+        """
         path = pathlib.Path(workdir)
         optional_args = []
         if self.beamline:
@@ -579,6 +644,20 @@ class Genesis4CommandInput:
         ]
 
     def write(self, workdir: AnyPath = pathlib.Path(".")) -> List[pathlib.Path]:
+        """
+        Write all input files for executing Genesis 4.
+
+        Parameters
+        ----------
+        workdir : AnyPath
+            The working directory for Genesis 4. This will be where all
+            input and output files are written.
+
+        Returns
+        -------
+        List[pathlib.Path]
+            Paths written.
+        """
         path = pathlib.Path(workdir)
         path.mkdir(parents=True, mode=0o755, exist_ok=True)
 
@@ -616,6 +695,23 @@ class Genesis4CommandInput:
     def write_context(
         self, workdir: AnyPath
     ) -> Generator[List[pathlib.Path], None, None]:
+        """
+        Write all input files for executing Genesis 4.
+
+        This is a context manager. When the context manager exits, all input
+        files will be cleaned up (i.e., deleted from disk).
+
+        Parameters
+        ----------
+        workdir : AnyPath
+            The working directory for Genesis 4. This will be where all
+            input and output files are written.
+
+        Yields
+        ------
+        List[pathlib.Path]
+            Paths written.
+        """
         paths = self.write(workdir)
         yield paths
         for path in paths:

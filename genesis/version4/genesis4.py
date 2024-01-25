@@ -15,10 +15,10 @@ from pmd_beamphysics import ParticleGroup
 from pmd_beamphysics.interfaces.genesis import genesis4_par_to_data
 from pmd_beamphysics.units import c_light
 
-from genesis.version4.output import Genesis4CommandOutput, RunInfo
+from genesis.version4.output import Genesis4Output, RunInfo
 
 from . import parsers, readers, writers
-from .input.core import Genesis4CommandInput
+from .input.core import Genesis4Input, MainInput
 from .output import projected_variance_from_slice_data
 from .plot import plot_stats_with_layout
 
@@ -857,14 +857,13 @@ class Genesis4Python(CommandWrapper):
     command_env = "GENESIS4_BIN"
     command_mpi_env = "GENESIS4_BIN"
 
-    input: Genesis4CommandInput
-    output: Optional[Genesis4CommandOutput]
+    input: Genesis4Input
+    output: Optional[Genesis4Output]
 
     def __init__(
         self,
-        input: Genesis4CommandInput,
+        input: Genesis4Input,
         *,
-        initial_particles: Optional[ParticleGroup] = None,
         command=None,
         command_mpi=None,
         use_mpi=False,
@@ -876,7 +875,6 @@ class Genesis4Python(CommandWrapper):
         **kwargs,
     ):
         super().__init__(
-            initial_particles=initial_particles,
             command=command,
             command_mpi=command_mpi,
             use_mpi=use_mpi,
@@ -907,26 +905,42 @@ class Genesis4Python(CommandWrapper):
         self.vprint("Configured to run in:", self.path)
         self.configured = True
 
-    def run(self) -> Genesis4CommandOutput:
+    def run(
+        self,
+        load_fields: bool = True,
+        load_particles: bool = True,
+        smear: bool = True,
+    ) -> Genesis4Output:
         """
-        Execute the code.
+        Execute Genesis 4 with the configured input settings.
+
+        Parameters
+        ----------
+        load_fields : bool, default=True
+            After execution, load all field files.
+        load_particles : bool, default=True
+            After execution, load all particle files.
+        smear : bool, default=True
+            If set, for particles, this will smear the phase over the sample
+            (skipped) slices, preserving the modulus.
+
+        Returns
+        -------
+        Genesis4Output
+            The output data.
         """
-        # Auto-configure for convenience
         if not self.configured:
             self.configure()
 
         if self.path is None:
             raise ValueError("path (base_path) not yet set")
 
-        # Clear output
-        # Run script, gets executables
         runscript = self.get_run_script()
 
         start_time = monotonic()
         self.vprint(f"Running Genesis4 in {self.path}")
         self.vprint(runscript)
 
-        # Write input
         self.write_input()
 
         # if self.timeout:
@@ -951,11 +965,15 @@ class Genesis4Python(CommandWrapper):
 
         self.finished = True
         try:
-            self.output = self.load_output()
+            self.output = self.load_output(
+                load_fields=load_fields,
+                load_particles=load_particles,
+                smear=smear,
+            )
         except Exception as ex:
             error = True
             error_reason = f"Failed to load output file. {ex.__class__.__name__}: {ex}"
-            self.output = Genesis4CommandOutput()
+            self.output = Genesis4Output()
 
         self.output.run = RunInfo(
             run_script=runscript,
@@ -976,14 +994,13 @@ class Genesis4Python(CommandWrapper):
                 Genesis4.command_mpi_env='GENESIS4_BIN'
         """
         if self.use_mpi:
-            exe = tools.find_executable(
+            return tools.find_executable(
                 exename=self.command_mpi, envname=self.command_mpi_env
             )
-        else:
-            exe = tools.find_executable(exename=self.command, envname=self.command_env)
-        return exe
+        return tools.find_executable(exename=self.command, envname=self.command_env)
 
-    def get_run_prefix(self):
+    def get_run_prefix(self) -> str:
+        """Get the command prefix to run Genesis (e.g., 'mpirun' or 'genesis4')."""
         exe = self.get_executable()
 
         if self.nproc != 1 and not self.use_mpi:
@@ -996,7 +1013,7 @@ class Genesis4Python(CommandWrapper):
             )
         return exe
 
-    def get_run_script(self, write_to_path=False, path=None, scriptname="run"):
+    def get_run_script(self) -> str:
         """
         Assembles the run script using self.mpi_run string of the form:
             'mpirun -n {n} {command_mpi}'
@@ -1015,14 +1032,6 @@ class Genesis4Python(CommandWrapper):
             *self.input.get_arguments(workdir=self.path),
         ]
 
-        if write_to_path:
-            raise NotImplementedError("todo")
-            if path is None:
-                path = self.path
-            path = os.path.join(path, scriptname)
-            with open(path, "w") as f:
-                f.write(runscript)
-            tools.make_executable(path)
         return shlex.join(runscript)
 
     def write_input(self, path=None):
@@ -1040,37 +1049,148 @@ class Genesis4Python(CommandWrapper):
         if path is None:
             raise ValueError("Path has not yet been set; cannot write input.")
         return self.input.write(workdir=path)
-        # assert os.path.exists(path)
-
-        # filePath = os.path.join(path, input_filename)
-
-        # Write initial particles
-        # TODO
-        # self.write_initial_particles()
-
-        # Write main input file. This should come last.
-        # writers.write_main_input(filePath, self.input["main"])
-
-        # Write run script
-        # self.get_run_script(write_to_path=True, path=path)
 
     def archive(self, *args, **kwargs):
+        """Archive the latest run, input and output, to a single HDF5 file."""
+        # TODO
         return self.output.archive(*args, **kwargs)
 
     def load_archive(self, *args, **kwargs):
-        return Genesis4CommandOutput.from_archive(*args, **kwargs)
+        """Load an archive from a single HDF5 file."""
+        return Genesis4Output.from_archive(*args, **kwargs)
 
-    def load_output(self, load_fields: bool = False):
+    def load_output(
+        self,
+        load_fields: bool = True,
+        load_particles: bool = True,
+        smear: bool = True,
+    ) -> Genesis4Output:
+        """
+        Load the Genesis 4 output files from disk.
+
+        Parameters
+        ----------
+        load_fields : bool, default=True
+            Load all field files.
+        load_particles : bool, default=True
+            Load all particle files.
+        smear : bool, default=True
+            If set, this will smear the particle phase over the sample
+            (skipped) slices, preserving the modulus.
+
+        Returns
+        -------
+        Genesis4Output
+        """
         if self.path is None:
             raise ValueError("Cannot load the output if path is not set.")
-        return Genesis4CommandOutput.from_input_settings(
+        return Genesis4Output.from_input_settings(
             input=self.input,
             workdir=pathlib.Path(self.path),
             load_fields=load_fields,
+            load_particles=load_particles,
+            smear=smear,
         )
 
-    def plot(self, *args, **kwargs):
-        return self.output.plot(*args, **kwargs)
+    def plot(
+        self,
+        y="field_energy",
+        x="zplot",
+        xlim=None,
+        ylim=None,
+        ylim2=None,
+        yscale="linear",
+        yscale2="linear",
+        y2=[],
+        nice=True,
+        include_layout=True,
+        include_legend=True,
+        return_figure=False,
+        tex=False,
+        **kwargs,
+    ):
+        """
+        Plots output multiple keys.
 
-    def input_parser(self, *args, **kwargs):
-        raise NotImplementedError()
+        Parameters
+        ----------
+        y : list
+            List of keys to be displayed on the Y axis
+        x : str
+            Key to be displayed as X axis
+        xlim : list
+            Limits for the X axis
+        ylim : list
+            Limits for the Y axis
+        ylim2 : list
+            Limits for the secondary Y axis
+        yscale: str
+            one of "linear", "log", "symlog", "logit", ... for the Y axis
+        yscale2: str
+            one of "linear", "log", "symlog", "logit", ... for the secondary Y axis
+        y2 : list
+            List of keys to be displayed on the secondary Y axis
+        nice : bool
+            Whether or not a nice SI prefix and scaling will be used to
+            make the numbers reasonably sized. Default: True
+        include_layout : bool
+            Whether or not to include a layout plot at the bottom. Default: True
+            Whether or not the plot should include the legend. Default: True
+        return_figure : bool
+            Whether or not to return the figure object for further manipulation.
+            Default: True
+        kwargs : dict
+            Extra arguments can be passed to the specific plotting function.
+
+        Returns
+        -------
+        fig : matplotlib.pyplot.figure.Figure
+            The plot figure for further customizations or `None` if `return_figure` is set to False.
+        """
+        if self.output is None:
+            raise RuntimeError(
+                "Genesis 4 has not yet been run; there is no output to plot."
+            )
+        return self.output.plot(
+            y=y,
+            x=x,
+            xlim=xlim,
+            ylim=ylim,
+            ylim2=ylim2,
+            yscale=yscale,
+            yscale2=yscale2,
+            y2=y2,
+            nice=nice,
+            include_layout=include_layout,
+            include_legend=include_legend,
+            return_figure=return_figure,
+            tex=tex,
+            **kwargs,
+        )
+
+    def stat(self, key: str):
+        """
+        Calculate a statistic of the beam or field along z.
+        """
+        if self.output is None:
+            raise RuntimeError(
+                "Genesis 4 has not yet been run; there is no output to get statistics from."
+            )
+        return self.output.stat(key=key)
+
+    @staticmethod
+    def input_parser(path):
+        """
+        Invoke the specialized input parser and returns the dataclass.
+
+        Parameters
+        ----------
+        path : str
+            Path to the main input file.
+
+        Returns
+        -------
+        MainInput
+            The input dictionary
+        """
+        return MainInput.from_file(path)

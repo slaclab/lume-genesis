@@ -7,7 +7,7 @@ from .core import (
     MainInput,
     ProfileArray,
     InitialParticles,
-    Genesis4CommandInput,
+    Genesis4Input,
 )
 from .generated_lattice import (
     Chicane,
@@ -62,7 +62,7 @@ __all__ = [
     "Quadrupole",
     "Undulator",
     # Main:
-    "Genesis4CommandInput",
+    "Genesis4Input",
     "InitialParticles",
     "MainInput",
     "Setup",
