@@ -101,6 +101,11 @@ def parse_manual_default(default_: str, type_: str) -> Tuple[str, Set[str]]:
 
     if " or " in default:
         raise ValueError(f"Unhandled default option: {default}")
+
+    if type_ == "double" and "vector" not in options:
+        if "e" not in default and "." not in default:
+            default = f"{default}.0"
+
     return default, options
 
 
@@ -266,7 +271,7 @@ def make_dataclasses_from_manual(
         manual=manual,
         type_map={
             "string": "str",
-            "double": "Float",
+            "double": "float",
             "integer": "int",
         },
         docstrings={

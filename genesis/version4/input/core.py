@@ -4,7 +4,6 @@ from contextlib import contextmanager
 
 import dataclasses
 import pathlib
-from decimal import Decimal
 from typing import (
     ClassVar,
     Dict,
@@ -27,7 +26,6 @@ from . import util
 from .generated_lattice import BeamlineElement
 from .generated_main import Importdistribution, NameList, Reference, ProfileFile, Setup
 from .types import AnyPath, ArrayType, Float, ValueType
-from .util import HiddenDecimal
 
 LATTICE_GRAMMAR = pathlib.Path("version4") / "input" / "lattice.lark"
 MAIN_INPUT_GRAMMAR = pathlib.Path("version4") / "input" / "main_input.lark"
@@ -86,7 +84,7 @@ class PositionedLineItem:
         label, position = value.split("@", 1)
         return cls(
             label=label.strip(),
-            position=HiddenDecimal(position.strip()),
+            position=float(position.strip()),
         )
 
     def __str__(self) -> str:
@@ -572,6 +570,17 @@ class MainInput:
         return cls.from_contents(contents, filename=filename)
 
 
+def _split_file(namelist: NameList, attr: str, file: str) -> str:
+    """Get a filename from the namelist."""
+    if attr in ("xdata", "ydata"):
+        # We can't handle paths here, although perhaps lume-genesis
+        # could fix this for users... hmm.
+        return file.split("/")[0]
+    if attr in ("file",):
+        return file
+    raise NotImplementedError(attr)
+
+
 @dataclasses.dataclass
 class Genesis4Input:
     """
@@ -592,6 +601,9 @@ class Genesis4Input:
         Optional override for `seed` in the setup namelist.
     output_path : Optional[AnyPath] = None
         Optional override for `rootname` in the setup namelist.
+    source_path : Optional[AnyPath] = None
+        When using Genesis 4-compatible input as strings, this is the directory
+        where we expect to find other input HDF5 files.
     lattice_filename : str = "genesis.lat"
         The filename to use when writing the lattice.  As a user,
         you should not need to worry about this as Genesis4Input will
@@ -607,6 +619,7 @@ class Genesis4Input:
     beamline: Optional[str] = None
     lattice_name: Optional[str] = None
     seed: Optional[str] = None
+    source_path: pathlib.Path = pathlib.Path(".")
     output_path: Optional[AnyPath] = None
     lattice_filename: str = "genesis.lat"
     input_filename: str = "input.in"
@@ -669,6 +682,18 @@ class Genesis4Input:
                 namelist._filename = f"{cls.__name__}_{idx}.h5"
                 extra_paths.append(namelist.write(workdir))
 
+        for idx, namelist in enumerate(self.main.namelists):
+            for attr in ("xdata", "ydata", "file"):
+                file = getattr(namelist, attr, None)
+                if file:
+                    file = _split_file(namelist, attr, file)
+                    if file:
+                        source_file = self.source_path / file
+                        dest_file = path / file
+                        if not dest_file.is_symlink():
+                            dest_file.symlink_to(source_file)
+                        extra_paths.append(dest_file)
+
         main_config = self.main.to_genesis()
         with open(path / self.input_filename, "wt") as fp:
             print(main_config, file=fp)
@@ -718,10 +743,23 @@ class Genesis4Input:
             path.unlink(missing_ok=True)
 
     @classmethod
-    def from_strings(cls, main: str, lattice: str) -> Genesis4Input:
+    def from_strings(
+        cls,
+        main: str,
+        lattice: str,
+        *,
+        source_path: pathlib.Path = pathlib.Path("."),
+    ) -> Genesis4Input:
+        """
+        Work directly with Genesis 4-compatible inputs.
+
+        If the input refers to files that already exist on disk, ensure
+        that `source_path` is set correctly.
+        """
         return cls(
             main=MainInput.from_contents(main),
             lattice=Lattice.from_contents(lattice),
+            source_path=source_path,
         )
 
 
@@ -808,8 +846,8 @@ def _fix_parameters(
             kwargs[name] = Reference(str(value[1:]).strip())
         elif dtype == "int":
             kwargs[name] = int(value)
-        elif dtype == "Float":
-            kwargs[name] = HiddenDecimal(value)
+        elif dtype == "float":
+            kwargs[name] = float(value)
         elif dtype == "bool":
             kwargs[name] = value.lower() == "true"
         elif dtype == "str":
@@ -896,7 +934,7 @@ class _LatticeTransformer(lark.visitors.Transformer_InPlaceRecursive):
     ) -> PositionedLineItem:
         return PositionedLineItem(
             label=str(label),
-            position=Decimal(position),
+            position=float(position),
         )
 
     @lark.v_args(inline=True)

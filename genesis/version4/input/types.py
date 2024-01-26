@@ -1,6 +1,5 @@
 from __future__ import annotations
 import pathlib
-from decimal import Decimal
 
 import numpy as np
 from typing import TYPE_CHECKING, Sequence, TypedDict, Union
@@ -10,9 +9,9 @@ if TYPE_CHECKING:
 
 
 AnyPath = Union[pathlib.Path, str]
-Float = Union[Decimal, float]
-ValueType = Union[int, Float, bool, str, "Reference"]
-ArrayType = Union[Sequence[Decimal], np.ndarray]
+ValueType = Union[int, float, bool, str, "Reference"]
+ArrayType = Union[Sequence[float], np.ndarray]
+Float = float
 
 
 class SerializedReference(TypedDict):

@@ -4,6 +4,7 @@ import pathlib
 import platform
 import shlex
 import shutil
+import traceback
 from time import time, monotonic
 from typing import Optional, Union
 
@@ -817,10 +818,15 @@ class Genesis4(CommandWrapper):
 def _make_genesis4_input(
     input: Union[pathlib.Path, str],
     lattice_source: Union[pathlib.Path, str] = "",
+    source_path: pathlib.Path = pathlib.Path("."),
 ) -> Genesis4Input:
     def _read_if_path(input: Union[pathlib.Path, str]) -> str:
-        path = pathlib.Path(input)
+        nonlocal source_path
+        path = pathlib.Path(input).resolve()
         if path.exists() or isinstance(input, pathlib.Path):
+            # Update our source path; we found a file.  This is probably what
+            # the user wants.
+            source_path = path.absolute().parent
             with open(path) as fp:
                 return fp.read()
         return input
@@ -839,7 +845,11 @@ def _make_genesis4_input(
             "you must also provide a lattice as a string or filename "
             "(`lattice_source` argument)."
         )
-    return Genesis4Input.from_strings(input, lattice_source)
+    return Genesis4Input.from_strings(
+        input,
+        lattice_source,
+        source_path=source_path,
+    )
 
 
 class Genesis4Python(CommandWrapper):
@@ -898,6 +908,7 @@ class Genesis4Python(CommandWrapper):
         input: Union[Genesis4Input, str, pathlib.Path],
         lattice_source: Union[str, pathlib.Path] = "",
         *,
+        source_path: Union[str, pathlib.Path] = ".",
         command=None,
         command_mpi=None,
         use_mpi=False,
@@ -920,7 +931,11 @@ class Genesis4Python(CommandWrapper):
             **kwargs,
         )
         if not isinstance(input, Genesis4Input):
-            input = _make_genesis4_input(input, lattice_source)
+            input = _make_genesis4_input(
+                input,
+                lattice_source,
+                source_path=pathlib.Path(source_path),
+            )
 
         self.input = input
         self.output = None
@@ -981,7 +996,9 @@ class Genesis4Python(CommandWrapper):
 
         # if self.timeout:
         res = tools.execute2(
-            shlex.split(runscript), timeout=self.timeout, cwd=self.path
+            shlex.split(runscript),
+            timeout=self.timeout,
+            cwd=self.path,
         )
         log = res["log"]
         error = res["error"]
@@ -1008,7 +1025,10 @@ class Genesis4Python(CommandWrapper):
             )
         except Exception as ex:
             error = True
-            error_reason = f"Failed to load output file. {ex.__class__.__name__}: {ex}"
+            stack = traceback.format_exc()
+            error_reason = (
+                f"Failed to load output file. {ex.__class__.__name__}: {ex}\n{stack}"
+            )
             self.output = Genesis4Output()
 
         self.output.run = RunInfo(

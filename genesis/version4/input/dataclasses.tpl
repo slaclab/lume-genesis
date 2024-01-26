@@ -12,7 +12,7 @@ import typing
 from typing import Dict
 
 from . import util
-from .types import Float, SerializedReference, ValueType
+from .types import SerializedReference, ValueType
 
 {% if base_class == "NameList" %}
 @dataclasses.dataclass

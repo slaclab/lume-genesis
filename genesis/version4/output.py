@@ -4,7 +4,6 @@ import dataclasses
 import logging
 import pathlib
 
-# import shutil
 import typing
 
 import h5py
@@ -23,6 +22,7 @@ from typing import (
     Tuple,
     TypeVar,
     TypedDict,
+    Union,
 )
 
 from .input.types import AnyPath
@@ -184,8 +184,8 @@ FieldDict = TypedDict(
 )
 
 
-FieldFileDict = TypedDict(
-    "FieldFileDict",
+FieldFileParamDict = TypedDict(
+    "FieldFileParamDict",
     {
         #  number of gridpoints in one transverse dimension, equal to nx and ny above
         "gridpoints": int,
@@ -199,6 +199,15 @@ FieldFileDict = TypedDict(
         "slicecount": int,
         # slice spacing (meter)
         "slicespacing": float,
+    },
+)
+
+
+FieldFileDict = TypedDict(
+    "FieldFileDict",
+    {
+        "dfl": np.ndarray,
+        "param": FieldFileParamDict,
     },
 )
 
@@ -264,7 +273,7 @@ class Genesis4Output(MutableMapping):
         return typing.cast(BeamDict, self._split_data("Beam/"))
 
     @property
-    def field(self) -> FieldDict:
+    def field_info(self) -> FieldDict:
         """Field-related output information dictionary."""
         return typing.cast(FieldDict, self._split_data("Field/"))
 
@@ -289,14 +298,16 @@ class Genesis4Output(MutableMapping):
         return typing.cast(VersionDict, self._split_data("Meta/Version/"))
 
     @property
+    def field(self) -> dict[str, FieldFileDict]:
+        """Field file convenience dictionary."""
+        return self.data["field"]
+
+    fields = field
+
+    @property
     def particles(self) -> dict:
         """Loaded particles."""
         return self.data.get("particles", {})
-
-    @property
-    def fields(self) -> dict:
-        """Loaded fields."""
-        return self.data.get("fields", {})
 
     def _split_data(self, prefix: str) -> Dict[str, Any]:
         res = {}
@@ -389,11 +400,11 @@ class Genesis4Output(MutableMapping):
             data, loaded_units = parsers.extract_data_and_unit(h5)
 
         units.update(loaded_units)
-        data["fields"] = {}
+        data["field"] = {}
         data["particles"] = {}
         fields = [
             LazyLoadHDF5(
-                key=fn.name,
+                key=fn.name[: -len(".fld.h5")],
                 filename=fn,
                 loader=load_field_file,
             )
@@ -415,7 +426,7 @@ class Genesis4Output(MutableMapping):
 
         if load_fields:
             for field in fields:
-                data["fields"][field.key] = field.load()
+                data["field"][field.key] = field.load()
             fields = []
 
         if load_particles:
@@ -453,7 +464,7 @@ class Genesis4Output(MutableMapping):
         )
         return group
 
-    def load_all_particles(self, smear: bool = True) -> List[str]:
+    def load_particles(self, smear: bool = True) -> List[str]:
         """
         Loads all particle files produced.
 
@@ -473,7 +484,7 @@ class Genesis4Output(MutableMapping):
             self.load_particles_by_name(name, smear=smear)
         return list(to_load)
 
-    def load_all_fields(self) -> List[str]:
+    def load_fields(self) -> List[str]:
         """
         Loads all field files produced.
 
@@ -734,7 +745,7 @@ class Genesis4Output(MutableMapping):
             **kwargs,
         )
 
-    def output_info(self):
+    def info(self):
         print("Output data\n")
         print("key                       value              unit")
         print(50 * "-")
@@ -823,18 +834,24 @@ def projected_variance_from_slice_data(x2, x1, current):
     )
 
 
-def load_field_file(filename: AnyPath) -> Tuple[str, FieldFileDict]:
+def load_field_file(file: Union[AnyPath, h5py.File]) -> Tuple[str, FieldFileDict]:
     """
     Load a single .dfl.h5 file into .output
     """
-    if not h5py.is_hdf5(filename):
-        raise ValueError(f"Field file {filename} is not an HDF5 file")
-    with h5py.File(filename, "r") as h5:
-        dfl, param = readers.load_genesis4_fields(h5)
+    if isinstance(file, h5py.File):
+        dfl, param = readers.load_genesis4_fields(file)
+        filename = file.filename
+    else:
+        filename = pathlib.Path(file)
+        if not h5py.is_hdf5(filename):
+            raise ValueError(f"Field file {filename} is not an HDF5 file")
+
+        with h5py.File(filename, "r") as h5:
+            dfl, param = readers.load_genesis4_fields(h5)
 
     label = pathlib.Path(filename).name
     if label.endswith("fld.h5"):
         label = label[:-7]
 
-    result = {"dfl": dfl, **param}
+    result = {"dfl": dfl, "param": param}
     return label, result

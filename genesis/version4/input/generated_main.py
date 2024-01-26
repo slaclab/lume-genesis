@@ -12,7 +12,7 @@ import typing
 from typing import Dict
 
 from . import util
-from .types import Float, SerializedReference, ValueType
+from .types import SerializedReference, ValueType
 
 
 @dataclasses.dataclass
@@ -164,17 +164,17 @@ class Setup(NameList):
     beamline : str, default=""
         The name of the beamline, which has to be defined within the lattice file. For
         more information on the lattice file, see the next chapter.
-    gamma0 : Float, default=11350.3
+    gamma0 : float, default=11350.3
         The reference energy in unites of the electron rest mass. This is the reference
         energy which is used in the code at various place, mostly in the calculation of
         the matching condition, the reference focusing strength of quadrupoles and
         undulator as well as the default value if an electron distribution is
         generated.
-    lambda0 : Float, default=1e-10
+    lambda0 : float, default=1e-10
         The reference wavelength in meter, which is used as the wavelength in steady-
         state simulation or for defining the sample distance in time-dependent runs. It
         also acts as the default value when field distributions are generated.
-    delz : Float, default=0.015
+    delz : float, default=0.015
         Preferred integration stepsize in meter. Note that this is not a strict value
         because Genesis tries to optimized the stepsize according to the elements it
         can resolve. E.g. if an undulator is 1.99 m long but the preferred stepsize is
@@ -263,9 +263,9 @@ class Setup(NameList):
     outputdir: str = ""
     lattice: str = ""
     beamline: str = ""
-    gamma0: Float = 11350.3
-    lambda0: Float = 1e-10
-    delz: Float = 0.015
+    gamma0: float = 11350.3
+    lambda0: float = 1e-10
+    delz: float = 0.015
     seed: int = 123456789
     npart: int = 8192
     nbins: int = 4
@@ -306,7 +306,7 @@ class AlterSetup(NameList):
         The name of the beamline, which has to be defined within the lattice file. This
         way another beamline can be selected in the case the simulation has multiple
         stages
-    delz : Float, default=0.0
+    delz : float, default=0.0
         Preferred integration stepsize in meter. Note that this is not a strict value
         because Genesis tries to optimized the stepsize according to the elements it
         can resolve. E.g. if an undulator is 1.99 m long but the preferred stepsize is
@@ -346,7 +346,7 @@ class AlterSetup(NameList):
     _genesis_name_: typing.ClassVar[str] = "alter_setup"
     rootname: str = ""
     beamline: str = ""
-    delz: Float = 0.0
+    delz: float = 0.0
     harmonic: int = 1
     subharmonic: int = 1
     resample: bool = False
@@ -364,7 +364,7 @@ class Lattice(NameList):
 
     Attributes
     ----------
-    zmatch : Float, default=0
+    zmatch : float, default=0.0
         If the position within the undulator in meter is non-zero than Genesis tries to
         calculate the matched optics function for a periodic solution. In the case that
         it cannot find a solution than it will report it. Found solution will also be
@@ -382,7 +382,7 @@ class Lattice(NameList):
         attribute name for a given element. The names are the same as in the definition
         of the lattice file. The field acts as a filter again. With non-matching events
         nothing will be changed.
-    value : Float, default=0
+    value : float, default=0.0
         The new value. If a reference to a sequence is used, values can be different
         depending on how many elements are changed. For a double the value would be the
         same for all elements affected.
@@ -400,10 +400,10 @@ class Lattice(NameList):
     """
 
     _genesis_name_: typing.ClassVar[str] = "lattice"
-    zmatch: Float = 0
+    zmatch: float = 0.0
     element: str = ""
     field: str = ""
-    value: Float | Reference = 0
+    value: float | Reference = 0.0
     instance: int = 0
     add: bool = True
     resolvePeriod: bool = False
@@ -435,9 +435,9 @@ class Time(NameList):
 
     Attributes
     ----------
-    s0 : Float, default=0
+    s0 : float, default=0.0
         Starting point of the time-window in meters.
-    slen : Float, default=0
+    slen : float, default=0.0
         Length of the time window in meters. Note that for parallel jobs this might be
         adjusted towards larger values.
     sample : int, default=1
@@ -453,8 +453,8 @@ class Time(NameList):
     """
 
     _genesis_name_: typing.ClassVar[str] = "time"
-    s0: Float = 0
-    slen: Float = 0
+    s0: float = 0.0
+    slen: float = 0.0
     sample: int = 1
     time: bool = True
 
@@ -469,13 +469,13 @@ class ProfileConst(NameList):
     ----------
     label : str
         Name of the profile, which is used to refer to it in later calls of namelists
-    c0 : Float, default=0
+    c0 : float, default=0.0
         constant value to be used.
     """
 
     _genesis_name_: typing.ClassVar[str] = "profile_const"
     label: str
-    c0: Float = 0
+    c0: float = 0.0
 
 
 @dataclasses.dataclass(repr=False)
@@ -488,19 +488,19 @@ class ProfileGauss(NameList):
     ----------
     label : str
         Name of the profile, which is used to refer to it in later calls of namelists
-    c0 : Float, default=0
+    c0 : float, default=0.0
         Maximum function value of the Gaussian distribution
-    s0 : Float, default=0
+    s0 : float, default=0.0
         Center point of the Gaussian distribution
-    sig : Float, default=0
+    sig : float, default=0.0
         Standard deviation of the Gaussian distribution
     """
 
     _genesis_name_: typing.ClassVar[str] = "profile_gauss"
     label: str
-    c0: Float = 0
-    s0: Float = 0
-    sig: Float = 0
+    c0: float = 0.0
+    s0: float = 0.0
+    sig: float = 0.0
 
 
 @dataclasses.dataclass(repr=False)
@@ -513,19 +513,19 @@ class ProfileStep(NameList):
     ----------
     label : str
         Name of the profile, which is used to refer to it in later calls of namelists
-    c0 : Float, default=0
+    c0 : float, default=0.0
         Constant term
-    s_start : Float, default=0
+    s_start : float, default=0.0
         Starting point of the step function
-    s_end : Float, default=0
+    s_end : float, default=0.0
         Ending point of the step function
     """
 
     _genesis_name_: typing.ClassVar[str] = "profile_step"
     label: str
-    c0: Float = 0
-    s_start: Float = 0
-    s_end: Float = 0
+    c0: float = 0.0
+    s_start: float = 0.0
+    s_end: float = 0.0
 
 
 @dataclasses.dataclass(repr=False)
@@ -538,25 +538,25 @@ class ProfilePolynom(NameList):
     ----------
     label : str
         Name of the profile, which is used to refer to it in later calls of namelists
-    c0 : Float, default=0
+    c0 : float, default=0.0
         Constant term
-    c1 : Float, default=0
+    c1 : float, default=0.0
         Term proportional to s
-    c2 : Float, default=0
+    c2 : float, default=0.0
         Term proportional to s^2
-    c3 : Float, default=0
+    c3 : float, default=0.0
         Term proportional to s^3
-    c4 : Float, default=0
+    c4 : float, default=0.0
         Term proportional to s^4
     """
 
     _genesis_name_: typing.ClassVar[str] = "profile_polynom"
     label: str
-    c0: Float = 0
-    c1: Float = 0
-    c2: Float = 0
-    c3: Float = 0
-    c4: Float = 0
+    c0: float = 0.0
+    c1: float = 0.0
+    c2: float = 0.0
+    c3: float = 0.0
+    c4: float = 0.0
 
 
 @dataclasses.dataclass(repr=False)
@@ -604,13 +604,13 @@ class SequenceConst(NameList):
     ----------
     label : str
         Name of the sequence, which is used to refer to it in the lattice
-    c0 : Float, default=0
+    c0 : float, default=0.0
         constant value to be used.
     """
 
     _genesis_name_: typing.ClassVar[str] = "sequence_const"
     label: str
-    c0: Float = 0
+    c0: float = 0.0
 
 
 @dataclasses.dataclass(repr=False)
@@ -623,25 +623,25 @@ class SequencePolynom(NameList):
     ----------
     label : str
         Name of the sequence, which is used to refer to it in the lattice
-    c0 : Float, default=0
+    c0 : float, default=0.0
         Constant term
-    c1 : Float, default=0
+    c1 : float, default=0.0
         Term proportional to s
-    c2 : Float, default=0
+    c2 : float, default=0.0
         Term proportional to s^2
-    c3 : Float, default=0
+    c3 : float, default=0.0
         Term proportional to s^3
-    c4 : Float, default=0
+    c4 : float, default=0.0
         Term proportional to s^4
     """
 
     _genesis_name_: typing.ClassVar[str] = "sequence_polynom"
     label: str
-    c0: Float = 0
-    c1: Float = 0
-    c2: Float = 0
-    c3: Float = 0
-    c4: Float = 0
+    c0: float = 0.0
+    c1: float = 0.0
+    c2: float = 0.0
+    c3: float = 0.0
+    c4: float = 0.0
 
 
 @dataclasses.dataclass(repr=False)
@@ -654,11 +654,11 @@ class SequencePower(NameList):
     ----------
     label : str
         Name of the sequence, which is used to refer to it in the lattice
-    c0 : Float, default=0
+    c0 : float, default=0.0
         Constant term
-    dc : Float, default=0
+    dc : float, default=0.0
         Term scaling the growing power series before added to the constant term
-    alpha : Float, default=0
+    alpha : float, default=0.0
         power of the series
     n0 : int, default=1
         starting index of power growth. Otherwise the sequence uses only the constant
@@ -667,9 +667,9 @@ class SequencePower(NameList):
 
     _genesis_name_: typing.ClassVar[str] = "sequence_power"
     label: str
-    c0: Float = 0
-    dc: Float = 0
-    alpha: Float = 0
+    c0: float = 0.0
+    dc: float = 0.0
+    alpha: float = 0.0
     n0: int = 1
 
 
@@ -683,9 +683,9 @@ class SequenceRandom(NameList):
     ----------
     label : str
         Name of the sequence, which is used to refer to it in the lattice
-    c0 : Float, default=0
+    c0 : float, default=0.0
         Mean value
-    dc : Float, default=0
+    dc : float, default=0.0
         Amplitude of the error, either the standard division for normal distribution or
         the min and max value for uniform distribution.
     seed : int, default=100
@@ -696,8 +696,8 @@ class SequenceRandom(NameList):
 
     _genesis_name_: typing.ClassVar[str] = "sequence_random"
     label: str
-    c0: Float = 0
-    dc: Float = 0
+    c0: float = 0.0
+    dc: float = 0.0
     seed: int = 100
     normal: bool = True
 
@@ -712,66 +712,66 @@ class Beam(NameList):
 
     Attributes
     ----------
-    gamma : Float, default=0.0
+    gamma : float, default=0.0
         Mean energy in units of the electron rest mass. If default value is given by
         the reference energy from the `setup`-namelist.
-    delgam : Float, default=0
+    delgam : float, default=0.0
         RMS energy spread in units of the electron rest mass.
-    current : Float, default=1000
+    current : float, default=1000.0
         Current in Amperes.
-    ex : Float, default=3e-07
+    ex : float, default=3e-07
         Normalized emittance in $x$ in units of meters
-    ey : Float, default=3e-07
+    ey : float, default=3e-07
         Normalized emittance in $y$ in units of meters
-    betax : Float, default=15
+    betax : float, default=15.0
         Initial beta-function in $x$ in meters. If the matched command has been invoked
         before the default values are set to the results.
-    betay : Float, default=15
+    betay : float, default=15.0
         Initial beta-function in $y$ in meters. If the matched command has been invoked
         before the default values are set to the results.
-    alphax : Float, default=0
+    alphax : float, default=0.0
         Initial alpha-function in $x$. If the matched command has been invoked before
         the default values are set to the results.
-    alphay : Float, default=0
+    alphay : float, default=0.0
         Initial alpha-function in $y$. If the matched command has been invoked before
         the default values are set to the results.
-    xcenter : Float, default=0
+    xcenter : float, default=0.0
         Initial centroid position in $x$ in meter.
-    ycenter : Float, default=0
+    ycenter : float, default=0.0
         Initial centroid position in $y$ in meter.
-    pxcenter : Float, default=0
+    pxcenter : float, default=0.0
         Initial centroid momentum in $x$ in units of $\gamma \beta_x$.
-    pycenter : Float, default=0
+    pycenter : float, default=0.0
         Initial centroid momentum in $y$ in units $\gamma \beta_y$.
-    bunch : Float, default=0
+    bunch : float, default=0.0
         Initial bunching value
-    bunchphase : Float, default=0
+    bunchphase : float, default=0.0
         Initial phase of the bunching
-    emod : Float, default=0
+    emod : float, default=0.0
         Initial energy modulation in units of the electron rest mass. This modulation
         is on the scale of the reference wavelength
-    emodphase : Float, default=0
+    emodphase : float, default=0.0
         Initial phase of the energy modulation
     """
 
     _genesis_name_: typing.ClassVar[str] = "beam"
-    gamma: Float | Reference = 0.0
-    delgam: Float | Reference = 0
-    current: Float | Reference = 1000
-    ex: Float | Reference = 3e-07
-    ey: Float | Reference = 3e-07
-    betax: Float | Reference = 15
-    betay: Float | Reference = 15
-    alphax: Float | Reference = 0
-    alphay: Float | Reference = 0
-    xcenter: Float | Reference = 0
-    ycenter: Float | Reference = 0
-    pxcenter: Float | Reference = 0
-    pycenter: Float | Reference = 0
-    bunch: Float | Reference = 0
-    bunchphase: Float | Reference = 0
-    emod: Float | Reference = 0
-    emodphase: Float | Reference = 0
+    gamma: float | Reference = 0.0
+    delgam: float | Reference = 0.0
+    current: float | Reference = 1000.0
+    ex: float | Reference = 3e-07
+    ey: float | Reference = 3e-07
+    betax: float | Reference = 15.0
+    betay: float | Reference = 15.0
+    alphax: float | Reference = 0.0
+    alphay: float | Reference = 0.0
+    xcenter: float | Reference = 0.0
+    ycenter: float | Reference = 0.0
+    pxcenter: float | Reference = 0.0
+    pycenter: float | Reference = 0.0
+    bunch: float | Reference = 0.0
+    bunchphase: float | Reference = 0.0
+    emod: float | Reference = 0.0
+    emodphase: float | Reference = 0.0
 
 
 @dataclasses.dataclass(repr=False)
@@ -787,31 +787,31 @@ class Field(NameList):
 
     Attributes
     ----------
-    lambda_ : Float, default=0.0
+    lambda_ : float, default=0.0
         Central frequency of the radiation mode. The default value is the reference
         wavelength from the `setup`-namelist.
-    power : Float, default=0
+    power : float, default=0.0
         Radiation power in Watts
-    phase : Float, default=0
+    phase : float, default=0.0
         radiation phase in rads. Note that a linear profile results in a shift in the
         radiation wavelength, which is also the method if for the variable `lambda` a
         different value than the reference wavelength is used. In case of conflicts the
         profile for the phase definition has priority.
-    waist_pos : Float, default=0
+    waist_pos : float, default=0.0
         Position where the focal point is located relative to the undulator entrance.
         Negative values place it before, resulting in a diverging radiation field.
-    waist_size : Float, default=1e-07
+    waist_size : float, default=1e-07
         Waist size according to the definition of $w_0$ according to Siegman’s ’Laser’
         handbook
-    xcenter : Float, default=0
+    xcenter : float, default=0.0
         Center position in $x$ in meter of the Gauss-Hermite mode
-    ycenter : Float, default=0
+    ycenter : float, default=0.0
         Center position in $y$ in meter of the Gauss-Hermite mode
-    xangle : Float, default=0
+    xangle : float, default=0.0
         Injection angle in $x$ in rad of the Gauss-Hermite mode
-    yangle : Float, default=0
+    yangle : float, default=0.0
         Injection angle in $y$ in rad of the Gauss-Hermite mode
-    dgrid : Float, default=0.001
+    dgrid : float, default=0.001
         Grid extension from the center to one edge. The whole grid is twice as large
         with 0 as the center position
     ngrid : int, default=151
@@ -831,16 +831,16 @@ class Field(NameList):
     """
 
     _genesis_name_: typing.ClassVar[str] = "field"
-    lambda_: Float = 0.0
-    power: Float | Reference = 0
-    phase: Float | Reference = 0
-    waist_pos: Float | Reference = 0
-    waist_size: Float | Reference = 1e-07
-    xcenter: Float = 0
-    ycenter: Float = 0
-    xangle: Float = 0
-    yangle: Float = 0
-    dgrid: Float = 0.001
+    lambda_: float = 0.0
+    power: float | Reference = 0.0
+    phase: float | Reference = 0.0
+    waist_pos: float | Reference = 0.0
+    waist_size: float | Reference = 1e-07
+    xcenter: float = 0.0
+    ycenter: float = 0.0
+    xangle: float = 0.0
+    yangle: float = 0.0
+    dgrid: float = 0.001
     ngrid: int = 151
     harm: int = 1
     nx: int = 0
@@ -867,10 +867,10 @@ class Importdistribution(NameList):
     ----------
     file : str, default=""
         The file name of the distribution, including possible relative directories.
-    charge : Float, default=0
+    charge : float, default=0.0
         Total charge of the distribution to calculate the current and individual charge
         per macro particle.
-    slicewidth : Float, default=0.01
+    slicewidth : float, default=0.01
         the fraction in length of the distribution which is used for reconstruction.
         E.g if the length is 10 micron and slic ewidth 0.02 then the reconstruction at
         the positions $s= 4\,\mu m$ is using those particles in the distribution, which
@@ -878,62 +878,62 @@ class Importdistribution(NameList):
     center : bool, default=False
         If set to true the particle distribution is recentered in transverse position,
         momenta and energy.
-    gamma0 : Float, default=0.0
+    gamma0 : float, default=0.0
         If centering is enabled, new center in energy in units of electron rest mass.
-    x0 : Float, default=0
+    x0 : float, default=0.0
         If centering is enabled, new center in $x$ in meter.
-    y0 : Float, default=0
+    y0 : float, default=0.0
         If centering is enabled, new center in $y$ in meter.
-    px0 : Float, default=0
+    px0 : float, default=0.0
         If centering is enabled, new mean momentum in $x$ in $\gamma \beta_x$.
-    py0 : Float, default=0
+    py0 : float, default=0.0
         If centering is enabled, new mean momentum in y in $\gamma \beta_y$.
     match : bool, default=False
         If set to `true`, the particle distribution is matched to new optical function
         values.
-    betax : Float, default=15
+    betax : float, default=15.0
         If matching is enabled, new beta function in $x$ in meters.
-    betay : Float, default=15
+    betay : float, default=15.0
         If matching is enabled, new beta function in $y$ in meters.
-    alphax : Float, default=0
+    alphax : float, default=0.0
         If matching is enabled, new alpha function in $x$.
-    alphay : Float, default=0
+    alphay : float, default=0.0
         If matching is enabled, new alpha function in $y$.
-    eval_start : Float, default=0
+    eval_start : float, default=0.0
         evaluation start.
-    eval_end : Float, default=1
+    eval_end : float, default=1.0
         evaluation end.
     settimewindow : bool, default=True
         set time window.
     align : int, default=0
         currently unused.
-    align_start : Float, default=0
+    align_start : float, default=0.0
         currently unused.
-    align_end : Float, default=1
+    align_end : float, default=1.0
         currently unused.
     """
 
     _genesis_name_: typing.ClassVar[str] = "importdistribution"
     file: str = ""
-    charge: Float = 0
-    slicewidth: Float = 0.01
+    charge: float = 0.0
+    slicewidth: float = 0.01
     center: bool = False
-    gamma0: Float = 0.0
-    x0: Float = 0
-    y0: Float = 0
-    px0: Float = 0
-    py0: Float = 0
+    gamma0: float = 0.0
+    x0: float = 0.0
+    y0: float = 0.0
+    px0: float = 0.0
+    py0: float = 0.0
     match: bool = False
-    betax: Float = 15
-    betay: Float = 15
-    alphax: Float = 0
-    alphay: Float = 0
-    eval_start: Float = 0
-    eval_end: Float = 1
+    betax: float = 15.0
+    betay: float = 15.0
+    alphax: float = 0.0
+    alphay: float = 0.0
+    eval_start: float = 0.0
+    eval_end: float = 1.0
     settimewindow: bool = True
     align: int = 0
-    align_start: Float = 0
-    align_end: Float = 1
+    align_start: float = 0.0
+    align_end: float = 1.0
 
 
 @dataclasses.dataclass(repr=False)
@@ -1027,7 +1027,7 @@ class Importtransformation(NameList):
     matrix : str, default=""
         Name of the dataset which contains the matrix information. The shape must be
         either (6,6) or (n,6,6)
-    slen : Float, default=0
+    slen : float, default=0.0
         The length in meters between adjacent sample points (n>1), needed for the
         interpolation. If the value is zero only a global transformation is applied
         using the first entry.
@@ -1037,7 +1037,7 @@ class Importtransformation(NameList):
     file: str = ""
     vector: str = ""
     matrix: str = ""
-    slen: Float = 0
+    slen: float = 0.0
 
 
 @dataclasses.dataclass(repr=False)
@@ -1058,7 +1058,7 @@ class Efield(NameList):
     ----------
     longrange : bool, default=False
         Flag to enable the calculation of the long range space charge field.
-    rmax : Float, default=0
+    rmax : float, default=0.0
         Size of radial grid in meters. If the beam size gets larger than the grid the
         size is automatically adjusted to the maximum radius of the electrons with an
         additional 50% extension. When the mesh size is adjusted a message will be
@@ -1076,7 +1076,7 @@ class Efield(NameList):
 
     _genesis_name_: typing.ClassVar[str] = "efield"
     longrange: bool = False
-    rmax: Float = 0
+    rmax: float = 0.0
     nz: int = 0
     nphi: int = 0
     ngrid: int = 100
@@ -1127,20 +1127,20 @@ class Wake(NameList):
 
     Attributes
     ----------
-    loss : Float, default=0
+    loss : float, default=0.0
         Loss in $eV/m$. This is a global loss function (in particular if a profile is
         defined). Its function values V(s) remains unchanged even if the current
         profile changes
-    radius : Float, default=0.0025
+    radius : float, default=0.0025
         Radius of the aperture if it is a round chanber or half the distance in the
         case of two parallel plates.
     roundpipe : bool, default=True
         Flag to indicate the shape of the transverse cross-section of the aperture. If
         set to `true`, a round aperture is assumed, otherwise the model has two
         parallel plates.
-    conductivity : Float, default=0
+    conductivity : float, default=0.0
         Conductivity of the vacuum material for the resistive wall wakefield function
-    relaxation : Float, default=0
+    relaxation : float, default=0.0
         Relaxation distance (aka the mean free path of the electron in the vacuum
         material) for the resistive wall wakefields
     material : str, default=""
@@ -1148,16 +1148,16 @@ class Wake(NameList):
         or aluminum by using the two character label ’CU’ or ’AL’ repectively. This
         overwrites also any explicit definition of the conductivity and relaxation
         value.
-    gap : Float, default=0
+    gap : float, default=0.0
         Length in mm of a longitudinal gap in the aperture, exciting geometric wakes.
-    lgap : Float, default=1.0
+    lgap : float, default=1.0
         Effective length over which a single gap is applied. E.g. if there is a
         periodicity of 4.5 m at which there is always the same gap in the aperture for
         the geometrice wakes, then this value should be put to 4.5 m.
-    hrough : Float, default=0
+    hrough : float, default=0.0
         Amplitude in meters of a sinusoidal corrugation, modeling the effect of surface
         roughness wakes.
-    lrough : Float, default=1
+    lrough : float, default=1.0
         period lengthin meters of the sinusoidal corrugation of the surface roughness
         model.
     transient : bool, default=False
@@ -1168,7 +1168,7 @@ class Wake(NameList):
         `ztrans`. If set to false the steady-state model is used, effectively setting
         `ztrans` to infinity. Enabling transient calculation will update the wakefield
         at each integration step, which can slow down the calculations.
-    ztrans : Float, default=0
+    ztrans : float, default=0.0
         Reference location of the first source of the wake fields. A positive value
         means that the condition for wakes (e.g. a small aperture in the vacuum
         chamber) has already started and there has been already some length to
@@ -1178,18 +1178,18 @@ class Wake(NameList):
     """
 
     _genesis_name_: typing.ClassVar[str] = "wake"
-    loss: Float | Reference = 0
-    radius: Float = 0.0025
+    loss: float | Reference = 0.0
+    radius: float = 0.0025
     roundpipe: bool = True
-    conductivity: Float = 0
-    relaxation: Float = 0
+    conductivity: float = 0.0
+    relaxation: float = 0.0
     material: str = ""
-    gap: Float = 0
-    lgap: Float = 1.0
-    hrough: Float = 0
-    lrough: Float = 1
+    gap: float = 0.0
+    lgap: float = 1.0
+    hrough: float = 0.0
+    lrough: float = 1.0
     transient: bool = False
-    ztrans: Float = 0
+    ztrans: float = 0.0
 
 
 @dataclasses.dataclass(repr=False)
@@ -1233,7 +1233,7 @@ class Track(NameList):
 
     Attributes
     ----------
-    zstop : Float, default=1000000000.0
+    zstop : float, default=1000000000.0
         If `zstop` is shorter than the lattice length the tracking stops at the
         specified position.
     output_step : int, default=1
@@ -1250,9 +1250,9 @@ class Track(NameList):
     sort_step : int, default=0
         Defines the number of steps of integration before the particle distribution is
         sorted. Works only for one-4-one simulations.
-    s0 : Float, default=0.0
+    s0 : float, default=0.0
         Option to override the default time window start from the TIME module.
-    slen : Float, default=0.0
+    slen : float, default=0.0
         Option to override the default time window length from the TIME module.
     field_dump_at_undexit : bool, default=False
         Field dumps at the exit of the undulator (one dump for each undulator in the
@@ -1262,13 +1262,13 @@ class Track(NameList):
     """
 
     _genesis_name_: typing.ClassVar[str] = "track"
-    zstop: Float = 1000000000.0
+    zstop: float = 1000000000.0
     output_step: int = 1
     field_dump_step: int = 0
     beam_dump_step: int = 0
     sort_step: int = 0
-    s0: Float = 0.0
-    slen: Float = 0.0
+    s0: float = 0.0
+    slen: float = 0.0
     field_dump_at_undexit: bool = False
     bunchharm: int = 1
 
@@ -1287,22 +1287,22 @@ class AlterField(NameList):
     ----------
     harm : int, default=1
         harmonic
-    scale_power : Float, default=1.0
+    scale_power : float, default=1.0
         power scaling factor
-    spp_l : Float, default=0.0
+    spp_l : float, default=0.0
         TODO
     spp_nsect : int, default=0
         TODO
-    spp_phi0 : Float, default=0.0
+    spp_phi0 : float, default=0.0
         TODO
     """
 
     _genesis_name_: typing.ClassVar[str] = "alter_field"
     harm: int = 1
-    scale_power: Float = 1.0
-    spp_l: Float = 0.0
+    scale_power: float = 1.0
+    spp_l: float = 0.0
     spp_nsect: int = 0
-    spp_phi0: Float = 0.0
+    spp_phi0: float = 0.0
 
 
 @dataclasses.dataclass(repr=False)
@@ -1353,16 +1353,16 @@ class SequenceList(NameList):
     ----------
     label : str
         label for the sequence.
-    val : Float, default=[]
+    val : float, default=[]
         list of values.
-    default : Float, default=0
+    default : float, default=0.0
         default value to use for out-of-bound indices.
     """
 
     _genesis_name_: typing.ClassVar[str] = "sequence_list"
     label: str
-    val: typing.Sequence[Float] = dataclasses.field(default_factory=list)
-    default: Float = 0
+    val: typing.Sequence[float] = dataclasses.field(default_factory=list)
+    default: float = 0.0
 
 
 @dataclasses.dataclass(repr=False)
