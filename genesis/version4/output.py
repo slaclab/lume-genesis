@@ -556,7 +556,7 @@ class Genesis4Output(MutableMapping):
             if "field/" in key.lower():
                 dat = self.data[key]
             else:
-                dat = self.field["power"]
+                dat = self.field_info["power"]
             return np.max(dat, axis=1)
 
         if key.startswith("Lattice"):
@@ -599,7 +599,7 @@ class Genesis4Output(MutableMapping):
             return output
 
         elif key.lower() in ["field_energy", "pulse_energy"]:
-            dat = self.field["power"]
+            dat = self.field_info["power"]
 
             # Integrate to get J
             nslice = dat.shape[1]
