@@ -27,6 +27,7 @@ from typing import (
 from .input.types import AnyPath
 from . import parsers, readers
 from .plot import plot_stats_with_layout
+from .. import tools
 
 
 if typing.TYPE_CHECKING:
@@ -631,39 +632,28 @@ class Genesis4Output(MutableMapping):
             return self.data[key]
         raise ValueError(f"Unknown key: {key}")
 
-    def archive(self, h5=None):
+    def get_archive_data(self) -> Dict[str, Any]:
+        return {
+            "output": self.data,
+            "run": dataclasses.asdict(self.run),
+            "alias": self.alias,
+            "field_files": list(self.field_files),
+            "particle_files": list(self.particle_files),
+        }
+
+    def archive(self, h5: Union[h5py.File, h5py.Group]):
         """
         Dump inputs and outputs into HDF5 file.
 
         Parameters
         ----------
-        h5 : str or h5py.File
-            The filename or handle to HDF5 file in which to write the information.
-            If not in informed, a new file is generated.
-
-        Returns
-        -------
-        h5 : h5py.File
-            Handle to the HDF5 file.
+        h5 : h5py.File or h5py.Group
+            The HDF5 file in which to write the information.
         """
-        raise NotImplementedError()
-        # if not h5:
-        #     h5 = "genesis4_" + self.fingerprint() + ".h5"
-        #
-        # if isinstance(h5, str):
-        #     if "outfile" in self.output:
-        #         shutil.copy(self.output["outfile"], h5)
-        #         self.vprint(f"Archiving to file {h5}")
-        #
-        #     # fname = os.path.expandvars(h5)
-        #     # g = h5py.File(fname, 'w')
-        #     # self.vprint(f'Archiving to file {fname}')
-        # else:
-        #     g = h5
-        #
-        # return h5
+        tools.store_dict_in_hdf5_file(h5, self.get_archive_data())
 
-    def load_archive(self, h5, configure=True):
+    @classmethod
+    def from_archive(cls, h5, configure=True):
         """
         Loads input and output from archived h5 file.
 
@@ -674,7 +664,6 @@ class Genesis4Output(MutableMapping):
         configure : bool, optional
             Whether or not to invoke the configure method after loading, by default True
         """
-        raise NotImplementedError
 
     def plot(
         self,
