@@ -1,4 +1,5 @@
 from __future__ import annotations
+from collections.abc import MutableMapping
 import dataclasses
 import logging
 import pathlib
@@ -15,6 +16,7 @@ from typing import (
     Any,
     Callable,
     Dict,
+    Generator,
     Generic,
     List,
     Optional,
@@ -231,7 +233,7 @@ def _load_particle_group(h5: h5py.File, smear: bool = True) -> ParticleGroup:
 
 
 @dataclasses.dataclass
-class Genesis4Output:
+class Genesis4Output(MutableMapping):
     """
     Genesis 4 command output.
 
@@ -747,6 +749,26 @@ class Genesis4Output:
         value = self.data[key]
         units = self.unit_info.get(key, "")
         return get_description_for_value(key, value, units)
+
+    def __getitem__(self, key: str) -> Any:
+        """Support for Mapping -> easy access to data."""
+        return self.data[key]
+
+    def __setitem__(self, key: str, value: Any) -> None:
+        """Support for MutableMapping -> easy access to data."""
+        self.data[key] = value
+
+    def __delitem__(self, key: str) -> None:
+        """Support for MutableMapping -> easy access to data."""
+        del self.data[key]
+
+    def __iter__(self) -> Generator[str, None, None]:
+        """Support for Mapping -> easy access to data."""
+        yield from iter(self.data)
+
+    def __len__(self) -> int:
+        """Support for Mapping -> easy access to data."""
+        return len(self.data)
 
 
 def get_description_for_value(key: str, value, units) -> str:

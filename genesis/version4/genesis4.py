@@ -5,7 +5,7 @@ import platform
 import shlex
 import shutil
 from time import time, monotonic
-from typing import Optional
+from typing import Optional, Union
 
 import h5py
 import numpy as np
@@ -21,6 +21,7 @@ from . import parsers, readers, writers
 from .input.core import Genesis4Input, MainInput
 from .output import projected_variance_from_slice_data
 from .plot import plot_stats_with_layout
+from ..tools import is_jupyter
 
 logger = logging.getLogger(__name__)
 
@@ -31,9 +32,16 @@ def find_mpirun():
     as well as custom commands for Perlmutter at NERSC.
     """
 
-    for p in ["/opt/local/bin/mpirun", "/opt/homebrew/bin/mpirun"]:
-        if os.path.exists(p):
-            return p + " -n {nproc} {command_mpi}"
+    for p in [
+        # Highest priority is what our PATH says:
+        shutil.which("mpirun"),
+        # Second, macports:
+        "/opt/local/bin/mpirun",
+        # Third, homebrew:
+        "/opt/homebrew/bin/mpirun",
+    ]:
+        if p and os.path.exists(p):
+            return f'"{p}"' + " -n {nproc} {command_mpi}"
 
     if os.environ.get("NERSC_HOST") == "perlmutter":
         srun = "srun -n {nproc} --ntasks-per-node {nproc} -c 1 {command_mpi}"
@@ -806,6 +814,34 @@ class Genesis4(CommandWrapper):
         return line
 
 
+def _make_genesis4_input(
+    input: Union[pathlib.Path, str],
+    lattice_source: Union[pathlib.Path, str] = "",
+) -> Genesis4Input:
+    def _read_if_path(input: Union[pathlib.Path, str]) -> str:
+        path = pathlib.Path(input)
+        if path.exists() or isinstance(input, pathlib.Path):
+            with open(path) as fp:
+                return fp.read()
+        return input
+
+    input = _read_if_path(input)
+    lattice_source = _read_if_path(lattice_source)
+    if not input or not isinstance(input, str):
+        raise ValueError(
+            "'input' must be either a Genesis4Input instance, a Genesis 4-"
+            "compatible main input, or a filename."
+        )
+
+    if not lattice_source:
+        raise ValueError(
+            "When specifying a Genesis 4-compatible main input string, "
+            "you must also provide a lattice as a string or filename "
+            "(`lattice_source` argument)."
+        )
+    return Genesis4Input.from_strings(input, lattice_source)
+
+
 class Genesis4Python(CommandWrapper):
     """
     Genesis 4 command wrapper for Python-defined configurations and lattices.
@@ -815,8 +851,7 @@ class Genesis4Python(CommandWrapper):
 
     Parameters
     ---------
-    input_file: str
-        Default: None
+    input : Genesis4Input or str
 
     initial_particle: ParticleGroup
         Default: None
@@ -844,8 +879,6 @@ class Genesis4Python(CommandWrapper):
 
     timeout: float
         Default: None
-
-
     """
 
     COMMAND = "genesis4"
@@ -862,7 +895,8 @@ class Genesis4Python(CommandWrapper):
 
     def __init__(
         self,
-        input: Genesis4Input,
+        input: Union[Genesis4Input, str, pathlib.Path],
+        lattice_source: Union[str, pathlib.Path] = "",
         *,
         command=None,
         command_mpi=None,
@@ -885,7 +919,9 @@ class Genesis4Python(CommandWrapper):
             timeout=timeout,
             **kwargs,
         )
-        # Data
+        if not isinstance(input, Genesis4Input):
+            input = _make_genesis4_input(input, lattice_source)
+
         self.input = input
         self.output = None
 
@@ -974,7 +1010,6 @@ class Genesis4Python(CommandWrapper):
             error = True
             error_reason = f"Failed to load output file. {ex.__class__.__name__}: {ex}"
             self.output = Genesis4Output()
-            # TODO: dump out details when on Jupyter
 
         self.output.run = RunInfo(
             run_script=runscript,
@@ -985,6 +1020,11 @@ class Genesis4Python(CommandWrapper):
             run_time=run_time,
             output_log=log,
         )
+        if error:
+            if is_jupyter():
+                print(f"Execution failed. Took {run_time}s:")
+                print(log)
+
         return self.output
 
     def get_executable(self):
@@ -1029,7 +1069,7 @@ class Genesis4Python(CommandWrapper):
             raise ValueError("path (base_path) not yet set")
 
         runscript = [
-            self.get_run_prefix(),
+            *shlex.split(self.get_run_prefix()),
             *self.input.get_arguments(workdir=self.path),
         ]
 

@@ -1,8 +1,20 @@
-import numpy as np
-from numbers import Number
-import subprocess
 import datetime
+import enum
+import functools
+import subprocess
+import sys
 import traceback
+from numbers import Number
+
+import numpy as np
+
+
+class OutputMode(enum.Enum):
+    """Jupyter Notebook output support."""
+
+    unknown = "unknown"
+    plain = "plain"
+    html = "html"
 
 
 def execute(cmd, cwd=None):
@@ -106,10 +118,8 @@ def native_type(value):
     return getattr(value, "tolist", lambda: value)()
 
 
-"""UTC to ISO 8601 with Local TimeZone information without microsecond"""
-
-
 def isotime():
+    """UTC to ISO 8601 with Local TimeZone information without microsecond"""
     return (
         datetime.datetime.utcnow()
         .replace(tzinfo=datetime.timezone.utc)
@@ -117,3 +127,42 @@ def isotime():
         .replace(microsecond=0)
         .isoformat()
     )
+
+
+@functools.cache
+def get_output_mode() -> OutputMode:
+    """
+    Get the output mode for lume-genesis objects.
+
+    This works by way of interacting with IPython display and seeing what
+    choice it makes regarding reprs.
+
+    Returns
+    -------
+    OutputMode
+        The detected output mode.
+    """
+    if "IPython" not in sys.modules or "IPython.display" not in sys.modules:
+        return OutputMode.plain
+
+    from IPython.display import display
+
+    class ReprCheck:
+        mode: OutputMode = OutputMode.unknown
+
+        def _repr_html_(self) -> str:
+            self.mode = OutputMode.html
+            return "<!-- lume-genesis detected Jupyter and will use HTML for rendering. -->"
+
+        def __repr__(self) -> str:
+            self.mode = OutputMode.plain
+            return ""
+
+    check = ReprCheck()
+    display(check)
+    return check.mode
+
+
+def is_jupyter() -> bool:
+    """Is Jupyter detected?"""
+    return get_output_mode() == OutputMode.html

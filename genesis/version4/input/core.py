@@ -717,6 +717,13 @@ class Genesis4Input:
         for path in paths:
             path.unlink(missing_ok=True)
 
+    @classmethod
+    def from_strings(cls, main: str, lattice: str) -> Genesis4Input:
+        return cls(
+            main=MainInput.from_contents(main),
+            lattice=Lattice.from_contents(lattice),
+        )
+
 
 def new_parser(filename: AnyPath, **kwargs) -> lark.Lark:
     """
