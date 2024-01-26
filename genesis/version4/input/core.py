@@ -19,6 +19,7 @@ from typing import (
 
 import lark
 import h5py
+import numpy as np
 from pmd_beamphysics import ParticleGroup
 from pmd_beamphysics.units import c_light
 
@@ -685,7 +686,7 @@ class Genesis4Input:
         for idx, namelist in enumerate(self.main.namelists):
             for attr in ("xdata", "ydata", "file"):
                 file = getattr(namelist, attr, None)
-                if file:
+                if file is not None and not isinstance(file, np.ndarray):
                     file = _split_file(namelist, attr, file)
                     if file:
                         source_file = self.source_path / file
