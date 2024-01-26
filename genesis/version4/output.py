@@ -19,7 +19,6 @@ from typing import (
     Generic,
     List,
     Optional,
-    Tuple,
     TypeVar,
     TypedDict,
     Union,
@@ -206,6 +205,7 @@ FieldFileParamDict = TypedDict(
 FieldFileDict = TypedDict(
     "FieldFileDict",
     {
+        "label": str,
         "dfl": np.ndarray,
         "param": FieldFileParamDict,
     },
@@ -424,23 +424,40 @@ class Genesis4Output(MutableMapping):
             if alias_to in units:
                 units[alias_from] = units[alias_to]
 
-        if load_fields:
-            for field in fields:
-                data["field"][field.key] = field.load()
-            fields = []
-
-        if load_particles:
-            for particle in particles:
-                data["particles"][particle.key] = particle.load(smear=smear)
-            particles = []
-
-        return cls(
+        output = cls(
             data=data,
             unit_info=units,
             alias=alias,
             field_files={field.key: field for field in fields},
             particle_files={particle.key: particle for particle in particles},
         )
+
+        if load_fields:
+            output.load_fields()
+
+        if load_particles:
+            output.load_particles(smear=smear)
+
+        return output
+
+    def load_field_by_name(self, label: str) -> FieldFileDict:
+        """
+        Loads a single field file by name into a dictionary.
+
+        Parameters
+        ----------
+        label : str
+            The label of the particles (e.g., "end" of "end.par.h5").
+
+        Returns
+        -------
+        FieldFileDict
+        """
+        lazy = self.field_files[label]
+        field = lazy.load()
+        self.data["field"][label] = field
+        logger.info(f"Loaded field data: '{label}'")
+        return field
 
     def load_particles_by_name(self, label: str, smear: bool = True) -> ParticleGroup:
         """
@@ -494,8 +511,8 @@ class Genesis4Output(MutableMapping):
             Key names of all loaded fields.
         """
         to_load = list(self.field_files)
-        for file in to_load:
-            self.load_field_file(file)
+        for label in to_load:
+            self.load_field_by_name(label)
         return to_load
 
     def units(self, key: str) -> Optional[pmd_unit]:
@@ -834,7 +851,7 @@ def projected_variance_from_slice_data(x2, x1, current):
     )
 
 
-def load_field_file(file: Union[AnyPath, h5py.File]) -> Tuple[str, FieldFileDict]:
+def load_field_file(file: Union[AnyPath, h5py.File]) -> FieldFileDict:
     """
     Load a single .dfl.h5 file into .output
     """
@@ -853,5 +870,8 @@ def load_field_file(file: Union[AnyPath, h5py.File]) -> Tuple[str, FieldFileDict
     if label.endswith("fld.h5"):
         label = label[:-7]
 
-    result = {"dfl": dfl, "param": param}
-    return label, result
+    return {
+        "label": label,
+        "dfl": dfl,
+        "param": typing.cast(FieldFileParamDict, param),
+    }

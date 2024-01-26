@@ -958,8 +958,8 @@ class Genesis4Python(CommandWrapper):
 
     def run(
         self,
-        load_fields: bool = True,
-        load_particles: bool = True,
+        load_fields: bool = False,
+        load_particles: bool = False,
         smear: bool = True,
     ) -> Genesis4Output:
         """
@@ -1122,8 +1122,8 @@ class Genesis4Python(CommandWrapper):
 
     def load_output(
         self,
-        load_fields: bool = True,
-        load_particles: bool = True,
+        load_fields: bool = False,
+        load_particles: bool = False,
         smear: bool = True,
     ) -> Genesis4Output:
         """
