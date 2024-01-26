@@ -2,7 +2,7 @@
 &setup
   rootname=LCLS2_HXR_9keV # Comment 2
   lattice=hxr.lat
-  # Comment 3
+# Comment 3
   beamline=HXR
   lambda0 = 1.3789244869952112e-10
   gamma0 = 19174.0776

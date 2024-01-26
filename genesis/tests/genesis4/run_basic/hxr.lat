@@ -1,0 +1,189 @@
+## Quads ###
+QHXH17: Quadrupole = { l=0.101, k1=  1.78 };
+QHXH18: Quadrupole = { l=0.101, k1= -1.78 };
+QHXH19: Quadrupole = { l=0.101, k1=  1.78 };
+QHXH20: Quadrupole = { l=0.101, k1= -1.78 };
+QHXH21: Quadrupole = { l=0.101, k1=  1.78 };
+QHXH22: Quadrupole = { l=0.101, k1= -1.78 };
+QHXH23: Quadrupole = { l=0.101, k1=  1.78 };
+QHXH24: Quadrupole = { l=0.101, k1= -1.78 };
+QHXH25: Quadrupole = { l=0.101, k1=  1.78 };
+QHXH26: Quadrupole = { l=0.101, k1= -1.78 };
+QHXH27: Quadrupole = { l=0.101, k1=  1.78 };
+QHXH28: Quadrupole = { l=0.101, k1= -1.78 };
+QHXH29: Quadrupole = { l=0.101, k1=  1.78 };
+QHXH30: Quadrupole = { l=0.101, k1= -1.78 };
+QHXH31: Quadrupole = { l=0.101, k1=  1.78 };
+QHXH32: Quadrupole = { l=0.101, k1= -1.78 };
+QHXH33: Quadrupole = { l=0.101, k1=  1.78 };
+QHXH34: Quadrupole = { l=0.101, k1= -1.78 };
+QHXH35: Quadrupole = { l=0.101, k1=  1.78 };
+QHXH36: Quadrupole = { l=0.101, k1= -1.78 };
+QHXH37: Quadrupole = { l=0.101, k1=  1.78 };
+QHXH38: Quadrupole = { l=0.101, k1= -1.78 };
+QHXH39: Quadrupole = { l=0.101, k1=  1.78 };
+QHXH40: Quadrupole = { l=0.101, k1= -1.78 };
+QHXH41: Quadrupole = { l=0.101, k1=  1.78 };
+QHXH42: Quadrupole = { l=0.101, k1= -1.78 };
+QHXH43: Quadrupole = { l=0.101, k1=  1.78 };
+QHXH44: Quadrupole = { l=0.101, k1= -1.78 };
+QHXH45: Quadrupole = { l=0.101, k1=  1.78 };
+QHXH46: Quadrupole = { l=0.101, k1= -1.78 };
+QHXH47: Quadrupole = { l=0.101, k1=  1.78 };
+QHXH48: Quadrupole = { l=0.101, k1= -1.78 };
+QHXH49: Quadrupole = { l=0.101, k1=  1.78 };
+QHXH50: Quadrupole = { l=0.101, k1= -1.78 };
+
+### Undulator ###
+UMAHXH17: Undulator = {lambdau=0.026,nwig=130, aw=1.7017};
+UMAHXH18: Undulator = {lambdau=0.026,nwig=130, aw=1.7017};
+UMAHXH19: Undulator = {lambdau=0.026,nwig=130, aw=1.7017};
+UMAHXH20: Undulator = {lambdau=0.026,nwig=130, aw=1.7017};
+UMAHXH21: Undulator = {lambdau=0.026,nwig=130, aw=1.7017};
+UMAHXH22: Undulator = {lambdau=0.026,nwig=130, aw=1.7017};
+UMAHXH23: Undulator = {lambdau=0.026,nwig=130, aw=1.7017};
+UMAHXH25: Undulator = {lambdau=0.026,nwig=130, aw=1.7017};
+UMAHXH26: Undulator = {lambdau=0.026,nwig=130, aw=1.7017};
+UMAHXH27: Undulator = {lambdau=0.026,nwig=130, aw=1.7017};
+UMAHXH28: Undulator = {lambdau=0.026,nwig=130, aw=1.7017};
+UMAHXH29: Undulator = {lambdau=0.026,nwig=130, aw=1.7017};
+UMAHXH30: Undulator = {lambdau=0.026,nwig=130, aw=1.7017};
+UMAHXH31: Undulator = {lambdau=0.026,nwig=130, aw=1.7017};
+UMAHXH33: Undulator = {lambdau=0.026,nwig=130, aw=1.7017};
+UMAHXH34: Undulator = {lambdau=0.026,nwig=130, aw=1.7017};
+UMAHXH35: Undulator = {lambdau=0.026,nwig=130, aw=1.7017};
+UMAHXH36: Undulator = {lambdau=0.026,nwig=130, aw=1.7017};
+UMAHXH37: Undulator = {lambdau=0.026,nwig=130, aw=1.7017};
+UMAHXH38: Undulator = {lambdau=0.026,nwig=130, aw=1.7017};
+UMAHXH39: Undulator = {lambdau=0.026,nwig=130, aw=1.7017};
+UMAHXH40: Undulator = {lambdau=0.026,nwig=130, aw=1.7017};
+UMAHXH41: Undulator = {lambdau=0.026,nwig=130, aw=1.7017};
+UMAHXH42: Undulator = {lambdau=0.026,nwig=130, aw=1.7017};
+UMAHXH43: Undulator = {lambdau=0.026,nwig=130, aw=1.7017};
+UMAHXH44: Undulator = {lambdau=0.026,nwig=130, aw=1.7017};
+UMAHXH45: Undulator = {lambdau=0.026,nwig=130, aw=1.7017};
+UMAHXH46: Undulator = {lambdau=0.026,nwig=130, aw=1.7017};
+UMAHXH47: Undulator = {lambdau=0.026,nwig=130, aw=1.7017};
+UMAHXH48: Undulator = {lambdau=0.026,nwig=130, aw=1.7017};
+UMAHXH49: Undulator = {lambdau=0.026,nwig=130, aw=1.7017};
+UMAHXH50: Undulator = {lambdau=0.026,nwig=130, aw=1.7017};
+
+
+### Orbit Correctors ###
+CORR00: Corrector = {l=0.001, cx=0, cy=0};
+CORR01: Corrector = {l=0.001, cx=0, cy=0};
+CORR02: Corrector = {l=0.001, cy=0, cx=0};
+CORR03: Corrector = {l=0.001, cy=0, cx=0};
+CORR04: Corrector = {l=0.001, cy=0, cx=0};
+CORR05: Corrector = {l=0.001, cy=0, cx=0};
+CORR06: Corrector = {l=0.001, cy=0, cx=0};
+CORR07: Corrector = {l=0.001, cy=0, cx=0};
+CORR08: Corrector = {l=0.001, cx=0, cy=0};
+CORR09: Corrector = {l=0.001, cx=0, cy=0};
+CORR10: Corrector = {l=0.001, cy=0, cx=0};
+CORR11: Corrector = {l=0.001, cy=0, cx=0};
+CORR12: Corrector = {l=0.001, cy=0, cx=0};
+CORR13: Corrector = {l=0.001, cy=0, cx=0};
+CORR14: Corrector = {l=0.001, cy=0, cx=0};
+CORR15: Corrector = {l=0.001, cx=0, cy=0};
+CORR16: Corrector = {l=0.001, cx=0, cy=0};
+CORR17: Corrector = {l=0.001, cy=0, cx=0};
+CORR18: Corrector = {l=0.001, cy=0, cx=0};
+CORR19: Corrector = {l=0.001, cy=0, cx=0};
+CORR20: Corrector = {l=0.001, cy=0, cx=0};
+CORR21: Corrector = {l=0.001, cy=0, cx=0};
+CORR22: Corrector = {l=0.001, cy=0, cx=0};
+CORR23: Corrector = {l=0.001, cy=0, cx=0};
+CORR24: Corrector = {l=0.001, cy=0, cx=0};
+CORR25: Corrector = {l=0.001, cy=0, cx=0};
+CORR26: Corrector = {l=0.001, cy=0, cx=0};
+CORR27: Corrector = {l=0.001, cy=0, cx=0};
+CORR28: Corrector = {l=0.001, cy=0, cx=0};
+CORR29: Corrector = {l=0.001, cy=0, cx=0};
+CORR30: Corrector = {l=0.001, cy=0, cx=0};
+CORR31: Corrector = {l=0.001, cy=0, cx=0};
+CORR32: Corrector = {l=0.001, cy=0, cx=0};
+CORR33: Corrector = {l=0.001, cy=0, cx=0};
+
+### Drifts ###
+D1:   Drift = { l=0.1335 };
+D2:   Drift = { l=0.4615 };
+D3:   Drift = { l=0.328 };
+D4:   Drift = { l=3.4 };
+
+HXRSS: Chicane = {l=4.55, lb=0.1, ld=0.0, delay=0.0};
+
+
+### Line ###
+
+HXR: LINE = {D1, UMAHXH17, D2, QHXH17, CORR00, D3,
+D1, UMAHXH18, D2, QHXH18, CORR01, D3,
+D1, UMAHXH19, D2, QHXH19, CORR02, D3,
+D1, UMAHXH20, D2, QHXH20, CORR03, D3,
+D1, UMAHXH21, D2, QHXH21, CORR04, D3,
+D1, UMAHXH22, D2, QHXH22, CORR05, D3,
+D1, UMAHXH23, D2, QHXH23, CORR06, D3,
+D1, HXRSS   , D2, QHXH24, CORR07, D3,
+D1, UMAHXH25, D2, QHXH25, CORR08, D3,
+D1, UMAHXH26, D2, QHXH26, CORR09, D3,
+D1, UMAHXH27, D2, QHXH27, CORR10, D3,
+D1, UMAHXH28, D2, QHXH28, CORR11, D3,
+D1, UMAHXH29, D2, QHXH29, CORR12, D3,
+D1, UMAHXH30, D2, QHXH30, CORR13, D3,
+D1, UMAHXH31, D2, QHXH31, CORR14, D3,
+D1, D4, D2, QHXH32, CORR15, D3,
+D1, UMAHXH33, D2, QHXH33, CORR16, D3,
+D1, UMAHXH34, D2, QHXH34, CORR17, D3,
+D1, UMAHXH35, D2, QHXH35, CORR18, D3,
+D1, UMAHXH36, D2, QHXH36, CORR19, D3,
+D1, UMAHXH37, D2, QHXH37, CORR20, D3,
+D1, UMAHXH38, D2, QHXH38, CORR21, D3,
+D1, UMAHXH39, D2, QHXH39, CORR22, D3,
+D1, UMAHXH40, D2, QHXH40, CORR23, D3,
+D1, UMAHXH41, D2, QHXH41, CORR24, D3,
+D1, UMAHXH42, D2, QHXH42, CORR25, D3,
+D1, UMAHXH43, D2, QHXH43, CORR26, D3,
+D1, UMAHXH44, D2, QHXH44, CORR27, D3,
+D1, UMAHXH45, D2, QHXH45, CORR28, D3,
+D1, UMAHXH46, D2, QHXH46, CORR29, D3,
+D1, UMAHXH47, D2, QHXH47, CORR30, D3,
+D1, UMAHXH48, D2, QHXH48, CORR31, D3,
+D1, UMAHXH49, D2, QHXH49, CORR32, D3,
+D1, UMAHXH50, D2, QHXH50, CORR33, D3};
+
+
+
+LCLS2_HXR_U1: LINE = {D1, UMAHXH17, D2, QHXH17, CORR00, D3,
+D1, UMAHXH18, D2, QHXH18, CORR01, D3,
+D1, UMAHXH19, D2, QHXH19, CORR02, D3,
+D1, UMAHXH20, D2, QHXH20, CORR03, D3,
+D1, UMAHXH21, D2, QHXH21, CORR04, D3,
+D1, UMAHXH22, D2, QHXH22, CORR05, D3,
+D1, UMAHXH23, D2, QHXH23, CORR06, D3};
+
+LCLS2_HXR_U2: LINE = {D1, UMAHXH25, D2, QHXH25, CORR08, D3,
+D1, UMAHXH26, D2, QHXH26, CORR09, D3,
+D1, UMAHXH27, D2, QHXH27, CORR10, D3,
+D1, UMAHXH28, D2, QHXH28, CORR11, D3,
+D1, UMAHXH29, D2, QHXH29, CORR12, D3,
+D1, UMAHXH30, D2, QHXH30, CORR13, D3,
+D1, UMAHXH31, D2, QHXH31, CORR14, D3,
+D1, D4, D2, QHXH32, CORR15, D3,
+D1, UMAHXH33, D2, QHXH33, CORR16, D3,
+D1, UMAHXH34, D2, QHXH34, CORR17, D3,
+D1, UMAHXH35, D2, QHXH35, CORR18, D3,
+D1, UMAHXH36, D2, QHXH36, CORR19, D3,
+D1, UMAHXH37, D2, QHXH37, CORR20, D3,
+D1, UMAHXH38, D2, QHXH38, CORR21, D3,
+D1, UMAHXH39, D2, QHXH39, CORR22, D3,
+D1, UMAHXH40, D2, QHXH40, CORR23, D3,
+D1, UMAHXH41, D2, QHXH41, CORR24, D3,
+D1, UMAHXH42, D2, QHXH42, CORR25, D3,
+D1, UMAHXH43, D2, QHXH43, CORR26, D3,
+D1, UMAHXH44, D2, QHXH44, CORR27, D3,
+D1, UMAHXH45, D2, QHXH45, CORR28, D3,
+D1, UMAHXH46, D2, QHXH46, CORR29, D3,
+D1, UMAHXH47, D2, QHXH47, CORR30, D3,
+D1, UMAHXH48, D2, QHXH48, CORR31, D3,
+D1, UMAHXH49, D2, QHXH49, CORR32, D3,
+D1, UMAHXH50, D2, QHXH50, CORR33, D3};

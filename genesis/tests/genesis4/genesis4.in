@@ -1,0 +1,34 @@
+
+&setup
+rootname = Benchmark
+lattice = Aramis.lat
+beamline = ARAMIS
+lambda0 = 1e-10
+gamma0 = 11357.82
+delz = 0.045
+shotnoise = 0
+beam_global_stat = True
+field_global_stat = True
+&end
+
+&lattice
+zmatch = 9.5
+&end
+
+&field
+power = 5000
+dgrid = 0.0002
+ngrid = 255
+waist_size = 3e-05
+&end
+
+&beam
+current = 3000
+delgam = 1
+ex = 4e-07
+ey = 4e-07
+&end
+
+&track
+zstop = 2
+&end
