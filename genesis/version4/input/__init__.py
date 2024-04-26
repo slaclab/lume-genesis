@@ -9,7 +9,7 @@ from .core import (
     InitialParticles,
     Genesis4Input,
 )
-from .generated_lattice import (
+from ._lattice import (
     Chicane,
     Corrector,
     Drift,
@@ -19,7 +19,7 @@ from .generated_lattice import (
     Undulator,
 )
 
-from .generated_main import (
+from ._main import (
     Setup,
     AlterSetup,
     Lattice as LatticeNamelist,

@@ -1,3 +1,4 @@
+from __future__ import annotations
 import dataclasses
 import datetime
 import enum
@@ -11,9 +12,10 @@ from numbers import Number
 
 import h5py
 import numpy as np
-from typing import Union
+from typing import Any, Optional, Sequence, Union
 
 from pmd_beamphysics import ParticleGroup
+from pmd_beamphysics.units import pmd_unit
 
 logger = logging.getLogger(__name__)
 
@@ -202,12 +204,39 @@ def import_by_name(clsname: str) -> type:
         raise ImportError(f"Unable to import {clsname!r} from module {module!r}")
 
 
-def store_dict_in_hdf5_file(
+def _class_instance_to_hdf_dict(obj: object) -> Optional[dict[str, Any]]:
+    if isinstance(obj, pmd_unit):
+        return {
+            "unitSymbol": obj.unitSymbol,
+            "unitSI": obj.unitSI,
+            "unitDimension": obj.unitDimension,
+        }
+
+    if hasattr(obj, "to_genesis"):
+        return {"contents": obj.to_genesis()}
+
+    if dataclasses.is_dataclass(obj):
+        assert not isinstance(obj, type)
+        return dataclasses.asdict(obj)
+
+    if hasattr(obj, "__getnewargs_ex__"):
+        args, kwargs = obj.__getnewargs_ex__()
+        assert not args, "Only kwargs supported for now"
+        return kwargs
+
+    return None
+
+
+def store_in_hdf5_file(
     h5: Union[h5py.File, h5py.Group],
-    dct: dict,
-) -> None:
+    obj: object,
+    key: Optional[str] = None,
+) -> Union[h5py.Group, h5py.File]:
     """
-    Store a dictionary structure in an HDF5 file.
+    Store a generic object in an HDF5 file.
+
+    This has its limitations but should work for Genesis 4 input and output
+    types.
 
     Parameters
     ----------
@@ -215,47 +244,72 @@ def store_dict_in_hdf5_file(
         The file or group to store ``dct`` in.
     dct : dict
         The data to store.
+    key : str, optional
+        The Group key under which the data should be stored, if applicable.
     """
-    for key, value in dct.items():
-        if isinstance(value, dict):
-            group = h5.create_group(key)
-            group.attrs["python_class"] = "dict"
-            store_dict_in_hdf5_file(
-                group,
-                dct=value,
-            )
-        elif isinstance(value, ParticleGroup):
-            group = h5.create_group(key)
-            group.attrs["python_class"] = "ParticleGroup"
-            store_dict_in_hdf5_file(
-                group,
-                dct=value.data,
-            )
-        elif dataclasses.is_dataclass(value):
-            group = h5.create_group(key)
-            cls = type(value)
-            group.attrs["python_class"] = f"{cls.__module__}.{cls.__name__}"
-            store_dict_in_hdf5_file(
-                group,
-                dct=dataclasses.asdict(value),
-            )
-        elif isinstance(value, (np.ndarray, list, tuple)):
-            h5[key] = value
-        elif value is None:
-            ...
-        else:
-            if isinstance(value, np.str_):
-                # Known problem for h5py
-                value = str(value)
-
-            try:
-                h5.attrs[key] = value
-            except TypeError:
+    if isinstance(obj, dict):
+        if key is not None:
+            h5 = h5.create_group(key)
+        h5.attrs.setdefault("_python_class_", "dict")
+        for inner_key, value in obj.items():
+            if not isinstance(inner_key, str):
                 logger.warning(
-                    f"Unable to store {key} in {h5}; storing as string instead: "
-                    f"{key} is of type {type(value).__name__}"
+                    "Skipping non-string dictionary key: %s[%s]", key, inner_key
                 )
-                h5.attrs[key] = str(value)
+                continue
+            store_in_hdf5_file(
+                h5,
+                value,
+                key=inner_key,
+            )
+        return h5
+
+    if isinstance(obj, ParticleGroup):
+        if key is not None:
+            h5 = h5.create_group(key)
+        h5.attrs["_python_class_"] = "ParticleGroup"
+        obj.write(h5)
+        return h5
+
+    if hasattr(obj, "to_hdf5"):
+        group = h5.create_group(key) if key else h5
+        cls = type(obj)
+        obj.to_hdf5(group)
+        group.attrs["_python_class_"] = f"{cls.__module__}.{cls.__name__}"
+        group.attrs["_python_method_"] = "from_hdf5"
+        return group
+
+    dct = _class_instance_to_hdf_dict(obj)
+    if dct is not None:
+        group = h5.create_group(key) if key else h5
+        cls = type(obj)
+        store_in_hdf5_file(group, dct)
+        group.attrs["_python_class_"] = f"{cls.__module__}.{cls.__name__}"
+        return group
+
+    assert key is not None
+    if isinstance(obj, str):
+        h5.attrs[key] = str(obj)  # np.str_ as well
+    elif isinstance(obj, np.ndarray):
+        h5[key] = obj
+    elif isinstance(obj, Sequence):
+        try:
+            h5[key] = list(obj)
+        except TypeError:
+            logger.exception(f"Unable to store {key} in {h5} ({obj})")
+
+    elif obj is None:
+        ...
+    else:
+        try:
+            h5.attrs[key] = obj
+        except TypeError:
+            logger.warning(
+                f"Unable to store {key} in {h5}; storing as string instead: "
+                f"{key} is of type {type(obj).__name__}"
+            )
+            h5.attrs[key] = str(obj)
+    return h5
 
 
 def restore_from_hdf5_file(
@@ -271,24 +325,31 @@ def restore_from_hdf5_file(
     """
     result = {}
 
-    def restore_group(attrs: dict, data: dict):
-        clsname = attrs.pop("python_class", None)
+    def restore_group(obj: Union[h5py.File, h5py.Group], attrs: dict, data: dict):
+        clsname = attrs.pop("_python_class_", None)
         if clsname == "dict" or clsname is None:
             data.update(attrs)
             return data
         if clsname == "ParticleGroup":
-            data.update(attrs)
-            return ParticleGroup(data=data)
-
+            return ParticleGroup(h5=obj)
         assert isinstance(clsname, str)
-        cls = import_by_name(clsname)
+        try:
+            cls = import_by_name(clsname)
+        except Exception:
+            logger.exception("Failed to import class: %s", clsname)
+            return
+
+        method_name = attrs.pop("_python_method_", None)
+        if method_name:
+            method = getattr(cls, method_name)
+            return method(**data, **attrs)
         return cls(**data, **attrs)
 
     for key, value in h5.items():
         if isinstance(value, (h5py.Group, h5py.File)):
-            attrs = dict(value.attrs)
+            attrs = {k: v for k, v in value.attrs.items()}
             data = restore_from_hdf5_file(value)
-            result[key] = restore_group(attrs, data)
+            result[key] = restore_group(value, attrs, data)
         elif isinstance(value, h5py.Dataset):
             result[key] = np.asarray(value)
         else:
@@ -296,6 +357,6 @@ def restore_from_hdf5_file(
 
     if isinstance(h5, h5py.File):
         attrs = dict(h5.attrs)
-        return restore_group(attrs, result)
+        return restore_group(h5, attrs, result)
 
     return result

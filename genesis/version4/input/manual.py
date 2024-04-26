@@ -6,12 +6,18 @@ import jinja2
 
 from typing import Dict, Optional, Set, TypedDict, Tuple, Union
 
-from . import util
-
 AnyPath = Union[pathlib.Path, str]
 
 MODULE_PATH = pathlib.Path(__file__).resolve().parent
 dataclasses_template = MODULE_PATH / "dataclasses.tpl"
+
+renames = {
+    "l": "L",
+    "lambda": "lambda_",
+    # Mapping to common bmad names:
+    "dx": "x_offset",
+    "dy": "y_offset",
+}
 
 
 class Parameter(TypedDict):
@@ -144,7 +150,7 @@ def parse_manual_parameter(line: str) -> Parameter:
 
     return {
         "name": name,
-        "python_name": util.renames.get(name, name),
+        "python_name": renames.get(name, name),
         "type": type_,
         "default": ast.literal_eval(default_value),
         "units": units.strip(" []") if units else None,

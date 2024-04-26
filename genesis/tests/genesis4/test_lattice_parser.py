@@ -73,9 +73,9 @@ def test_serialize(filename: pathlib.Path) -> None:
     pprint.pprint(lattice)
 
     print("Is serialized as follows:")
-    serialized = lattice.to_dict()
+    serialized = lattice.model_dump()
     pprint.pprint(serialized)
 
     print("Deserialized back to dataclasses:")
-    deserialized = Lattice.from_dict(serialized, filename=filename)
+    deserialized = Lattice.model_validate(serialized)
     assert lattice == deserialized

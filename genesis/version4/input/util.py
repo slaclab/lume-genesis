@@ -1,17 +1,9 @@
-import dataclasses
+import pydantic
+import pathlib
 import uuid
 
-from .types import ValueType
-from typing import Iterable, Dict, List
-
-# Genesis manual to Python attribute naming map:
-renames = {
-    "l": "L",
-    "lambda": "lambda_",
-    # Mapping to common bmad names:
-    "dx": "x_offset",
-    "dy": "y_offset",
-}
+from ..types import ValueType
+from typing import Any, Callable, Iterable, Dict, List, Mapping
 
 
 def python_to_namelist_value(value: ValueType) -> str:
@@ -47,20 +39,17 @@ def get_temporary_filename(extension: str = ".h5") -> str:
     return "".join((random_start, extension))
 
 
-def get_non_default_attrs(obj: object) -> Dict[str, ValueType]:
+def _default_serializer(
+    value: Any, type_encoders: Mapping[Any, Callable[[Any], Any]] | None = None
+) -> Any:
+    if isinstance(value, pathlib.Path):
+        return value.as_posix()
+    return value
+
+
+def get_non_default_attrs(obj: pydantic.BaseModel) -> Dict[str, ValueType]:
     """Dictionary of non-default parameters of an annotated [data]class."""
-    data = {}
-    for attr in obj.__annotations__:
-        if attr.startswith("_"):
-            continue
-        value = getattr(obj, attr)
-        default = getattr(type(obj), attr, None)
-        # Whether Genesis will interpret them as the same means we
-        # care about the string representation rather than the Python
-        # type.
-        if str(value) != str(default):
-            data[attr] = value
-    return data
+    return obj.model_dump(exclude_defaults=True)
 
 
 def _indent_parameters(
@@ -77,7 +66,7 @@ def _indent_parameters(
 
 def get_non_default_repr(obj: object, indent: int = 4) -> str:
     def format_value(value, indent):
-        if dataclasses.is_dataclass(value):
+        if isinstance(value, pydantic.BaseModel):
             return get_non_default_repr(value, indent=indent + 4)
         if isinstance(value, dict):
             return _indent_parameters(

@@ -1,6 +1,5 @@
 from __future__ import annotations
-from collections.abc import MutableMapping
-import dataclasses
+import pydantic
 import logging
 import pathlib
 
@@ -17,17 +16,19 @@ from typing import (
     Dict,
     Generator,
     Generic,
+    ItemsView,
+    KeysView,
     List,
     Optional,
     TypeVar,
     TypedDict,
     Union,
+    ValuesView,
 )
 
-from .input.types import AnyPath
 from . import parsers, readers
 from .plot import plot_stats_with_layout
-from .. import tools
+from .types import AnyPath, PydanticPmdUnit
 
 
 if typing.TYPE_CHECKING:
@@ -37,8 +38,7 @@ if typing.TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
-@dataclasses.dataclass
-class RunInfo:
+class RunInfo(pydantic.BaseModel):
     error: bool = False
     run_script: str = ""
     output_log: str = ""
@@ -219,6 +219,8 @@ T = TypeVar("T")
 class LazyLoadHDF5(Generic[T]):
     """Lazy loading helper."""
 
+    key: str
+    filename: pathlib.Path
     loaded: Optional[T]
 
     def __init__(self, key: str, filename: pathlib.Path, loader: Callable[..., T]):
@@ -242,8 +244,7 @@ def _load_particle_group(h5: h5py.File, smear: bool = True) -> ParticleGroup:
     return ParticleGroup(data=genesis4_par_to_data(h5, smear=smear))
 
 
-@dataclasses.dataclass
-class Genesis4Output(MutableMapping):
+class Genesis4Output(pydantic.BaseModel):
     """
     Genesis 4 command output.
 
@@ -261,12 +262,15 @@ class Genesis4Output(MutableMapping):
         Dictionary of aliased data keys.
     """
 
-    data: Dict[str, Any] = dataclasses.field(default_factory=dict, repr=False)
-    unit_info: Dict[str, pmd_unit] = dataclasses.field(default_factory=dict, repr=False)
-    run: RunInfo = dataclasses.field(default_factory=lambda: RunInfo(), repr=False)
-    alias: Dict[str, str] = dataclasses.field(default_factory=dict)
-    field_files: Dict[str, LazyLoadHDF5] = dataclasses.field(default_factory=dict)
-    particle_files: Dict[str, LazyLoadHDF5] = dataclasses.field(default_factory=dict)
+    data: Dict[str, Any] = pydantic.Field(default_factory=dict)
+    unit_info: Dict[str, PydanticPmdUnit] = pydantic.Field(default_factory=dict)
+    run: RunInfo = pydantic.Field(default_factory=lambda: RunInfo())
+    alias: Dict[str, str] = pydantic.Field(default_factory=dict)
+    # field_files: Dict[str, LazyLoadHDF5] = pydantic.Field(default_factory=dict)
+    # particle_files: Dict[str, LazyLoadHDF5] = pydantic.Field(default_factory=dict)
+
+    def __repr__(self):
+        return f"{self.__class__.__name__}(run={self.run})"
 
     @property
     def beam(self) -> BeamDict:
@@ -633,9 +637,10 @@ class Genesis4Output(MutableMapping):
         raise ValueError(f"Unknown key: {key}")
 
     def get_archive_data(self) -> Dict[str, Any]:
+        raise NotImplementedError()
         return {
             "output": self.data,
-            "run": dataclasses.asdict(self.run),
+            # "run": msgspec.to_builtins(self.run),
             "alias": self.alias,
             "field_files": list(self.field_files),
             "particle_files": list(self.particle_files),
@@ -650,7 +655,7 @@ class Genesis4Output(MutableMapping):
         h5 : h5py.File or h5py.Group
             The HDF5 file in which to write the information.
         """
-        tools.store_dict_in_hdf5_file(h5, self.get_archive_data())
+        # tools.store_dict_in_hdf5_file(h5, self.get_archive_data())
 
     @classmethod
     def from_archive(cls, h5, configure=True):
@@ -766,6 +771,37 @@ class Genesis4Output(MutableMapping):
         value = self.data[key]
         units = self.unit_info.get(key, "")
         return get_description_for_value(key, value, units)
+
+    # The following are for MutableMapping support.  We're unable to mixin
+    # MutableMapping with pydantic.BaseModel, so we define them ourselves here.
+
+    def keys(self) -> KeysView:
+        """Data keys available in the output."""
+        return self.data.keys()
+
+    def values(self) -> ValuesView:
+        """Data values available in the output."""
+        return self.data.values()
+
+    def items(self) -> ItemsView:
+        """Data items available in the output."""
+        return self.data.items()
+
+    def get(self, key: str, default: Optional[Any] = None) -> ItemsView:
+        """Get a key from the output."""
+        return self.data.get(key, default)
+
+    def __contains__(self, key: str) -> bool:
+        """Support for MutableMapping -> key check."""
+        return key in self.data
+
+    def __eq__(self, value: Any) -> bool:
+        """Support for MutableMapping -> equality check."""
+        return self.data == value
+
+    def __ne__(self, value: Any) -> bool:
+        """Support for MutableMapping -> equality check."""
+        return self.data != value
 
     def __getitem__(self, key: str) -> Any:
         """Support for Mapping -> easy access to data."""

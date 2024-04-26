@@ -9,7 +9,7 @@ def test_namelist_output():
         lambda0=1e-10,
         gamma0=11357.82,
         delz=0.045,
-        shotnoise=0,
+        shotnoise=False,
         beam_global_stat=True,
         field_global_stat=True,
     )
@@ -22,7 +22,7 @@ def test_namelist_output():
   beamline = ARAMIS
   gamma0 = 11357.82
   delz = 0.045
-  shotnoise = 0
+  shotnoise = false
   beam_global_stat = true
   field_global_stat = true
 &end

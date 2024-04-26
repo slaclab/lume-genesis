@@ -6,7 +6,7 @@ import shlex
 import shutil
 import traceback
 from time import time, monotonic
-from typing import Optional, Union
+from typing import Dict, Optional, Tuple, Union
 
 import h5py
 import numpy as np
@@ -14,7 +14,7 @@ from lume import tools
 from lume.base import CommandWrapper
 from pmd_beamphysics import ParticleGroup
 from pmd_beamphysics.interfaces.genesis import genesis4_par_to_data
-from pmd_beamphysics.units import c_light
+from pmd_beamphysics.units import c_light, pmd_unit
 
 from genesis.version4.output import Genesis4Output, RunInfo
 
@@ -909,6 +909,9 @@ class Genesis4Python(CommandWrapper):
         lattice_source: Union[str, pathlib.Path] = "",
         *,
         source_path: Union[str, pathlib.Path] = ".",
+        output: Optional[Genesis4Output] = None,
+        alias: Optional[Dict[str, str]] = None,
+        units: Optional[Dict[str, pmd_unit]] = None,
         command=None,
         command_mpi=None,
         use_mpi=False,
@@ -938,11 +941,11 @@ class Genesis4Python(CommandWrapper):
             )
 
         self.input = input
-        self.output = None
+        self.output = output
 
         # Internal
-        self._units = parsers.known_unit.copy()
-        self._alias = {}
+        self._units = dict(units or parsers.known_unit)
+        self._alias = dict(alias or {})
 
         # MPI
         self.nproc = 1
@@ -1114,11 +1117,32 @@ class Genesis4Python(CommandWrapper):
     def archive(self, *args, **kwargs):
         """Archive the latest run, input and output, to a single HDF5 file."""
         # TODO
-        return self.output.archive(*args, **kwargs)
+        # return self.output.archive(*args, **kwargs)
+
+    to_hdf5 = archive
 
     def load_archive(self, *args, **kwargs):
         """Load an archive from a single HDF5 file."""
-        return Genesis4Output.from_archive(*args, **kwargs)
+        # return Genesis4Output.from_archive(*args, **kwargs)
+
+    def __getnewargs_ex__(self) -> Tuple[tuple, dict]:
+        return (
+            (),
+            {
+                "input": self.input,
+                "output": self.output,
+                "alias": self._alias,
+                "units": self._units,
+                "command": self.command,
+                "command_mpi": self.command_mpi,
+                "use_mpi": self.use_mpi,
+                "mpi_run": self.mpi_run,
+                "use_temp_dir": self.use_temp_dir,
+                "workdir": self.workdir,
+                "verbose": self.verbose,
+                "timeout": self.timeout,
+            },
+        )
 
     def load_output(
         self,

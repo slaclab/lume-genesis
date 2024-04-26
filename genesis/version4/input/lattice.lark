@@ -32,6 +32,8 @@ DOUBLE: NUMBER
 LABEL: /[A-Za-z_][A-Za-z0-9_]*/i
 PARAMETER: /[A-Za-z_][A-Za-z0-9_]*/i
 BOOLEAN: "true"i
+       | "t"i
+       | "1"
        | "false"i
 
 //  Following beamline elements are currently supported: undulator, quadrupole,
