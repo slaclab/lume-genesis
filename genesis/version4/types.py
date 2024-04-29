@@ -14,7 +14,6 @@ from typing import (
     Sequence,
     Type,
     Tuple,
-    TypedDict,
     Union,
 )
 
@@ -25,12 +24,6 @@ except ImportError:
 
 if TYPE_CHECKING:
     from .input.core import Reference
-
-
-class SerializedReference(TypedDict):
-    """A serialized Reference instance as a dictionary."""
-
-    label: str
 
 
 class _PydanticPmdUnit(pydantic.BaseModel):
@@ -258,3 +251,12 @@ AnyPath = Union[pathlib.Path, str]
 ValueType = Union[int, float, bool, str, "Reference"]
 ArrayType = Union[Sequence[float], PydanticNDArray]
 Float = float
+
+
+try:
+    from types import UnionType
+except ImportError:
+    # Python < 3.10
+    union_types = {Union}
+else:
+    union_types = {UnionType, Union}

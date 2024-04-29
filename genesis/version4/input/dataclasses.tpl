@@ -12,7 +12,7 @@ import pydantic
 
 from typing import Dict, Literal, Union
 from . import util
-from ..types import {{ base_class }}, Reference, SerializedReference, ValueType
+from ..types import {{ base_class }}, Reference, ValueType
 
 {%- for name, element in manual.elements.items() %}
 {%- if element.parameters | length %}
