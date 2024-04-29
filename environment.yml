@@ -4,18 +4,19 @@ channels:
   - conda-forge
 dependencies:
   - python>=3.9
+  - eval-type-backport
   - lume-base
 #  - genesis2=*=mpi_mpich*
   - genesis4=4.6.4=mpi_openmpi* # Pinned because of a bug in 4.6.5
   - jinja2
   - lark
+  - pydantic >2
 # Developer
   - ffmpeg
   - pytest
   - pytest-cov
   - jupyterlab>=3
   - matplotlib
-  - pydantic >2
   - pygments
   - mkdocs
   - mkdocstrings
