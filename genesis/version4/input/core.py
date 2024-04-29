@@ -309,11 +309,15 @@ class ProfileArray(NameList):
     reverse : bool, default=False
         if true the order in the look-up table is reverse. This is sometimes needed
         because time and spatial coordinates differ sometimes by a minus sign.
-    _filename : str, optional
+    filename : str, optional
         By default, this is a randomly-generated filename that lume-genesis
         manages for you.  If desirable, you may set a fixed filename relative
         to the main input file.  Path delimiters (such as ``/``) are not
         allowed.
+    x_label : str, optional
+        The X label (key) to use for the saved data.
+    y_label : str, optional
+        The Y label (key) to use for the saved data.
     """
 
     type: Literal["ProfileArray"] = "ProfileArray"
@@ -375,7 +379,7 @@ class InitialParticles(NameList):
     ----------
     particles : ParticleGroup
         Initial particles.
-    _filename : str, optional
+    filename : str, optional
         By default, this is a randomly-generated filename that lume-genesis
         manages for you.  If desirable, you may set a fixed filename relative
         to the main input file.  Path delimiters (such as ``/``) are not

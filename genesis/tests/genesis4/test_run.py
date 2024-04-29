@@ -1,7 +1,7 @@
 import pathlib
 import h5py
 import numpy as np
-from genesis.version4.input import (
+from ...version4.input import (
     MainInput,
     Setup,
     Time,

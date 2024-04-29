@@ -12,7 +12,6 @@ from pmd_beamphysics.interfaces.genesis import genesis4_par_to_data
 from pmd_beamphysics.units import pmd_unit, c_light
 from typing import (
     Any,
-    Callable,
     Dict,
     Generator,
     Generic,
@@ -29,6 +28,11 @@ from typing import (
 from . import parsers, readers
 from .plot import plot_stats_with_layout
 from .types import AnyPath, PydanticPmdUnit
+
+try:
+    from typing import Literal
+except ImportError:
+    from typing_extensions import Literal
 
 
 if typing.TYPE_CHECKING:
@@ -216,28 +220,20 @@ FieldFileDict = TypedDict(
 T = TypeVar("T")
 
 
-class LazyLoadHDF5(Generic[T]):
-    """Lazy loading helper."""
+class HDF5ReferenceFile(pydantic.BaseModel, Generic[T]):
+    """An externally-referenced HDF5 file.."""
 
     key: str
     filename: pathlib.Path
-    loaded: Optional[T]
+    type: Literal["particle_group", "field"]
 
-    def __init__(self, key: str, filename: pathlib.Path, loader: Callable[..., T]):
-        self.key = key
-        self.filename = filename
-        self.h5 = h5py.File(filename)
-        self._loader = loader
-        self._loaded = None
-
-    def load(self, *args, **kwargs) -> T:
-        if self.h5 is None:
-            assert self._loaded is not None
-            return self._loaded
-        self._loaded = self._loader(self.h5, *args, **kwargs)
-        self.h5.close()
-        self.h5 = None
-        return self._loaded
+    def load(self, **kwargs) -> T:
+        with h5py.File(self.filename) as h5:
+            if self.type == "particle_group":
+                return _load_particle_group(h5, **kwargs)
+            if self.type == "field":
+                return load_field_file(h5, **kwargs)
+        raise NotImplementedError(self.type)
 
 
 def _load_particle_group(h5: h5py.File, smear: bool = True) -> ParticleGroup:
@@ -266,8 +262,12 @@ class Genesis4Output(pydantic.BaseModel):
     unit_info: Dict[str, PydanticPmdUnit] = pydantic.Field(default_factory=dict)
     run: RunInfo = pydantic.Field(default_factory=lambda: RunInfo())
     alias: Dict[str, str] = pydantic.Field(default_factory=dict)
-    # field_files: Dict[str, LazyLoadHDF5] = pydantic.Field(default_factory=dict)
-    # particle_files: Dict[str, LazyLoadHDF5] = pydantic.Field(default_factory=dict)
+    field_files: Dict[str, HDF5ReferenceFile[FieldFileDict]] = pydantic.Field(
+        default_factory=dict
+    )
+    particle_files: Dict[str, HDF5ReferenceFile[ParticleGroup]] = pydantic.Field(
+        default_factory=dict
+    )
 
     def __repr__(self):
         return f"{self.__class__.__name__}(run={self.run})"
@@ -408,18 +408,18 @@ class Genesis4Output(pydantic.BaseModel):
         data["field"] = {}
         data["particles"] = {}
         fields = [
-            LazyLoadHDF5(
+            HDF5ReferenceFile[h5py.File](
                 key=fn.name[: -len(".fld.h5")],
                 filename=fn,
-                loader=load_field_file,
+                type="field",
             )
             for fn in output_root.glob("*.fld.h5")
         ]
         particles = [
-            LazyLoadHDF5(
+            HDF5ReferenceFile[ParticleGroup](
                 key=fn.name.split(".")[0],
                 filename=fn,
-                loader=_load_particle_group,
+                type="particle_group",
             )
             for fn in output_root.glob("*.par.h5")
         ]

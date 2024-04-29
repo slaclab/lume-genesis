@@ -5,6 +5,7 @@ from pmd_beamphysics import ParticleGroup
 from pmd_beamphysics.units import pmd_unit
 import pydantic
 import pydantic_core
+import h5py
 
 import numpy as np
 from typing import (
@@ -32,8 +33,12 @@ class _PydanticPmdUnit(pydantic.BaseModel):
     unitDimension: Tuple[int, ...]
 
     @staticmethod
-    def _from_dict(dct) -> pmd_unit:
-        return pmd_unit(**dct)
+    def _from_dict(dct: dict) -> pmd_unit:
+        dct = dict(dct)
+        dim = dct.pop("unitDimension", None)
+        if dim is not None:
+            dim = tuple(dim)
+        return pmd_unit(**dct, unitDimension=dim)
 
     def _as_dict(self) -> Dict[str, Any]:
         return {
@@ -58,7 +63,7 @@ class _PydanticPmdUnit(pydantic.BaseModel):
     @classmethod
     def _pydantic_validate(
         cls, value: Union[Dict[str, Any], pmd_unit, Any]
-    ) -> "pmd_unit":
+    ) -> pmd_unit:
         if isinstance(value, pmd_unit):
             return value
         if isinstance(value, dict):
@@ -67,31 +72,19 @@ class _PydanticPmdUnit(pydantic.BaseModel):
 
 
 class _PydanticNDArray(pydantic.BaseModel):
-    todo: float
-
-    @staticmethod
-    def _from_dict(dct) -> pmd_unit:
-        raise NotImplementedError()
-        return pmd_unit(**dct)
-
-    def _as_dict(self) -> Dict[str, Any]:
-        raise NotImplementedError()
-        return {
-            "unitSI": self.unitSI,
-            "unitSymbol": self.unitSymbol,
-            "unitDimension": tuple(self.unitDimension),
-        }
-
     @classmethod
     def __get_pydantic_core_schema__(
         cls,
         source: Type[Any],
         handler: pydantic.GetCoreSchemaHandler,
     ) -> pydantic_core.core_schema.CoreSchema:
+        def to_list(obj: np.ndarray) -> list:
+            return obj.tolist()
+
         return pydantic_core.core_schema.no_info_plain_validator_function(
             cls._pydantic_validate,
             serialization=pydantic_core.core_schema.plain_serializer_function_ser_schema(
-                cls._as_dict, when_used="json-unless-none"
+                to_list, when_used="json-unless-none"
             ),
         )
 
@@ -105,18 +98,16 @@ class _PydanticNDArray(pydantic.BaseModel):
 
 
 class _PydanticParticleGroup(pydantic.BaseModel):
-    todo: float
+    h5: h5py.File
 
     @staticmethod
-    def _from_dict(dct) -> pmd_unit:
-        return pmd_unit(**dct)
+    def _from_dict(dct) -> ParticleGroup:
+        return ParticleGroup(h5=dct["filename"])
 
     def _as_dict(self) -> Dict[str, Any]:
-        raise NotImplementedError()
+        assert self.h5
         return {
-            "unitSI": self.unitSI,
-            "unitSymbol": self.unitSymbol,
-            "unitDimension": tuple(self.unitDimension),
+            "filename": self.h5.filename,
         }
 
     @classmethod
@@ -134,14 +125,13 @@ class _PydanticParticleGroup(pydantic.BaseModel):
 
     @classmethod
     def _pydantic_validate(
-        cls, value: Union[Dict[str, Any], pmd_unit, Any]
-    ) -> "pmd_unit":
-        raise NotImplementedError()
-        if isinstance(value, pmd_unit):
+        cls, value: Union[Dict[str, Any], ParticleGroup, Any]
+    ) -> ParticleGroup:
+        if isinstance(value, ParticleGroup):
             return value
         if isinstance(value, dict):
             return cls._from_dict(value)
-        raise ValueError(f"No conversion from {value!r} to pmd_unit")
+        raise ValueError(f"No conversion from {value!r} to ParticleGroup")
 
 
 class Reference(str):
@@ -165,23 +155,6 @@ class Reference(str):
 
 class NameList(pydantic.BaseModel, abc.ABC):
     """Base class for name lists used in Genesis 4 main input files."""
-
-    def __post_model_init__(self) -> None:
-        # Fix up any references or types for convenience (and deserialization)
-        # TODO/NOTE: anything more complicated than this will call for
-        # msgspec / apischema / pydantic for (de)serialization
-        for attr, annotation in self.__annotations__.items():
-            if attr.startswith("_"):
-                pass
-            elif "Reference" in annotation:
-                try:
-                    value = Reference.from_namelist(getattr(self, attr))
-                except ValueError:
-                    # Not a reference type to be deserialized
-                    ...
-                else:
-                    # Update the attribute with the Reference instance.
-                    setattr(self, attr, value)
 
     @property
     def genesis_parameters(self) -> Dict[str, ValueType]:
