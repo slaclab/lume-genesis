@@ -7,84 +7,12 @@ Do not hand-edit it.
 """
 
 from __future__ import annotations
-import abc
 import typing
 
 import pydantic
-import pydantic_core
 
-from typing import Any, Dict, Literal, Union
-from . import util
-from ..types import SerializedReference, ValueType
-
-
-class Reference(str):
-    """
-    A Genesis 4 main input value which is a reference to another namelist or
-    value.
-
-    Attributes
-    ----------
-    label : str
-        The reference name.
-    """
-
-    @classmethod
-    def __get_pydantic_core_schema__(
-        cls, source_type: Any, handler: pydantic.GetCoreSchemaHandler
-    ) -> pydantic_core.CoreSchema:
-        return pydantic_core.core_schema.no_info_after_validator_function(
-            cls, handler(str)
-        )
-
-    def __str__(self) -> str:
-        label = super().__str__().lstrip("@")
-        return f"@{label}"
-
-    @classmethod
-    def from_namelist(
-        cls, value: Union[Reference, SerializedReference, str]
-    ) -> Reference:
-        if isinstance(value, Reference):
-            return value
-        if isinstance(value, str) and value.startswith("@"):
-            return cls(label=value.lstrip("@ "))
-        if isinstance(value, dict):
-            return cls(**value)
-        raise ValueError(f"Unexpected type for a Reference in a NameList: {value}")
-
-
-class NameList(pydantic.BaseModel, abc.ABC):
-    """Base class for name lists used in Genesis 4 main input files."""
-
-    @property
-    def genesis_parameters(self) -> Dict[str, ValueType]:
-        """Dictionary of parameters to pass to Genesis 4."""
-        return {
-            attr: value
-            for attr, value in util.get_non_default_attrs(self).items()
-            if attr not in {"type"}
-        }
-
-    def to_genesis(self) -> str:
-        """Create a Genesis 4-compatible namelist from this instance."""
-        parameters = (
-            f"  {name} = {util.python_to_namelist_value(value)}"
-            for name, value in self.genesis_parameters.items()
-        )
-        return "\n".join(
-            (
-                f"&{self.type}",
-                *parameters,
-                "&end",
-            )
-        )
-
-    def __str__(self) -> str:
-        return self.to_genesis()
-
-    def __repr__(self) -> str:
-        return util.get_non_default_repr(self)
+from typing import Literal, Union
+from ..types import NameList, Reference
 
 
 class Setup(NameList):
@@ -763,7 +691,11 @@ class Field(NameList):
     """
 
     type: Literal["field"] = "field"
-    lambda_: float = pydantic.Field(serialization_alias="lambda", default=0.0)
+    lambda_: float = pydantic.Field(
+        validation_alias=pydantic.AliasChoices("lambda_", "lambda"),
+        serialization_alias="lambda",
+        default=0.0,
+    )
     power: float | Reference = 0.0
     phase: float | Reference = 0.0
     waist_pos: float | Reference = 0.0

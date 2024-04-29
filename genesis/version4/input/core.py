@@ -163,9 +163,6 @@ class Line(BeamlineElement):
             )
         )
 
-    def __repr__(self) -> str:
-        return util.get_non_default_repr(self)
-
     @classmethod
     def from_labels(
         cls,
@@ -227,9 +224,6 @@ class Lattice(pydantic.BaseModel):
     def to_genesis(self) -> str:
         self.fix_labels()
         return "\n".join(str(element) for element in self.elements.values())
-
-    # def __repr__(self) -> str:
-    #     return util.get_non_default_repr(self)
 
     def fix_labels(self) -> None:
         for label, element in self.elements.items():
@@ -483,9 +477,19 @@ class MainInput(pydantic.BaseModel):
             raise ValueError("Multiple setup namelists were defined in the input.")
         return setups[0]
 
-    def to_dicts(self) -> List[Dict]:
+    def to_dicts(
+        self, exclude_defaults: bool = True, by_alias: bool = True, **kwargs
+    ) -> List[Dict]:
         """Serialize this main input to a list of dictionaries."""
-        return [namelist.model_dump() for namelist in self.namelists]
+        return [
+            {
+                "type": namelist.model_fields["type"].default,
+                **namelist.model_dump(
+                    exclude_defaults=exclude_defaults, by_alias=by_alias, **kwargs
+                ),
+            }
+            for namelist in self.namelists
+        ]
 
     @classmethod
     def from_dicts(
@@ -852,6 +856,9 @@ def _fix_parameters(
         for field in cls.model_fields.values()
         if field.serialization_alias
     }
+    fields.update(
+        {field.alias: field for field in cls.model_fields.values() if field.alias}
+    )
     fields.update(cls.model_fields)
 
     for name, value in params.items():

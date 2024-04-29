@@ -7,51 +7,11 @@ Do not hand-edit it.
 """
 
 from __future__ import annotations
-import abc
 
 import pydantic
 
-from typing import Dict, Literal, Union
-from . import util
-from ..types import ValueType
-
-
-class BeamlineElement(pydantic.BaseModel, abc.ABC):
-    """Base class for beamline elements used in Genesis 4 lattice files."""
-
-    label: str
-
-    @property
-    def genesis_parameters(self) -> Dict[str, ValueType]:
-        """Dictionary of parameters to pass to Genesis 4."""
-        return {
-            attr: value
-            for attr, value in util.get_non_default_attrs(self).items()
-            if attr not in {"type"}
-        }
-
-    def to_genesis(self) -> str:
-        """Create a Genesis 4 compatible element from this instance."""
-        parameters = ", ".join(
-            f"{name}={util.python_to_namelist_value(value)}"
-            for name, value in self.genesis_parameters.items()
-            if name not in {"label"}
-        )
-        return "".join(
-            (
-                self.label,
-                f": {self.type} = ",
-                "{",
-                parameters,
-                "};",
-            )
-        )
-
-    def __str__(self) -> str:
-        return self.to_genesis()
-
-    def __repr__(self) -> str:
-        return util.get_non_default_repr(self)
+from typing import Literal, Union
+from ..types import BeamlineElement
 
 
 class Undulator(BeamlineElement):
@@ -118,7 +78,11 @@ class Drift(BeamlineElement):
     """
 
     type: Literal["drift"] = "drift"
-    L: float = pydantic.Field(serialization_alias="l", default=0.0)
+    L: float = pydantic.Field(
+        validation_alias=pydantic.AliasChoices("L", "l"),
+        serialization_alias="l",
+        default=0.0,
+    )
     label: str = ""
 
 
@@ -141,10 +105,22 @@ class Quadrupole(BeamlineElement):
     """
 
     type: Literal["quadrupole"] = "quadrupole"
-    L: float = pydantic.Field(serialization_alias="l", default=0.0)
+    L: float = pydantic.Field(
+        validation_alias=pydantic.AliasChoices("L", "l"),
+        serialization_alias="l",
+        default=0.0,
+    )
     k1: float = 0.0
-    x_offset: float = pydantic.Field(serialization_alias="dx", default=0.0)
-    y_offset: float = pydantic.Field(serialization_alias="dy", default=0.0)
+    x_offset: float = pydantic.Field(
+        validation_alias=pydantic.AliasChoices("x_offset", "dx"),
+        serialization_alias="dx",
+        default=0.0,
+    )
+    y_offset: float = pydantic.Field(
+        validation_alias=pydantic.AliasChoices("y_offset", "dy"),
+        serialization_alias="dy",
+        default=0.0,
+    )
     label: str = ""
 
 
@@ -165,7 +141,11 @@ class Corrector(BeamlineElement):
     """
 
     type: Literal["corrector"] = "corrector"
-    L: float = pydantic.Field(serialization_alias="l", default=0.0)
+    L: float = pydantic.Field(
+        validation_alias=pydantic.AliasChoices("L", "l"),
+        serialization_alias="l",
+        default=0.0,
+    )
     cx: float = 0.0
     cy: float = 0.0
     label: str = ""
@@ -198,7 +178,11 @@ class Chicane(BeamlineElement):
     """
 
     type: Literal["chicane"] = "chicane"
-    L: float = pydantic.Field(serialization_alias="l", default=0.0)
+    L: float = pydantic.Field(
+        validation_alias=pydantic.AliasChoices("L", "l"),
+        serialization_alias="l",
+        default=0.0,
+    )
     lb: float = 0.0
     ld: float = 0.0
     delay: float = 0.0
@@ -222,7 +206,11 @@ class Phaseshifter(BeamlineElement):
     """
 
     type: Literal["phaseshifter"] = "phaseshifter"
-    L: float = pydantic.Field(serialization_alias="l", default=0.0)
+    L: float = pydantic.Field(
+        validation_alias=pydantic.AliasChoices("L", "l"),
+        serialization_alias="l",
+        default=0.0,
+    )
     phi: float = 0.0
     label: str = ""
 

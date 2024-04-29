@@ -81,4 +81,22 @@ def test_serialize_file(filename: pathlib.Path) -> None:
 
     print("Deserialized back to dataclasses:")
     deserialized = MainInput.from_dicts(serialized, filename=filename)
-    assert inp == deserialized
+    pprint.pprint(deserialized)
+    try:
+        assert inp == deserialized
+    except AssertionError:
+        for idx, (inp_namelist, deserialized_namelist) in enumerate(
+            zip(inp.namelists, deserialized.namelists)
+        ):
+            if type(inp_namelist) is not type(deserialized_namelist):
+                print(
+                    f"Namelist {idx} differ by type: {type(inp_namelist)}, {type(deserialized_namelist)}"
+                )
+                continue
+            for attr, value1 in inp_namelist.model_dump().items():
+                value2 = deserialized_namelist.model_dump()[attr]
+                if value1 != value2:
+                    print(f"Namelist {idx} differs with attribute {attr}:")
+                    print("Input:\n", value1)
+                    print("Deserialized:\n", value2)
+        raise
