@@ -1,6 +1,9 @@
 import pathlib
 import h5py
 import numpy as np
+import pytest
+
+from ...version4.genesis4 import Genesis4Python, Genesis4Input
 from ...version4.input import (
     MainInput,
     Setup,
@@ -21,23 +24,11 @@ from ...version4.input import (
 
 
 test_path = pathlib.Path(__file__).resolve().parent
+run_basic = test_path / "run_basic"
 
 
-def test_run():
-    run_basic = test_path / "run_basic"
-    with h5py.File(run_basic / "beam_current.h5") as fp:
-        current_x = np.asarray(fp["s"])
-        current = np.asarray(fp["current"])
-
-    with h5py.File(run_basic / "beam_gamma.h5") as fp:
-        gamma_x = np.asarray(fp["s"])
-        gamma = np.asarray(fp["gamma"])
-
-    original_lattice = Lattice.from_file(run_basic / "hxr.lat")
-    print("The original lattice file is parsed as follows:")
-    print(repr(original_lattice))
-    print()
-
+@pytest.fixture
+def lattice() -> Lattice:
     elements = {
         "QHXH17": Quadrupole(L=0.101, k1=1.78),
         "QHXH18": Quadrupole(L=0.101, k1=-1.78),
@@ -227,18 +218,18 @@ def test_run():
         "D1 UMAHXH49 D2 QHXH49 CORR32 D3",
         "D1 UMAHXH50 D2 QHXH50 CORR33 D3",
     )
-    lattice = Lattice(elements=elements)
+    return Lattice(elements=elements)
 
-    print("The new, Python-based lattice looks like this:")
-    print(lattice)
 
-    assert lattice.to_genesis() == original_lattice.to_genesis()
-    print("Verified they are the same when made into Genesis 4 format.")
+@pytest.fixture
+def main_input() -> MainInput:
+    with h5py.File(run_basic / "beam_current.h5") as fp:
+        current_x = np.asarray(fp["s"])
+        current = np.asarray(fp["current"])
 
-    print("The LCLS2_HXR_U2 element is made up of the following:")
-    # lattice.fix_labels()  # required as we haven't set labels yet
-    for item in elements["LCLS2_HXR_U2"].elements:
-        print("-", item)
+    with h5py.File(run_basic / "beam_gamma.h5") as fp:
+        gamma_x = np.asarray(fp["s"])
+        gamma = np.asarray(fp["gamma"])
 
     main = MainInput(
         namelists=[
@@ -260,18 +251,11 @@ def test_run():
                 harm=1,
                 accumulate=True,
             ),
+            # Instead of a file, we specify an array:
             # ProfileFile(
             #     label="beamcurrent",
             #     xdata="beam_current.h5/s",
             #     ydata="beam_current.h5/current",
-            #     isTime=False,
-            #     reverse=False,
-            #     autoassign=False,
-            # ),
-            # ProfileFile(
-            #     label="beamgamma",
-            #     xdata="beam_gamma.h5/s",
-            #     ydata="beam_gamma.h5/gamma",
             #     isTime=False,
             #     reverse=False,
             #     autoassign=False,
@@ -281,6 +265,15 @@ def test_run():
                 xdata=current_x,
                 ydata=current,
             ),
+            # Instead of a file, we specify an array:
+            # ProfileFile(
+            #     label="beamgamma",
+            #     xdata="beam_gamma.h5/s",
+            #     ydata="beam_gamma.h5/gamma",
+            #     isTime=False,
+            #     reverse=False,
+            #     autoassign=False,
+            # ),
             ProfileArray(
                 label="beamgamma",
                 xdata=gamma_x,
@@ -299,11 +292,50 @@ def test_run():
                 alphay=1.3870723536888105,
             ),
             Track(
-                zstop=10,
+                zstop=10.0,
                 field_dump_at_undexit=False,
             ),
         ],
     )
 
-    print(main)
     print(lattice)
+
+    # Restrict the simulation to a small Z range for the test suite:
+    main.by_namelist[Track][0].zstop = 0.1
+    return main
+
+
+def test_compare_lattice_to_file(lattice: Lattice):
+    original_lattice = Lattice.from_file(run_basic / "hxr.lat")
+    print("The original lattice file is parsed as follows:")
+    print(repr(original_lattice))
+    print()
+
+    print("The new, Python-based lattice looks like this:")
+    print(lattice)
+
+    assert lattice.to_genesis() == original_lattice.to_genesis()
+    print("Verified they are the same when made into Genesis 4 format.")
+
+    print("The LCLS2_HXR_U2 element is made up of the following:")
+    for item in lattice.elements["LCLS2_HXR_U2"].elements:
+        print("-", item)
+
+
+def test_run_with_instances(lattice: Lattice, main_input: MainInput):
+    input = Genesis4Input(
+        main=main_input,
+        lattice=lattice,
+    )
+    genesis = Genesis4Python(input)
+    output = genesis.run(raise_on_error=True)
+    assert output.run.success
+
+
+def test_run_with_source(lattice: Lattice, main_input: MainInput):
+    genesis = Genesis4Python(
+        input=str(main_input),
+        lattice_source=str(lattice),
+    )
+    output = genesis.run(raise_on_error=True)
+    assert output.run.success
