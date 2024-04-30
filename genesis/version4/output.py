@@ -14,12 +14,10 @@ from typing import (
     Any,
     Dict,
     Generator,
-    Generic,
     ItemsView,
     KeysView,
     List,
     Optional,
-    TypeVar,
     TypedDict,
     Union,
     ValuesView,
@@ -50,6 +48,10 @@ class RunInfo(pydantic.BaseModel):
     start_time: float = 0.0
     end_time: float = 0.0
     run_time: float = 0.0
+
+    @property
+    def success(self) -> bool:
+        return not self.error
 
 
 LatticeDict = TypedDict(
@@ -217,27 +219,37 @@ FieldFileDict = TypedDict(
 )
 
 
-T = TypeVar("T")
-
-
-class HDF5ReferenceFile(pydantic.BaseModel, Generic[T]):
+class HDF5ReferenceFile(pydantic.BaseModel):
     """An externally-referenced HDF5 file.."""
 
     key: str
     filename: pathlib.Path
-    type: Literal["particle_group", "field"]
 
-    def load(self, **kwargs) -> T:
+
+class _FieldH5File(HDF5ReferenceFile):
+    type: Literal["field"] = "field"
+
+    def load(self, **kwargs) -> FieldFileDict:
         with h5py.File(self.filename) as h5:
             if self.type == "particle_group":
-                return _load_particle_group(h5, **kwargs)
+                return load_particle_group(h5, **kwargs)
             if self.type == "field":
                 return load_field_file(h5, **kwargs)
         raise NotImplementedError(self.type)
 
 
-def _load_particle_group(h5: h5py.File, smear: bool = True) -> ParticleGroup:
-    return ParticleGroup(data=genesis4_par_to_data(h5, smear=smear))
+class _ParticleGroupH5File(HDF5ReferenceFile):
+    type: Literal["particle_group"] = "particle_group"
+
+    def load(self, **kwargs) -> FieldFileDict:
+        with h5py.File(self.filename) as h5:
+            return load_particle_group(h5, **kwargs)
+
+
+LoadableH5File = Union[
+    _ParticleGroupH5File,
+    _FieldH5File,
+]
 
 
 class Genesis4Output(pydantic.BaseModel):
@@ -262,12 +274,8 @@ class Genesis4Output(pydantic.BaseModel):
     unit_info: Dict[str, PydanticPmdUnit] = pydantic.Field(default_factory=dict)
     run: RunInfo = pydantic.Field(default_factory=lambda: RunInfo())
     alias: Dict[str, str] = pydantic.Field(default_factory=dict)
-    field_files: Dict[str, HDF5ReferenceFile[FieldFileDict]] = pydantic.Field(
-        default_factory=dict
-    )
-    particle_files: Dict[str, HDF5ReferenceFile[ParticleGroup]] = pydantic.Field(
-        default_factory=dict
-    )
+    field_files: Dict[str, LoadableH5File] = pydantic.Field(default_factory=dict)
+    particle_files: Dict[str, LoadableH5File] = pydantic.Field(default_factory=dict)
 
     def __repr__(self):
         return f"{self.__class__.__name__}(run={self.run})"
@@ -408,18 +416,16 @@ class Genesis4Output(pydantic.BaseModel):
         data["field"] = {}
         data["particles"] = {}
         fields = [
-            HDF5ReferenceFile[h5py.File](
+            _FieldH5File(
                 key=fn.name[: -len(".fld.h5")],
                 filename=fn,
-                type="field",
             )
             for fn in output_root.glob("*.fld.h5")
         ]
         particles = [
-            HDF5ReferenceFile[ParticleGroup](
+            _ParticleGroupH5File(
                 key=fn.name.split(".")[0],
                 filename=fn,
-                type="particle_group",
             )
             for fn in output_root.glob("*.par.h5")
         ]
@@ -874,6 +880,22 @@ def projected_variance_from_slice_data(x2, x1, current):
         np.sum((x2 + x1**2) * current, axis=1) / norm
         - (np.sum(x1 * current, axis=1) / norm) ** 2
     )
+
+
+def load_particle_group(h5: h5py.File, smear: bool = True) -> ParticleGroup:
+    """
+    Load a ParticleGroup from the provided h5py File instance.
+
+    Parameters
+    ----------
+    h5 : h5py.File
+    smear : bool
+
+    Returns
+    -------
+    ParticleGroup
+    """
+    return ParticleGroup(data=genesis4_par_to_data(h5, smear=smear))
 
 
 def load_field_file(file: Union[AnyPath, h5py.File]) -> FieldFileDict:

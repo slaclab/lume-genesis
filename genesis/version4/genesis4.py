@@ -823,13 +823,19 @@ def _make_genesis4_input(
     def _read_if_path(input: Union[pathlib.Path, str]) -> str:
         nonlocal source_path
         path = pathlib.Path(input).resolve()
-        if path.exists() or isinstance(input, pathlib.Path):
-            # Update our source path; we found a file.  This is probably what
-            # the user wants.
-            source_path = path.absolute().parent
-            with open(path) as fp:
-                return fp.read()
-        return input
+        try:
+            is_path = isinstance(input, pathlib.Path) or path.exists()
+        except OSError:
+            is_path = False
+
+        if not is_path:
+            return str(input)
+
+        # Update our source path; we found a file.  This is probably what
+        # the user wants.
+        source_path = path.absolute().parent
+        with open(path) as fp:
+            return fp.read()
 
     input = _read_if_path(input)
     lattice_source = _read_if_path(lattice_source)
@@ -850,6 +856,9 @@ def _make_genesis4_input(
         lattice_source,
         source_path=source_path,
     )
+
+
+class Genesis4RunFailure(Exception): ...
 
 
 class Genesis4Python(CommandWrapper):
@@ -964,6 +973,7 @@ class Genesis4Python(CommandWrapper):
         load_fields: bool = False,
         load_particles: bool = False,
         smear: bool = True,
+        raise_on_error: bool = True,
     ) -> Genesis4Output:
         """
         Execute Genesis 4 with the configured input settings.
@@ -977,6 +987,10 @@ class Genesis4Python(CommandWrapper):
         smear : bool, default=True
             If set, for particles, this will smear the phase over the sample
             (skipped) slices, preserving the modulus.
+        raise_on_error : bool, default=True
+            If Genesis 4 fails to run, raise an error. Depending on the error,
+            output information may still be accessible in the ``.output``
+            attribute.
 
         Returns
         -------
@@ -1003,9 +1017,6 @@ class Genesis4Python(CommandWrapper):
             timeout=self.timeout,
             cwd=self.path,
         )
-        log = res["log"]
-        error = res["error"]
-        error_reason = res["why_error"]
         # else:
         #     # TODO
         #     # Interactive output, for Jupyter
@@ -1017,9 +1028,18 @@ class Genesis4Python(CommandWrapper):
         #     log = "\n".join(log)
 
         end_time = monotonic()
-        run_time = end_time - start_time
 
         self.finished = True
+        run_info = RunInfo(
+            run_script=runscript,
+            error=res["error"],
+            error_reason=res["why_error"],
+            start_time=start_time,
+            end_time=end_time,
+            run_time=end_time - start_time,
+            output_log=res["log"],
+        )
+
         try:
             self.output = self.load_output(
                 load_fields=load_fields,
@@ -1027,26 +1047,23 @@ class Genesis4Python(CommandWrapper):
                 smear=smear,
             )
         except Exception as ex:
-            error = True
             stack = traceback.format_exc()
-            error_reason = (
+            run_info.error = True
+            run_info.error_reason = (
                 f"Failed to load output file. {ex.__class__.__name__}: {ex}\n{stack}"
             )
-            self.output = Genesis4Output()
+            self.output = Genesis4Output(run=run_info)
+            if raise_on_error:
+                raise
 
-        self.output.run = RunInfo(
-            run_script=runscript,
-            error=error,
-            error_reason=error_reason,
-            start_time=start_time,
-            end_time=end_time,
-            run_time=run_time,
-            output_log=log,
-        )
-        if error:
-            if is_jupyter():
-                print(f"Execution failed. Took {run_time}s:")
-                print(log)
+        if is_jupyter():
+            print(f"Execution failed. Took {run_info.run_time}s:")
+            print(run_info.output_log)
+
+        if run_info.error and raise_on_error:
+            raise Genesis4RunFailure(
+                f"Genesis 4 failed to run: {run_info.error_reason}"
+            )
 
         return self.output
 
