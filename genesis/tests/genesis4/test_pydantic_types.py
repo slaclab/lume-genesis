@@ -6,7 +6,7 @@ from pmd_beamphysics.units import pmd_unit
 from pydantic import TypeAdapter
 from ...version4.types import (
     PydanticNDArray,
-    PydanticParticleGroup,
+    # PydanticParticleGroup,
     PydanticPmdUnit,
 )
 

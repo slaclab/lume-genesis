@@ -11,9 +11,10 @@ import numpy as np
 from typing import (
     Any,
     Dict,
-    TYPE_CHECKING,
+    Optional,
     Sequence,
     Type,
+    TypedDict,
     Tuple,
     Union,
 )
@@ -22,9 +23,6 @@ try:
     from typing import Annotated
 except ImportError:
     from typing_extensions import Annotated
-
-if TYPE_CHECKING:
-    from .input.core import Reference
 
 
 class _PydanticPmdUnit(pydantic.BaseModel):
@@ -182,6 +180,43 @@ class NameList(pydantic.BaseModel, abc.ABC):
         return self.to_genesis()
 
 
+class ParticleData(TypedDict):
+    """
+    ParticleGroup raw data as a dictionary.
+
+    The following keys are required:
+    * `x`, `y`, `z` are np.ndarray in units of [m]
+    * `px`, `py`, `pz` are np.ndarray momenta in units of [eV/c]
+    * `t` is a np.ndarray of time in [s]
+    * `status` is a status coordinate np.ndarray
+    * `weight` is the macro-charge weight in [C], used for all statistical calulations.
+    * `species` is a proper species name: `'electron'`, etc.
+    The following keys are optional:
+    * `id` is an optional np.ndarray of unique IDs
+    """
+
+    # `x`, `y`, `z` are positions in units of [m]
+    x: PydanticNDArray
+    y: PydanticNDArray
+    z: PydanticNDArray
+
+    # `px`, `py`, `pz` are momenta in units of [eV/c]
+    px: PydanticNDArray
+    py: PydanticNDArray
+    pz: PydanticNDArray
+
+    # `t` is time in [s]
+    t: PydanticNDArray
+    status: PydanticNDArray
+
+    # `weight` is the macro-charge weight in [C], used for all statistical calulations.
+    weight: PydanticNDArray
+
+    # `species` is a proper species name: `'electron'`, etc.
+    species: str
+    id: Optional[PydanticNDArray]
+
+
 class BeamlineElement(pydantic.BaseModel, abc.ABC):
     """Base class for beamline elements used in Genesis 4 lattice files."""
 
@@ -221,7 +256,7 @@ PydanticNDArray = Annotated[np.ndarray, _PydanticNDArray]
 PydanticParticleGroup = Annotated[ParticleGroup, _PydanticParticleGroup]
 
 AnyPath = Union[pathlib.Path, str]
-ValueType = Union[int, float, bool, str, "Reference"]
+ValueType = Union[int, float, bool, str, Reference]
 ArrayType = Union[Sequence[float], PydanticNDArray]
 Float = float
 

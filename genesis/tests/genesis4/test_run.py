@@ -322,6 +322,14 @@ def test_compare_lattice_to_file(lattice: Lattice):
         print("-", item)
 
 
+def test_check_references(main_input: MainInput):
+    beam: Beam = main_input.by_namelist[Beam][0]
+    assert str(beam.current) == "@beamcurrent"
+    assert str(beam.gamma) == "@beamgamma"
+    assert "current = @beamcurrent" in str(main_input)
+    assert "gamma = @beamgamma" in str(main_input)
+
+
 def test_run_with_instances(lattice: Lattice, main_input: MainInput):
     input = Genesis4Input(
         main=main_input,
@@ -332,10 +340,22 @@ def test_run_with_instances(lattice: Lattice, main_input: MainInput):
     assert output.run.success
 
 
-def test_run_with_source(lattice: Lattice, main_input: MainInput):
+def test_run_with_source(
+    lattice: Lattice, main_input: MainInput, tmp_path: pathlib.Path
+):
+    wrote_files = main_input.write(tmp_path, source_path=run_basic)
     genesis = Genesis4Python(
         input=str(main_input),
         lattice_source=str(lattice),
+        source_path=tmp_path,
+        use_temp_dir=False,
     )
+    for filename in wrote_files:
+        print("Wrote:", filename)
+    print("Files in tmp_path:")
+    for filename in tmp_path.iterdir():
+        print(filename)
+        if filename.is_symlink():
+            print(" ->", filename.readlink())
     output = genesis.run(raise_on_error=True)
     assert output.run.success

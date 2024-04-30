@@ -6,7 +6,8 @@ from .core import (
     LineItem,
     MainInput,
     ProfileArray,
-    InitialParticles,
+    InitialParticlesFile,
+    InitialParticlesData,
     Genesis4Input,
 )
 from ._lattice import (
@@ -63,7 +64,8 @@ __all__ = [
     "Undulator",
     # Main:
     "Genesis4Input",
-    "InitialParticles",
+    "InitialParticlesData",
+    "InitialParticlesFile",
     "MainInput",
     "Setup",
     "AlterSetup",

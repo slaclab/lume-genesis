@@ -942,6 +942,7 @@ class Genesis4Python(CommandWrapper):
             timeout=timeout,
             **kwargs,
         )
+        self.original_path = source_path
         if not isinstance(input, Genesis4Input):
             input = _make_genesis4_input(
                 input,
@@ -1053,6 +1054,11 @@ class Genesis4Python(CommandWrapper):
                 f"Failed to load output file. {ex.__class__.__name__}: {ex}\n{stack}"
             )
             self.output = Genesis4Output(run=run_info)
+            if hasattr(ex, "add_note"):
+                # Python 3.11+
+                ex.add_note(
+                    f"\nGenesis output was:\n\n{res['log']}\n(End of Genesis output)"
+                )
             if raise_on_error:
                 raise
 
