@@ -1,26 +1,25 @@
 from __future__ import annotations
+
 import abc
 import pathlib
-from pmd_beamphysics.units import pmd_unit
-import pydantic
-import pydantic_core
+import sys
+from typing import Any, Dict, Optional, Sequence, Tuple, Type, Union
 
 import numpy as np
-from typing import (
-    Any,
-    Dict,
-    Optional,
-    Sequence,
-    Type,
-    TypedDict,
-    Tuple,
-    Union,
-)
+import pydantic
+import pydantic_core
+from pmd_beamphysics.units import pmd_unit
 
 try:
     from typing import Annotated
 except ImportError:
     from typing_extensions import Annotated
+
+if sys.version_info >= (3, 12):
+    from typing import TypedDict
+else:
+    # Pydantic specifically requires this for Python < 3.12
+    from typing_extensions import TypedDict
 
 
 class _PydanticPmdUnit(pydantic.BaseModel):
