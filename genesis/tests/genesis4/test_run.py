@@ -3,7 +3,7 @@ import h5py
 import numpy as np
 import pytest
 
-from ...version4.genesis4 import Genesis4Python, Genesis4Input
+from ...version4.genesis4 import Genesis4, Genesis4Input
 from ...version4.input import (
     MainInput,
     Setup,
@@ -335,7 +335,7 @@ def test_run_with_instances(lattice: Lattice, main_input: MainInput):
         main=main_input,
         lattice=lattice,
     )
-    genesis = Genesis4Python(input)
+    genesis = Genesis4(input)
     output = genesis.run(raise_on_error=True)
     assert output.run.success
 
@@ -344,10 +344,10 @@ def test_run_with_source(
     lattice: Lattice, main_input: MainInput, tmp_path: pathlib.Path
 ):
     wrote_files = main_input.write_files(tmp_path, source_path=run_basic)
-    genesis = Genesis4Python(
+    genesis = Genesis4(
         input=str(main_input),
         lattice_source=str(lattice),
-        source_path=tmp_path,
+        workdir=tmp_path,
         use_temp_dir=False,
     )
     for filename in wrote_files:

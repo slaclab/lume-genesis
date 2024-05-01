@@ -1,11 +1,9 @@
 from __future__ import annotations
 import abc
 import pathlib
-from pmd_beamphysics import ParticleGroup
 from pmd_beamphysics.units import pmd_unit
 import pydantic
 import pydantic_core
-import h5py
 
 import numpy as np
 from typing import (
@@ -93,43 +91,6 @@ class _PydanticNDArray(pydantic.BaseModel):
         if isinstance(value, Sequence):
             return np.asarray(value)
         raise ValueError(f"No conversion from {value!r} to numpy ndarray")
-
-
-class _PydanticParticleGroup(pydantic.BaseModel):
-    h5: h5py.File
-
-    @staticmethod
-    def _from_dict(dct) -> ParticleGroup:
-        return ParticleGroup(h5=dct["filename"])
-
-    def _as_dict(self) -> Dict[str, Any]:
-        assert self.h5
-        return {
-            "filename": self.h5.filename,
-        }
-
-    @classmethod
-    def __get_pydantic_core_schema__(
-        cls,
-        source: Type[Any],
-        handler: pydantic.GetCoreSchemaHandler,
-    ) -> pydantic_core.core_schema.CoreSchema:
-        return pydantic_core.core_schema.no_info_plain_validator_function(
-            cls._pydantic_validate,
-            serialization=pydantic_core.core_schema.plain_serializer_function_ser_schema(
-                cls._as_dict, when_used="json-unless-none"
-            ),
-        )
-
-    @classmethod
-    def _pydantic_validate(
-        cls, value: Union[Dict[str, Any], ParticleGroup, Any]
-    ) -> ParticleGroup:
-        if isinstance(value, ParticleGroup):
-            return value
-        if isinstance(value, dict):
-            return cls._from_dict(value)
-        raise ValueError(f"No conversion from {value!r} to ParticleGroup")
 
 
 class Reference(str):
@@ -254,7 +215,6 @@ class BeamlineElement(pydantic.BaseModel, abc.ABC):
 
 PydanticPmdUnit = Annotated[pmd_unit, _PydanticPmdUnit]
 PydanticNDArray = Annotated[np.ndarray, _PydanticNDArray]
-PydanticParticleGroup = Annotated[ParticleGroup, _PydanticParticleGroup]
 
 AnyPath = Union[pathlib.Path, str]
 ValueType = Union[int, float, bool, str, Reference]
