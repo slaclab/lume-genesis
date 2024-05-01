@@ -31,7 +31,7 @@ def python_to_namelist_value(value: ValueType) -> str:
     return str(value)
 
 
-def get_temporary_filename(extension: str = ".h5") -> str:
+def get_temporary_filename(prefix: str = "", extension: str = ".h5") -> str:
     """Get a temporary filename for use with Genesis 4 inputs."""
     random_start = str(uuid.uuid4())[:8]
-    return "".join((random_start, extension))
+    return "".join((prefix, random_start, extension))

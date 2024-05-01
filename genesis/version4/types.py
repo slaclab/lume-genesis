@@ -138,17 +138,18 @@ class Reference(str):
     value.
     """
 
+    def __new__(cls, value: str) -> Reference:
+        if not value.startswith("@"):
+            value = f"@{value}"
+        return super().__new__(cls, value)
+
     @classmethod
     def __get_pydantic_core_schema__(
         cls, source_type: Any, handler: pydantic.GetCoreSchemaHandler
     ) -> pydantic_core.CoreSchema:
         return pydantic_core.core_schema.no_info_after_validator_function(
-            cls, handler(str)
+            cls, pydantic_core.core_schema.str_schema()
         )
-
-    def __str__(self) -> str:
-        name = super().__str__()
-        return f"@{name}"
 
 
 class NameList(pydantic.BaseModel, abc.ABC):

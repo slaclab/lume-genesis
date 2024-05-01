@@ -4,8 +4,10 @@ import logging
 from contextlib import contextmanager
 
 from pmd_beamphysics import ParticleGroup
+import os
 import pydantic
 import pathlib
+import shutil
 import typing
 from typing import (
     Dict,
@@ -297,6 +299,27 @@ class Lattice(pydantic.BaseModel):
             contents = fp.read()
         return cls.from_contents(contents, filename=filename)
 
+    def to_file(
+        self,
+        filename: AnyPath,
+    ) -> None:
+        """
+        Write the lattice input file, in Genesis format, to ``filename``.
+
+        Parameters
+        ----------
+        filename : str or pathlib.Path
+        """
+        main_config = self.to_genesis()
+        with open(filename, "wt") as fp:
+            print(main_config, file=fp)
+
+        logger.debug(
+            "Wrote lattice to %s:\n%s",
+            main_config,
+            filename,
+        )
+
 
 class ProfileArray(NameList):
     r"""
@@ -335,13 +358,16 @@ class ProfileArray(NameList):
     isTime: bool = False
     reverse: bool = False
     autoassign: bool = False
-    temporary_filename: str = pydantic.Field(
-        default_factory=util.get_temporary_filename
-    )
+    temporary_filename: str = ""
     x_label: str = "x"
     y_label: str = "y"
 
     def write(self, base_path: AnyPath) -> pathlib.Path:
+        if not self.temporary_filename:
+            self.temporary_filename = util.get_temporary_filename(
+                prefix=type(self).__name__, extension=".h5"
+            )
+
         if "/" in self.temporary_filename:
             raise ValueError(
                 f"Filename is not allowed to contain the path separator "
@@ -418,7 +444,9 @@ class _InitialParticles(pydantic.BaseModel):
         pathlib.Path
         """
         if not self.temporary_filename:
-            self.temporary_filename = util.get_temporary_filename(extension=".h5")
+            self.temporary_filename = util.get_temporary_filename(
+                prefix=type(self).__name__, extension=".h5"
+            )
 
         if "/" in str(self.temporary_filename):
             raise ValueError(
@@ -617,19 +645,44 @@ class MainInput(pydantic.BaseModel):
             contents = fp.read()
         return cls.from_contents(contents, filename=filename)
 
-    def write(
+    def to_file(
+        self,
+        filename: AnyPath,
+    ) -> None:
+        """
+        Write the main input file, in Genesis format, to ``filename``.
+
+        Parameters
+        ----------
+        filename : str or pathlib.Path
+        """
+        main_config = self.to_genesis()
+        with open(filename, "wt") as fp:
+            print(main_config, file=fp)
+
+        logger.debug(
+            "Wrote main config to %s:\n%s",
+            main_config,
+            filename,
+        )
+
+    def write_files(
         self,
         workdir: AnyPath,
+        main_filename: str = "genesis4.in",
         source_path: AnyPath = pathlib.Path(),
         rename: bool = True,
     ) -> List[pathlib.Path]:
         """
-        Write arrays and other necessary files to run Genesis to ``workdir``.
+        Write the main input file, arrays and other necessary files to run
+        Genesis to ``workdir``.
 
         Parameters
         ----------
         workdir : pathlib.Path or str
             The work directory where Genesis is to be run.
+        main_filename : str, default = "genesis4.in"
+            Filename to use for the main input file.
         source_path : pathlib.Path or str, optional
             The source directory, where any referenced HDF5 files will be
             found.  Defaults to the current directory.
@@ -668,11 +721,14 @@ class MainInput(pydantic.BaseModel):
         for _, filename in self._get_files_to_symlink():
             source_file = source_path / filename
             symlink = workdir / filename
-            # symlink -> source_file
-            if source_file != symlink and not symlink.is_symlink():
-                symlink.symlink_to(source_file)
+            _symlink_or_copy(symlink=symlink, file=source_file)
 
             paths.append(symlink)
+
+        # Write the main input file last, as temporary filenames may have
+        # changed above.
+        self.to_file(workdir / main_filename)
+        paths.append(workdir / main_filename)
         return paths
 
     def _get_files_to_symlink(self) -> Generator[Tuple[AnyNameList, str], None, None]:
@@ -685,6 +741,17 @@ class MainInput(pydantic.BaseModel):
                 if not file:
                     continue
                 yield namelist, file
+
+
+def _symlink_or_copy(symlink: pathlib.Path, file: pathlib.Path):
+    if os.name == "nt":
+        # With Windows 10, users need Administator Privileges or run on
+        # Developer mode in order to be able to create symlinks.
+        # Ref: https://docs.python.org/3/library/os.html#os.symlink
+        return shutil.copy2(file, symlink)
+
+    if symlink != file and not symlink.is_symlink():
+        return symlink.symlink_to(file)
 
 
 def _split_file(namelist: AnyNameList, attr: str, file: str) -> Optional[str]:
@@ -794,7 +861,11 @@ class Genesis4Input(pydantic.BaseModel):
             str(path / self.input_filename),
         ]
 
-    def write(self, workdir: AnyPath = pathlib.Path(".")) -> List[pathlib.Path]:
+    def write(
+        self,
+        workdir: AnyPath = pathlib.Path("."),
+        rename: bool = True,
+    ) -> List[pathlib.Path]:
         """
         Write all input files for executing Genesis 4.
 
@@ -803,6 +874,8 @@ class Genesis4Input(pydantic.BaseModel):
         workdir : AnyPath
             The working directory for Genesis 4. This will be where all
             input and output files are written.
+        rename : bool, optional
+            Rename temporary HDF5 files according to their
 
         Returns
         -------
@@ -812,26 +885,12 @@ class Genesis4Input(pydantic.BaseModel):
         path = pathlib.Path(workdir)
         path.mkdir(parents=True, mode=0o755, exist_ok=True)
 
-        extra_paths = self.main.write(workdir, source_path=self.source_path)
-        main_config = self.main.to_genesis()
-        with open(path / self.input_filename, "wt") as fp:
-            print(main_config, file=fp)
-
-        logger.debug(
-            "Wrote main config to %s:\n%s",
-            main_config,
-            path / self.input_filename,
+        extra_paths = self.main.write_files(
+            path,
+            main_filename=self.input_filename,
+            source_path=self.source_path,
         )
-
-        lattice = self.lattice.to_genesis()
-        with open(path / self.lattice_filename, "wt") as fp:
-            print(lattice, file=fp)
-
-        logger.debug(
-            "Wrote lattice to %s:\n%s",
-            lattice,
-            path / self.lattice_filename,
-        )
+        self.lattice.to_file(filename=path / self.lattice_filename)
 
         return [path / self.input_filename, path / self.lattice_filename, *extra_paths]
 
@@ -1003,7 +1062,7 @@ def _fix_parameters(
         if dtype is None:
             extra[name] = string_value
         elif value.startswith("@") and allow_reference:
-            kwargs[name] = Reference(string_value[1].strip())
+            kwargs[name] = Reference(string_value[1:].strip())
         elif dtype is int:
             try:
                 kwargs[name] = int(value)

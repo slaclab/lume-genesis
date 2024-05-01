@@ -1,17 +1,30 @@
 import pathlib
-from pmd_beamphysics import ParticleGroup
 import pytest
 import numpy as np
 from pmd_beamphysics.units import pmd_unit
 from pydantic import TypeAdapter
 from ...version4.types import (
     PydanticNDArray,
-    # PydanticParticleGroup,
     PydanticPmdUnit,
+    Reference,
 )
 
 
 test_path = pathlib.Path(__file__).resolve().parent
+
+
+@pytest.mark.parametrize(
+    "ref",
+    [
+        "@ref",
+        Reference("@ref"),
+        "ref",
+        Reference("ref"),
+    ],
+)
+def test_reference(ref: str) -> None:
+    ref_type = TypeAdapter(Reference)
+    assert ref_type.validate_python(ref, strict=True) == Reference("@ref")
 
 
 @pytest.mark.parametrize(
@@ -48,32 +61,3 @@ def test_nd_array(arr: np.ndarray) -> None:
     deserialized = adapter.validate_json(dumped, strict=True)
     print("Deserialized:", repr(deserialized))
     np.testing.assert_allclose(arr, deserialized)
-
-
-def test_particle_group() -> None:
-    pytest.skip(reason="TODO")
-    group = ParticleGroup(
-        data=dict(
-            x=[0],
-            px=[0],
-            y=[0],
-            py=[0],
-            z=[0],
-            pz=[0],
-            t=[0],
-            status=[0],
-            weight=[0],
-            species="species",
-        )
-    )
-    filename = test_path / "simple_particle_group.h5"
-    group.write(str(filename))
-
-    group = ParticleGroup(h5=str(filename))
-    print("Group:", group)
-    adapter = TypeAdapter(PydanticParticleGroup)
-    dumped = adapter.dump_json(group)
-    print("Dumped:", repr(dumped))
-    deserialized = adapter.validate_json(dumped, strict=True)
-    print("Deserialized:", repr(deserialized))
-    assert group == deserialized

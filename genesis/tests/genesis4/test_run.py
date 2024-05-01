@@ -343,7 +343,7 @@ def test_run_with_instances(lattice: Lattice, main_input: MainInput):
 def test_run_with_source(
     lattice: Lattice, main_input: MainInput, tmp_path: pathlib.Path
 ):
-    wrote_files = main_input.write(tmp_path, source_path=run_basic)
+    wrote_files = main_input.write_files(tmp_path, source_path=run_basic)
     genesis = Genesis4Python(
         input=str(main_input),
         lattice_source=str(lattice),
