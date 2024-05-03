@@ -14,7 +14,7 @@ def test_namelist_output():
         field_global_stat=True,
     )
     assert (
-        str(setup)
+        setup.to_genesis()
         == """
 &setup
   rootname = Benchmark

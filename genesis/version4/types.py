@@ -10,10 +10,12 @@ import pydantic
 import pydantic_core
 from pmd_beamphysics.units import pmd_unit
 
+from .. import tools
+
 try:
-    from typing import Annotated
+    from typing import Annotated, Literal
 except ImportError:
-    from typing_extensions import Annotated
+    from typing_extensions import Annotated, Literal
 
 if sys.version_info >= (3, 12):
     from typing import TypedDict
@@ -121,6 +123,21 @@ class NameList(pydantic.BaseModel, abc.ABC):
         dump = self.model_dump(by_alias=True, exclude_defaults=True)
         return {attr: value for attr, value in dump.items() if attr not in {"type"}}
 
+    def to_string(self, mode: Literal["html", "markdown", "genesis"]) -> str:
+        if mode == "html":
+            return tools.html_table_repr(self, [])
+        if mode == "markdown":
+            return str(tools.ascii_table_repr(self, []))
+        if mode == "genesis":
+            return self.to_genesis()
+        raise NotImplementedError(f"Render mode {mode} unsupported")
+
+    def _repr_html_(self) -> str:
+        return self.to_string(tools.global_display_options.jupyter_render_mode)
+
+    def __str__(self) -> str:
+        return self.to_string(tools.global_display_options.console_render_mode)
+
     def to_genesis(self) -> str:
         """Create a Genesis 4-compatible namelist from this instance."""
         from .input.util import python_to_namelist_value
@@ -136,9 +153,6 @@ class NameList(pydantic.BaseModel, abc.ABC):
                 "&end",
             )
         )
-
-    def __str__(self) -> str:
-        return self.to_genesis()
 
 
 class ParticleData(TypedDict):
@@ -183,6 +197,21 @@ class BeamlineElement(pydantic.BaseModel, abc.ABC):
 
     label: str
 
+    def to_string(self, mode: Literal["html", "markdown", "genesis"]) -> str:
+        if mode == "html":
+            return tools.html_table_repr(self, [])
+        if mode == "markdown":
+            return str(tools.ascii_table_repr(self, []))
+        if mode == "genesis":
+            return self.to_genesis()
+        raise NotImplementedError(f"Render mode {mode} unsupported")
+
+    def _repr_html_(self) -> str:
+        return self.to_string(tools.global_display_options.jupyter_render_mode)
+
+    def __str__(self) -> str:
+        return self.to_string(tools.global_display_options.console_render_mode)
+
     @property
     def genesis_parameters(self) -> Dict[str, ValueType]:
         """Dictionary of parameters to pass to Genesis 4."""
@@ -207,9 +236,6 @@ class BeamlineElement(pydantic.BaseModel, abc.ABC):
                 "};",
             )
         )
-
-    def __str__(self) -> str:
-        return self.to_genesis()
 
 
 PydanticPmdUnit = Annotated[pmd_unit, _PydanticPmdUnit]

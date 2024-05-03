@@ -55,12 +55,12 @@ def test_load_file(lattice_parser: lark.Lark, filename: pathlib.Path) -> None:
     pprint.pprint(lattice, width=1)
 
     print("\n\nSerialized back to a file:")
-    round_tripped = str(lattice)
+    round_tripped = lattice.to_genesis()
     print(round_tripped)
 
     print("\n\nChecking file output vs initial dataclasses..")
     second_lattice = Lattice.from_contents(round_tripped)
-    assert str(lattice) == str(second_lattice)
+    assert lattice.to_genesis() == second_lattice.to_genesis()
 
 
 @pytest.mark.parametrize(

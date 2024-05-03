@@ -26,6 +26,7 @@ import pydantic
 from pmd_beamphysics import ParticleGroup
 from pmd_beamphysics.units import c_light
 
+from ... import tools
 from ..types import (
     AnyPath,
     ArrayType,
@@ -99,6 +100,9 @@ class DuplicatedLineItem(pydantic.BaseModel):
             count=int(count),
         )
 
+    def to_genesis(self) -> str:
+        return str(self)
+
     def __str__(self) -> str:
         return f"{self.count}*{self.label}"
 
@@ -125,6 +129,9 @@ class PositionedLineItem(pydantic.BaseModel):
             label=label.strip(),
             position=float(position.strip()),
         )
+
+    def to_genesis(self) -> str:
+        return str(self)
 
     def __str__(self) -> str:
         return f"{self.label}@{self.position}"
@@ -169,7 +176,7 @@ class Line(BeamlineElement):
             for elem in self.elements
         ]
 
-    def __str__(self) -> str:
+    def to_genesis(self) -> str:
         elements = ", ".join(self._string_elements)
         return "".join(
             (
@@ -235,12 +242,24 @@ class Lattice(pydantic.BaseModel):
     elements: Dict[str, AnyBeamlineElement] = pydantic.Field(default_factory=dict)
     filename: Optional[pathlib.Path] = None
 
+    def to_string(self, mode: Literal["html", "markdown", "genesis"]) -> str:
+        if mode == "html":
+            return tools.html_table_repr(self, [])
+        if mode == "markdown":
+            return str(tools.ascii_table_repr(self, []))
+        if mode == "genesis":
+            return self.to_genesis()
+        raise NotImplementedError(f"Render mode {mode} unsupported")
+
+    def _repr_html_(self) -> str:
+        return self.to_string(tools.global_display_options.jupyter_render_mode)
+
     def __str__(self) -> str:
-        return self.to_genesis()
+        return self.to_string(tools.global_display_options.console_render_mode)
 
     def to_genesis(self) -> str:
         self.fix_labels()
-        return "\n".join(str(element) for element in self.elements.values())
+        return "\n".join(element.to_genesis() for element in self.elements.values())
 
     def fix_labels(self) -> None:
         for label, element in self.elements.items():
@@ -405,7 +424,7 @@ class ProfileArray(NameList):
         return self.to_profile_file().to_genesis()
 
 
-class _InitialParticles(pydantic.BaseModel):
+class _InitialParticles:
     @property
     def particles(self) -> ParticleGroup:
         raise NotImplementedError()
@@ -474,7 +493,7 @@ class _InitialParticles(pydantic.BaseModel):
         return self.to_import_distribution().to_genesis()
 
 
-class InitialParticlesFile(_InitialParticles):
+class InitialParticlesFile(NameList, _InitialParticles):
     r"""
     This class is a lume-genesis convenience class for generating
     ``importdistribution`` namelists, using a pre-existing particle file
@@ -500,7 +519,7 @@ class InitialParticlesFile(_InitialParticles):
         return ParticleGroup(h5=str(self.filename))
 
 
-class InitialParticlesData(_InitialParticles):
+class InitialParticlesData(NameList, _InitialParticles):
     r"""
     This class is a lume-genesis convenience class for generating
     ``importdistribution`` namelists with user-specified data that is already
@@ -548,7 +567,7 @@ class MainInput(pydantic.BaseModel):
         return self.to_genesis()
 
     def to_genesis(self) -> str:
-        return "\n\n".join(str(namelist) for namelist in self.namelists)
+        return "\n\n".join(namelist.to_genesis() for namelist in self.namelists)
 
     @property
     def by_namelist(self) -> Dict[Type[T_NameList], List[T_NameList]]:

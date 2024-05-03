@@ -3,22 +3,45 @@ import dataclasses
 import datetime
 import enum
 import functools
+import html
+import inspect
 import importlib
 import logging
 import subprocess
+import string
 import sys
 import traceback
+import uuid
 
 from numbers import Number
 from typing import Any, Optional, Sequence, Union
 
 import h5py
 import numpy as np
+import prettytable
+import pydantic
 
 from pmd_beamphysics import ParticleGroup
 from pmd_beamphysics.units import pmd_unit
 
+try:
+    from typing import Literal
+except ImportError:
+    from typing_extensions import Literal
+
+
 logger = logging.getLogger(__name__)
+
+
+class DisplayOptions(pydantic.BaseModel):
+    jupyter_render_mode: Literal["html", "markdown", "genesis"] = "html"
+    console_render_mode: Literal["markdown", "genesis"] = "markdown"
+    echo_genesis_output: bool = True
+    include_description: bool = True
+    ascii_table_type: int = prettytable.MARKDOWN
+
+
+global_display_options = DisplayOptions()
 
 
 class OutputMode(enum.Enum):
@@ -360,3 +383,174 @@ def restore_from_hdf5_file(
         return restore_group(h5, attrs, result)
 
     return result
+
+
+def _truncated_string(value, max_length: int) -> str:
+    value = str(value)
+    if len(value) < max_length + 3:
+        return value
+    value = value[max_length:]
+    return f"{value}..."
+
+
+def _clean_annotation(annotation) -> str:
+    if inspect.isclass(annotation):
+        return annotation.__name__
+    return str(annotation).replace("typing.", "")
+
+
+def html_table_repr(
+    obj: pydantic.BaseModel,
+    seen: list,
+    display_options: DisplayOptions = global_display_options,
+) -> str:
+    """
+    Pydantic model table HTML representation for Jupyter.
+
+    Parameters
+    ----------
+    obj : model instance
+    seen : list of objects
+
+    Returns
+    -------
+    str
+        HTML table representation.
+    """
+    seen.append(obj)
+    rows = []
+    for attr, field_info in obj.model_fields.items():
+        value = getattr(obj, attr, None)
+        if value is None:
+            continue
+
+        if isinstance(value, pydantic.BaseModel):
+            if value in seen:
+                table_value = "(recursed)"
+            else:
+                table_value = html_table_repr(
+                    value, seen, display_options=display_options
+                )
+        else:
+            table_value = html.escape(_truncated_string(value, max_length=100))
+
+        annotation = html.escape(_clean_annotation(field_info.annotation))
+        if display_options.include_description:
+            description = html.escape(field_info.description or "")
+            description = f"<td>{description}</td>"
+        else:
+            description = ""
+
+        rows.append(
+            f"<tr>"
+            f"<td>{attr}</td>"
+            f"<td>{table_value}</td>"
+            f"<td>{annotation}</td>"
+            f"{description}"
+            f"</tr>"
+        )
+
+    ascii_table = str(ascii_table_repr(obj, list(seen))).replace("`", r"\`")
+    copy_to_clipboard = string.Template(
+        """
+        <div style="display: flex; justify-content: flex-end;">
+          <button class="copy-${hash_}">
+            Copy to clipboard
+          </button>
+          <br />
+        </div>
+        <script type="text/javascript">
+          function copy_to_clipboard(text) {
+            navigator.clipboard.writeText(text).then(
+              function () {
+                console.log("Copied to clipboard:", text);
+              },
+              function (err) {
+                console.error("Failed to copy to clipboard:", err, text);
+              },
+            );
+          }
+          var copy_button = document.querySelector(".copy-${hash_}");
+          copy_button.addEventListener("click", function (event) {
+            copy_to_clipboard(`${table}`);
+          });
+        </script>
+        """
+    ).substitute(
+        hash_=uuid.uuid4().hex,
+        table=ascii_table,
+    )
+    return "\n".join(
+        [
+            copy_to_clipboard,
+            "<table>",
+            " <tr>",
+            "  <th>Attribute</th>",
+            "  <th>Value</th>",
+            "  <th>Type</th>",
+            "  <th>Description</th>" if display_options.include_description else "",
+            " </tr>",
+            "</th>",
+            "<tbody>",
+            *rows,
+            "</tbody>",
+            "</table>",
+        ]
+    )
+
+
+def ascii_table_repr(
+    obj: pydantic.BaseModel,
+    seen: list,
+    display_options: DisplayOptions = global_display_options,
+) -> prettytable.PrettyTable:
+    """
+    Pydantic model table ASCII representation for the terminal.
+
+    Parameters
+    ----------
+    obj : model instance
+    seen : list of objects
+
+    Returns
+    -------
+    str
+        HTML table representation.
+    """
+    seen.append(obj)
+    rows = []
+    for attr, field_info in obj.model_fields.items():
+        value = getattr(obj, attr, None)
+        if value is None:
+            continue
+
+        if isinstance(value, pydantic.BaseModel):
+            if value in seen:
+                table_value = "(recursed)"
+            else:
+                table_value = str(
+                    ascii_table_repr(value, seen, display_options=display_options)
+                )
+        else:
+            table_value = _truncated_string(value, max_length=30)
+
+        rows.append(
+            (
+                attr,
+                table_value,
+                _clean_annotation(field_info.annotation),
+                field_info.description or "",
+            )
+        )
+
+    fields = ["Attribute", "Value", "Type"]
+    if display_options.include_description:
+        fields.append("Description")
+    else:
+        # Chop off the description for each row
+        rows = [row[:-1] for row in rows]
+
+    table = prettytable.PrettyTable(field_names=fields)
+    table.add_rows(rows)
+    table.set_style(display_options.ascii_table_type)
+    return table

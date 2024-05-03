@@ -345,8 +345,8 @@ def test_run_with_source(
 ):
     wrote_files = main_input.write_files(tmp_path, source_path=run_basic)
     genesis = Genesis4(
-        input=str(main_input),
-        lattice_source=str(lattice),
+        input=main_input.to_genesis(),
+        lattice_source=lattice.to_genesis(),
         workdir=tmp_path,
         use_temp_dir=False,
     )
