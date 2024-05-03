@@ -10,6 +10,7 @@ dependencies:
   - genesis4=4.6.4=mpi_openmpi* # Pinned because of a bug in 4.6.5
   - jinja2
   - lark
+  - prettytable
   - pydantic >2
 # Developer
   - ffmpeg
@@ -23,4 +24,5 @@ dependencies:
   - mkdocs-material
   - mkdocs-jupyter
   - mkdocstrings-python
+  - ruff
   - typing-extensions
