@@ -848,22 +848,15 @@ class Genesis4Input(pydantic.BaseModel):
     lattice_filename: str = "genesis.lat"
     input_filename: str = "input.in"
 
-    def get_arguments(self, workdir: AnyPath = pathlib.Path(".")) -> List[str]:
+    def get_arguments(self) -> List[str]:
         """
         Get all of the command-line arguments for running Genesis 4.
-
-        Parameters
-        ----------
-        workdir : str or pathlib.Path
-            The working directory for Genesis 4. This will be where all
-            input and output files are written.
 
         Returns
         -------
         list of str
             Individual arguments to pass to Genesis 4.
         """
-        path = pathlib.Path(workdir)
         optional_args = []
         if self.beamline:
             optional_args.extend(["-b", self.beamline])
@@ -872,12 +865,12 @@ class Genesis4Input(pydantic.BaseModel):
         if self.seed is not None:
             optional_args.extend(["-s", self.seed])
         if self.output_path is not None:
-            optional_args.extend(["-o", str(path / self.output_path)])
+            optional_args.extend(["-o", str(self.output_path)])
         return [
             *optional_args,
             "-l",
-            str(path / self.lattice_filename),
-            str(path / self.input_filename),
+            str(self.lattice_filename),
+            str(self.input_filename),
         ]
 
     def write(

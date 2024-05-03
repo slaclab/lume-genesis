@@ -363,7 +363,7 @@ class Genesis4(CommandWrapper):
 
         runscript = [
             *shlex.split(self.get_run_prefix()),
-            *self.input.get_arguments(workdir=self.path),
+            *self.input.get_arguments(),
         ]
 
         return shlex.join(runscript)
