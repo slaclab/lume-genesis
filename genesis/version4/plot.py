@@ -1,9 +1,7 @@
-from pmd_beamphysics.units import nice_array, nice_scale_prefix
-from pmd_beamphysics.labels import mathlabel
-
-import numpy as np
-
 import matplotlib.pyplot as plt
+import numpy as np
+from pmd_beamphysics.labels import mathlabel
+from pmd_beamphysics.units import nice_array, nice_scale_prefix
 
 
 def plot_stats(genesis4_object, keys=("beam_xsize", "beam_ysize"), tex=False, **kwargs):

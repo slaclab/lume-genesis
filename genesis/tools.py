@@ -8,11 +8,12 @@ import logging
 import subprocess
 import sys
 import traceback
+
 from numbers import Number
+from typing import Any, Optional, Sequence, Union
 
 import h5py
 import numpy as np
-from typing import Any, Optional, Sequence, Union
 
 from pmd_beamphysics import ParticleGroup
 from pmd_beamphysics.units import pmd_unit

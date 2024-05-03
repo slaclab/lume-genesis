@@ -4,16 +4,13 @@
 
 import os
 import shutil
+
 import h5py
-
 import numpy as np
-
-
-from genesis.writers import pmd_init, dim_m
-
-from scipy.constants import Planck, speed_of_light, elementary_charge
-
 from lume.parsers.namelist import namelist_lines
+from scipy.constants import Planck, elementary_charge, speed_of_light
+
+from genesis.writers import dim_m, pmd_init
 
 # ------------------
 # openPMD-wavefront
@@ -168,21 +165,24 @@ def write_namelists(
                 # Work on a copy
                 namelist = namelist.copy()
                 path, _ = os.path.split(filePath)
-                replacements = make_namelist_symlinks(
-                    namelist, path, prefixes=prefixes, verbose=verbose
-                )
-                namelist.update(replacements)
+                # TODO
+                # replacements = make_namelist_symlinks(
+                #     namelist, path, prefixes=prefixes, verbose=verbose
+                # )
+                # namelist.update(replacements)
+                raise NotImplementedError("TODO: implement make_namelist_symlinks")
 
             lines = namelist_lines(namelist, key)
-            for l in lines:
-                f.write(l + "\n")
+            for line in lines:
+                f.write(line + "\n")
+
 
 # These items will always be copied
 COPYITEMS = {
-    'setup':'lattice',
-    'importdistribution':'file',
+    "setup": "lattice",
+    "importdistribution": "file",
 }
-    
+
 
 def write_main_input(filePath, main_list):
     path, _ = os.path.split(filePath)
@@ -197,7 +197,7 @@ def write_main_input(filePath, main_list):
                 src = d[key]  # should be absolute
                 _, file = os.path.split(src)
                 dst = os.path.join(path, file)
-                if src != dst:     
+                if src != dst:
                     shutil.copy(src, dst)
                 d[key] = file  # Local file
 

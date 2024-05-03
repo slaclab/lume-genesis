@@ -14,10 +14,10 @@ from pmd_beamphysics.units import pmd_unit
 
 from genesis.version4.output import Genesis4Output, RunInfo
 
-from . import parsers
-from .types import AnyPath
-from .input.core import Genesis4Input, MainInput
 from ..tools import is_jupyter
+from . import parsers
+from .input.core import Genesis4Input, MainInput
+from .types import AnyPath
 
 logger = logging.getLogger(__name__)
 

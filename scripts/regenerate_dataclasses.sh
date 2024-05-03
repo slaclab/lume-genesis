@@ -13,3 +13,8 @@ lattice=$(python genesis/version4/input/manual.py "${REPO_ROOT}/genesis/tests/ge
 main_input=$(python genesis/version4/input/manual.py "${REPO_ROOT}/genesis/tests/genesis4/main_input.md")
 echo "$lattice" > "${LATTICE_PY}"
 echo "$main_input" > "${MAIN_INPUT_PY}"
+
+# Reformat the source code
+ruff format "${LATTICE_PY}" "${MAIN_INPUT_PY}"
+# And sort/fix imports
+ruff check --fix --select I "${LATTICE_PY}" "${MAIN_INPUT_PY}"

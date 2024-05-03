@@ -1,7 +1,7 @@
 import uuid
+from typing import Iterable
 
 from ..types import ValueType
-from typing import Iterable
 
 
 def python_to_namelist_value(value: ValueType) -> str:

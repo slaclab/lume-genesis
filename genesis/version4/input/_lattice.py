@@ -7,6 +7,7 @@ Do not hand-edit it.
 """
 
 from __future__ import annotations
+
 from typing import Literal, Union
 
 import pydantic

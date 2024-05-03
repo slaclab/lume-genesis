@@ -1,22 +1,21 @@
 import os
-import math
-import h5py
 import warnings
-from lume.parsers.namelist import parse_simple_namelist, parse_unrolled_namelist
-from lume import tools
 
-from pmd_beamphysics.units import unit, pmd_unit, e_charge, c_light, known_unit, mec2
+import h5py
+from lume import tools
+from lume.parsers.namelist import parse_simple_namelist, parse_unrolled_namelist
+from pmd_beamphysics.units import e_charge, known_unit, mec2, pmd_unit, unit
 
 # Patch these into the lookup dict.
 known_unit["mec2"] = pmd_unit("m_ec^2", mec2 * e_charge, "energy")
 
-for key in ['field_energy', 'pulse_energy']:
-    known_unit[key] = known_unit['J']
-known_unit['peak_power'] = known_unit['W']
-known_unit['m^{-1}'] = pmd_unit('1/m', 1, (-1, 0, 0, 0, 0, 0, 0))
-known_unit['m^{-2}'] = pmd_unit('1/m^2', 1, (-2, 0, 0, 0, 0, 0, 0))
-known_unit['{s}'] = known_unit['s']
-known_unit['ev'] = known_unit['eV']
+for key in ["field_energy", "pulse_energy"]:
+    known_unit[key] = known_unit["J"]
+known_unit["peak_power"] = known_unit["W"]
+known_unit["m^{-1}"] = pmd_unit("1/m", 1, (-1, 0, 0, 0, 0, 0, 0))
+known_unit["m^{-2}"] = pmd_unit("1/m^2", 1, (-2, 0, 0, 0, 0, 0, 0))
+known_unit["{s}"] = known_unit["s"]
+known_unit["ev"] = known_unit["eV"]
 
 
 def expand_path(file, path=None):
@@ -105,10 +104,11 @@ def try_pmd_unit(unit_str):
         s = "mec2"  # electrons here
     try:
         u = unit(s)
-    except:
+    except Exception:
         warnings.warn(f"unknown unit '{s}'")
         u = None
     return u
+
 
 EXTRA_UNITS = {
     "bunching": "1",
@@ -116,7 +116,8 @@ EXTRA_UNITS = {
     "beam_sigma_x": "m",
     "beam_sigma_y": "m",
     "beam_sigma_energy": "mc^2",
-              }    
+}
+
 
 def extract_data_and_unit(h5):
     """
@@ -192,24 +193,24 @@ def extract_aliases(output_dict):
 
 def dumpfile_step(fname):
     """
-    returns an int corresponding to the step extracted from 
+    returns an int corresponding to the step extracted from
     a filename that ends with '.fld.h5' or '.par.h5'
-    
+
     If there is no int, the filename hash will be used.
-    
+
     This is useful in sorting:
         sorted(list_of_filenames, key = lambda k: dumpfile_step(k))
     """
     _, f = os.path.split(fname)
-    for suffix in ('.fld.h5', '.par.h5'):
+    for suffix in (".fld.h5", ".par.h5"):
         if f.endswith(suffix):
-            f = f[:-len(suffix)]
+            f = f[: -len(suffix)]
             break
-    if '.' in f:
-        tail = f.split('.')[-1]
+    if "." in f:
+        tail = f.split(".")[-1]
         if tail.isdigit():
             return int(tail)
         else:
-            return hash(tail) 
+            return hash(tail)
     else:
         return hash(f)

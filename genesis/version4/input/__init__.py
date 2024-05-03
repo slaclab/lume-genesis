@@ -1,15 +1,3 @@
-from .core import (
-    Line,
-    Lattice,
-    DuplicatedLineItem,
-    PositionedLineItem,
-    LineItem,
-    MainInput,
-    ProfileArray,
-    InitialParticlesFile,
-    InitialParticlesData,
-    Genesis4Input,
-)
 from ._lattice import (
     Chicane,
     Corrector,
@@ -19,32 +7,45 @@ from ._lattice import (
     Quadrupole,
     Undulator,
 )
-
 from ._main import (
-    Setup,
     AlterSetup,
-    Lattice as LatticeNamelist,
-    Time,
+    Beam,
+    Efield,
+    Field,
+    ImportBeam,
+    ImportDistribution,
+    ImportField,
+    ImportTransformation,
+)
+from ._main import Lattice as LatticeNamelist
+from ._main import (
     ProfileConst,
-    ProfileGauss,
-    ProfileStep,
-    ProfilePolynom,
     ProfileFile,
+    ProfileGauss,
+    ProfilePolynom,
+    ProfileStep,
     SequenceConst,
     SequencePolynom,
     SequencePower,
     SequenceRandom,
-    Beam,
-    Field,
-    ImportDistribution,
-    ImportBeam,
-    ImportField,
-    ImportTransformation,
-    Efield,
+    Setup,
     Sponrad,
+    Time,
+    Track,
     Wake,
     Write,
-    Track,
+)
+from .core import (
+    DuplicatedLineItem,
+    Genesis4Input,
+    InitialParticlesData,
+    InitialParticlesFile,
+    Lattice,
+    Line,
+    LineItem,
+    MainInput,
+    PositionedLineItem,
+    ProfileArray,
 )
 
 __all__ = [

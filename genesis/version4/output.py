@@ -1,15 +1,8 @@
 from __future__ import annotations
-import pydantic
+
 import logging
 import pathlib
-
 import typing
-
-import h5py
-import numpy as np
-from pmd_beamphysics import ParticleGroup
-from pmd_beamphysics.interfaces.genesis import genesis4_par_to_data
-from pmd_beamphysics.units import pmd_unit, c_light
 from typing import (
     Any,
     Dict,
@@ -22,6 +15,13 @@ from typing import (
     Union,
     ValuesView,
 )
+
+import h5py
+import numpy as np
+import pydantic
+from pmd_beamphysics import ParticleGroup
+from pmd_beamphysics.interfaces.genesis import genesis4_par_to_data
+from pmd_beamphysics.units import c_light, pmd_unit
 
 from . import parsers, readers
 from .plot import plot_stats_with_layout

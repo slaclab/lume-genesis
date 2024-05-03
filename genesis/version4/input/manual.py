@@ -1,10 +1,10 @@
 from __future__ import annotations
+
 import ast
 import pathlib
+from typing import Dict, Optional, Set, Tuple, TypedDict, Union
 
 import jinja2
-
-from typing import Dict, Optional, Set, TypedDict, Tuple, Union
 
 AnyPath = Union[pathlib.Path, str]
 
