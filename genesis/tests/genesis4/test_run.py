@@ -4,6 +4,7 @@ import numpy as np
 import pytest
 
 from ...version4.genesis4 import Genesis4, Genesis4Input
+from ...version4.types import Reference
 from ...version4.input import (
     MainInput,
     Setup,
@@ -11,7 +12,6 @@ from ...version4.input import (
     Field,
     Beam,
     ProfileArray,
-    Reference,
     Track,
     Lattice,
     Quadrupole,
