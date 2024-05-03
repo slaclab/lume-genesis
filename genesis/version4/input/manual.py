@@ -17,6 +17,12 @@ renames = {
     # Mapping to common bmad names:
     "dx": "x_offset",
     "dy": "y_offset",
+    "Phaseshifter": "PhaseShifter",
+    "Importdistribution": "ImportDistribution",
+    "Importbeam": "ImportBeam",
+    "Importfield": "ImportField",
+    "Importtransformation": "ImportTransformation",
+    "SequenceFilelist": "SequenceFilelist",
 }
 
 
@@ -228,7 +234,8 @@ def _to_class_name(genesis_name: str) -> str:
         name_chars.pop(idx)
         if idx < len(name_chars):
             name_chars[idx] = name_chars[idx].upper()
-    return "".join(name_chars)
+    class_name = "".join(name_chars)
+    return renames.get(class_name, class_name)
 
 
 def _custom_repr(obj) -> str:
