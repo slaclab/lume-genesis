@@ -2,9 +2,9 @@ import h5py
 import numpy as np
 import matplotlib.pyplot as plt
 
-from genesis.version4.genesis4 import Genesis4Python
+from genesis.version4.genesis4 import Genesis4
 from genesis.version4.input import (
-    Genesis4CommandInput,
+    Genesis4Input,
     Setup,
     Time,
     Field,
@@ -13,7 +13,6 @@ from genesis.version4.input import (
     Lattice,
     MainInput,
     Track,
-    Reference,
 )
 
 with h5py.File("beam_current.h5") as fp:
@@ -57,8 +56,8 @@ main = MainInput(
         ),
         Beam(
             # TODO: allow usage of beam_current instance directly
-            current=Reference("beamcurrent"),
-            gamma=Reference("beamgamma"),
+            current="@beamcurrent",
+            gamma="@beamgamma",
             delgam=3.97848,
             ex=4.000000e-7,
             ey=4.000000e-7,
@@ -74,14 +73,14 @@ main = MainInput(
     ],
 )
 
-input = Genesis4CommandInput(
+input = Genesis4Input(
     # main=MainInput.from_file("cu_hxr.in"),
     main=main,
     lattice=Lattice.from_file("hxr.lat"),
     output_path="foobar",
 )
 
-cmd = Genesis4Python(input=input, verbose=True)
+cmd = Genesis4(input=input, verbose=True)
 cmd.path = "/tmp/genesis4-test"
 cmd.write_input()
 print(cmd.get_run_script())
