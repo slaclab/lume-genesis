@@ -252,34 +252,53 @@ class Genesis4(CommandWrapper):
 
         self.write_input()
 
-        # if self.timeout:
-        res = tools.execute2(
-            shlex.split(runscript),
-            timeout=self.timeout,
-            cwd=self.path,
-        )
-        # else:
-        #     # TODO
-        #     # Interactive output, for Jupyter
-        #     log = []
-        #     for line in tools.execute(shlex.split(runscript), cwd=self.path):
-        #         self.vprint(line, end="")
-        #         log.append(line)
-        #     self.vprint("Finished.")
-        #     log = "\n".join(log)
+        if self.timeout:
+            self.vprint(
+                f"Timeout of {self.timeout} is being used; output will be "
+                f"displaye after Genesis exits."
+            )
+            execute_result = tools.execute2(
+                shlex.split(runscript),
+                timeout=self.timeout,
+                cwd=self.path,
+            )
+            self.vprint(execute_result["log"])
+        else:
+            log = []
+            try:
+                for line in tools.execute(shlex.split(runscript), cwd=self.path):
+                    self.vprint(line, end="")
+                    log.append(line)
+            except Exception as ex:
+                log.append(f"Genesis 4 exited with an error: {ex}")
+                self.vprint(log[-1])
+                execute_result = {
+                    "log": "".join(log),
+                    "error": True,
+                    "why_error": "error",
+                }
+            else:
+                execute_result = {
+                    "log": "".join(log),
+                    "error": False,
+                    "why_error": "",
+                }
 
         end_time = monotonic()
 
         self.finished = True
         run_info = RunInfo(
             run_script=runscript,
-            error=res["error"],
-            error_reason=res["why_error"],
+            error=execute_result["error"],
+            error_reason=execute_result["why_error"],
             start_time=start_time,
             end_time=end_time,
             run_time=end_time - start_time,
-            output_log=res["log"],
+            output_log=execute_result["log"],
         )
+
+        success_or_failure = "Success" if not execute_result["error"] else "Failure"
+        self.vprint(f"{success_or_failure} - execution took {run_info.run_time:0.2f}s.")
 
         try:
             self.output = self.load_output(
@@ -301,7 +320,7 @@ class Genesis4(CommandWrapper):
                 )
             if raise_on_error:
                 raise
-    
+
         self.output.run = run_info
         if run_info.error and raise_on_error:
             raise Genesis4RunFailure(

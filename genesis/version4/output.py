@@ -24,6 +24,7 @@ from pmd_beamphysics.interfaces.genesis import genesis4_par_to_data
 from pmd_beamphysics.units import c_light, pmd_unit
 
 from . import parsers, readers
+from .. import tools
 from .plot import plot_stats_with_layout
 from .types import AnyPath, PydanticPmdUnit
 
@@ -42,11 +43,11 @@ logger = logging.getLogger(__name__)
 
 class RunInfo(pydantic.BaseModel):
     error: bool = False
-    run_script: str = ""
-    output_log: str = ""
     error_reason: Optional[str] = None
-    start_time: float = 0.0
-    end_time: float = 0.0
+    run_script: str = ""
+    output_log: str = pydantic.Field(default="", repr=False)
+    start_time: float = pydantic.Field(default=0.0, repr=False)
+    end_time: float = pydantic.Field(default=0.0, repr=False)
     run_time: float = 0.0
 
     @property
@@ -272,13 +273,20 @@ class Genesis4Output(pydantic.BaseModel):
 
     data: Dict[str, Any] = pydantic.Field(default_factory=dict)
     unit_info: Dict[str, PydanticPmdUnit] = pydantic.Field(default_factory=dict)
-    run: RunInfo = pydantic.Field(default_factory=lambda: RunInfo())
+    run: RunInfo = pydantic.Field(default_factory=RunInfo)
     alias: Dict[str, str] = pydantic.Field(default_factory=dict)
     field_files: Dict[str, LoadableH5File] = pydantic.Field(default_factory=dict)
     particle_files: Dict[str, LoadableH5File] = pydantic.Field(default_factory=dict)
 
     def __repr__(self):
         return f"{self.__class__.__name__}(run={self.run})"
+
+    def to_string(self, mode: Literal["html", "markdown"]) -> str:
+        if mode == "html":
+            return tools.html_table_repr(self, [])
+        if mode == "markdown":
+            return str(tools.ascii_table_repr(self, []))
+        raise NotImplementedError(f"Render mode {mode} unsupported")
 
     @property
     def beam(self) -> BeamDict:

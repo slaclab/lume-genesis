@@ -933,21 +933,63 @@ class Genesis4Input(pydantic.BaseModel):
             path.unlink(missing_ok=True)
 
     @classmethod
+    def from_main_input(
+        cls,
+        main: MainInput,
+        lattice: Union[str, pathlib.Path] = "",
+        *,
+        source_path: pathlib.Path = pathlib.Path("."),
+    ) -> Genesis4Input:
+        """
+        Work with a lume-genesis MainInput and potentially an external
+        lattice file.
+
+        If the input refers to files that already exist on disk, ensures
+        that `source_path` is set correctly.
+        """
+        if lattice:
+            _, lattice = tools.read_if_path(lattice)
+        else:
+            logger.debug("Lattice not specified; determining from main input")
+            setup = None
+            try:
+                setup = main.get_setup()
+                with open(source_path / setup.lattice) as fp:
+                    lattice = fp.read()
+            except Exception:
+                logger.exception(
+                    "Lattice not specified and unable to determine it "
+                    "from the main input's setup. Setup=%s",
+                    setup,
+                )
+                raise
+
+        return cls(
+            main=main,
+            lattice=Lattice.from_contents(lattice),
+            source_path=source_path,
+        )
+
+    @classmethod
     def from_strings(
         cls,
         main: str,
-        lattice: str,
+        lattice: str = "",
         *,
         source_path: pathlib.Path = pathlib.Path("."),
     ) -> Genesis4Input:
         """
         Work directly with Genesis 4-compatible inputs.
 
-        If the input refers to files that already exist on disk, ensure
+        If the input refers to files that already exist on disk, ensures
         that `source_path` is set correctly.
         """
+        main_config = MainInput.from_contents(main)
+        if not lattice:
+            return cls.from_main_input(main_config, source_path=source_path)
+
         return cls(
-            main=MainInput.from_contents(main),
+            main=main_config,
             lattice=Lattice.from_contents(lattice),
             source_path=source_path,
         )
