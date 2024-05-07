@@ -8,15 +8,14 @@ import traceback
 from time import monotonic
 from typing import ClassVar, Dict, Optional, Union
 
-from lume import tools
+from lume import tools as lume_tools
 from lume.base import CommandWrapper
 from pmd_beamphysics.units import pmd_unit
 
-from genesis.version4.output import Genesis4Output, RunInfo
-
-from ..tools import is_jupyter
+from .. import tools
 from . import parsers
 from .input.core import Genesis4Input, MainInput
+from .output import Genesis4Output, RunInfo
 from .types import AnyPath
 
 logger = logging.getLogger(__name__)
@@ -66,37 +65,26 @@ def _make_genesis4_input(
     lattice_source: Union[pathlib.Path, str] = "",
     source_path: pathlib.Path = pathlib.Path("."),
 ) -> Genesis4Input:
-    def _read_if_path(input: Union[pathlib.Path, str]) -> str:
-        nonlocal source_path
-        path = pathlib.Path(input).resolve()
-        try:
-            is_path = isinstance(input, pathlib.Path) or path.exists()
-        except OSError:
-            is_path = False
-
-        if not is_path:
-            return str(input)
-
-        # Update our source path; we found a file.  This is probably what
-        # the user wants.
-        source_path = path.absolute().parent
-        with open(path) as fp:
-            return fp.read()
-
-    input = _read_if_path(input)
-    lattice_source = _read_if_path(lattice_source)
+    input_fn, input = tools.read_if_path(input)
     if not input or not isinstance(input, str):
         raise ValueError(
             "'input' must be either a Genesis4Input instance, a Genesis 4-"
             "compatible main input, or a filename."
         )
 
-    if not lattice_source:
-        raise ValueError(
-            "When specifying a Genesis 4-compatible main input string, "
-            "you must also provide a lattice as a string or filename "
-            "(`lattice_source` argument)."
-        )
+    lattice_fn, lattice_source = tools.read_if_path(lattice_source)
+    if source_path == pathlib.Path("."):
+        if input_fn:
+            source_path = input_fn.parent
+        elif lattice_fn:
+            source_path = lattice_fn.parent
+
+    # if not lattice_source:
+    #     raise ValueError(
+    #         "When specifying a Genesis 4-compatible main input string, "
+    #         "you must also provide a lattice as a string or filename "
+    #         "(`lattice_source` argument)."
+    #     )
     return Genesis4Input.from_strings(
         input,
         lattice_source,
@@ -116,7 +104,7 @@ class Genesis4(CommandWrapper):
 
     Parameters
     ---------
-    input : Genesis4Input, str, or pathlib.Path
+    input : MainInput, Genesis4Input, str, or pathlib.Path
         Input settings for the Genesis 4 run.  This may be a full configuration
         (`Genesis4Input`), main input file contents, or a path to an existing
         file with main input settings (e.g., ``genesis4.in``).
@@ -159,7 +147,7 @@ class Genesis4(CommandWrapper):
 
     def __init__(
         self,
-        input: Union[Genesis4Input, str, pathlib.Path],
+        input: Union[MainInput, Genesis4Input, str, pathlib.Path],
         lattice_source: Union[str, pathlib.Path] = "",
         *,
         workdir: Union[str, pathlib.Path] = ".",
@@ -187,7 +175,12 @@ class Genesis4(CommandWrapper):
             **kwargs,
         )
         self.original_path = workdir
-        if not isinstance(input, Genesis4Input):
+        if isinstance(input, MainInput):
+            input = Genesis4Input.from_main_input(
+                main=input,
+                lattice=lattice_source,
+            )
+        elif not isinstance(input, Genesis4Input):
             input = _make_genesis4_input(
                 input,
                 lattice_source,
@@ -304,15 +297,12 @@ class Genesis4(CommandWrapper):
             if hasattr(ex, "add_note"):
                 # Python 3.11+
                 ex.add_note(
-                    f"\nGenesis output was:\n\n{res['log']}\n(End of Genesis output)"
+                    f"\nGenesis output was:\n\n{execute_result['log']}\n(End of Genesis output)"
                 )
             if raise_on_error:
                 raise
-
-        if is_jupyter():
-            print(f"Execution failed. Took {run_info.run_time}s:")
-            print(run_info.output_log)
-
+    
+        self.output.run = run_info
         if run_info.error and raise_on_error:
             raise Genesis4RunFailure(
                 f"Genesis 4 failed to run: {run_info.error_reason}"
@@ -328,10 +318,12 @@ class Genesis4(CommandWrapper):
                 Genesis4.command_mpi_env='GENESIS4_BIN'
         """
         if self.use_mpi:
-            return tools.find_executable(
+            return lume_tools.find_executable(
                 exename=self.command_mpi, envname=self.command_mpi_env
             )
-        return tools.find_executable(exename=self.command, envname=self.command_env)
+        return lume_tools.find_executable(
+            exename=self.command, envname=self.command_env
+        )
 
     def get_run_prefix(self) -> str:
         """Get the command prefix to run Genesis (e.g., 'mpirun' or 'genesis4')."""
