@@ -1,4 +1,5 @@
 import os
+from typing import Any, Dict
 import warnings
 
 import h5py
@@ -165,30 +166,36 @@ def extract_data_and_unit(h5):
     return data, unit
 
 
-def extract_aliases(output_dict):
+def output_key_to_python_identifier(key: str) -> str:
+    return key.replace("/", "_").lower()
+
+
+def extract_aliases(output_dict: Dict[str, Any]) -> Dict[str, str]:
     """
     Forms a convenient alias dict for output keys
     """
-    output_alias = {}
-    veto = {}
+    # Include all `start/middle/last` keys as `start_middle_last`:
+    aliases = {
+        output_key_to_python_identifier(key): key for key in output_dict if "/" in key
+    }
+
+    # For keys of the form:
+    #   `start/middle/LAST`
+    # Track all keys which have the same "LAST" part.
+    # These are not unique and cannot have unqualified aliases without a
+    # `start_`-like prefix.
+    by_last_part = {}
     for key in output_dict:
-        ks = key.split("/")
-        if len(ks) < 2:
+        last_part = output_key_to_python_identifier(key.split("/")[-1])
+        by_last_part.setdefault(last_part, []).append(key)
+
+    for last_part, keys in by_last_part.items():
+        if len(keys) > 1:
             continue
-        k = ks[-1]
-        if k in veto:
-            veto[k].append(key)
-        if k in output_alias:
-            veto[k] = [key, output_alias.pop(k)]
-        else:
-            output_alias[k] = key
-
-    # Expand vetos
-    for _, keys in veto.items():
-        for key in keys:
-            output_alias[key.replace("/", "_").lower()] = key
-
-    return output_alias
+        (key,) = keys
+        if key != last_part:
+            aliases[last_part] = key
+    return aliases
 
 
 def dumpfile_step(fname):
