@@ -7,6 +7,7 @@ import html
 import inspect
 import importlib
 import logging
+import pathlib
 import subprocess
 import string
 import sys
@@ -14,7 +15,7 @@ import traceback
 import uuid
 
 from numbers import Number
-from typing import Any, Optional, Sequence, Union
+from typing import Any, Dict, Optional, Sequence, Tuple, Union
 
 import h5py
 import numpy as np
@@ -80,7 +81,6 @@ def execute2(cmd, timeout=None, cwd=None):
     """
     Execute with time limit (timeout) in seconds, catching run errors.
     """
-
     output = {"error": True, "log": ""}
     try:
         p = subprocess.run(
@@ -91,19 +91,21 @@ def execute2(cmd, timeout=None, cwd=None):
             timeout=timeout,
             cwd=cwd,
         )
-        #  p = subprocess.run(' '.join(cmd), shell=True,
-        # stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
-        # universal_newlines=True, timeout = timeout)
         output["log"] = p.stdout
         output["error"] = False
         output["why_error"] = ""
     except subprocess.TimeoutExpired as ex:
-        output["log"] = ex.stdout + "\n" + str(ex)
+        stdout = ex.stdout or b""
+        output["log"] = "\n".join((stdout.decode(), f"{ex.__class__.__name__}: {ex}"))
         output["why_error"] = "timeout"
-    except Exception:
-        output["log"] = "unknown run error"
-        error_str = traceback.format_exc()
-        output["why_error"] = str(error_str)
+    except subprocess.CalledProcessError as ex:
+        stdout = ex.stdout or b""
+        output["log"] = "\n".join((stdout.decode(), f"{ex.__class__.__name__}: {ex}"))
+        output["why_error"] = "error"
+    except Exception as ex:
+        stack = traceback.print_exc()
+        output["log"] = f"Unknown run error: {ex.__class__.__name__}: {ex}\n{stack}"
+        output["why_error"] = "unknown"
     return output
 
 
@@ -400,7 +402,7 @@ def _clean_annotation(annotation) -> str:
 
 
 def html_table_repr(
-    obj: pydantic.BaseModel,
+    obj: Union[pydantic.BaseModel, Dict[str, Any]],
     seen: list,
     display_options: DisplayOptions = global_display_options,
 ) -> str:
@@ -419,12 +421,27 @@ def html_table_repr(
     """
     seen.append(obj)
     rows = []
-    for attr, field_info in obj.model_fields.items():
+    if isinstance(obj, pydantic.BaseModel):
+        fields = obj.model_fields
+        annotations = {
+            attr: field_info.annotation for attr, field_info in fields.items()
+        }
+        descriptions = {
+            attr: field_info.description for attr, field_info in fields.items()
+        }
+    else:
+        fields = obj
+        annotations = {attr: "" for attr in fields}
+        descriptions = {attr: "" for attr in fields}
+
+    for attr in fields:
         value = getattr(obj, attr, None)
         if value is None:
             continue
+        annotation = annotations[attr]
+        description = descriptions[attr]
 
-        if isinstance(value, pydantic.BaseModel):
+        if isinstance(value, (pydantic.BaseModel, dict)):
             if value in seen:
                 table_value = "(recursed)"
             else:
@@ -434,9 +451,9 @@ def html_table_repr(
         else:
             table_value = html.escape(_truncated_string(value, max_length=100))
 
-        annotation = html.escape(_clean_annotation(field_info.annotation))
+        annotation = html.escape(_clean_annotation(annotation))
         if display_options.include_description:
-            description = html.escape(field_info.description or "")
+            description = html.escape(description or "")
             description = f"<td>{description}</td>"
         else:
             description = ""
@@ -500,7 +517,7 @@ def html_table_repr(
 
 
 def ascii_table_repr(
-    obj: pydantic.BaseModel,
+    obj: Union[pydantic.BaseModel, Dict[str, Any]],
     seen: list,
     display_options: DisplayOptions = global_display_options,
 ) -> prettytable.PrettyTable:
@@ -519,10 +536,25 @@ def ascii_table_repr(
     """
     seen.append(obj)
     rows = []
-    for attr, field_info in obj.model_fields.items():
+    if isinstance(obj, pydantic.BaseModel):
+        fields = obj.model_fields
+        annotations = {
+            attr: field_info.annotation for attr, field_info in fields.items()
+        }
+        descriptions = {
+            attr: field_info.description for attr, field_info in fields.items()
+        }
+    else:
+        fields = obj
+        annotations = {attr: "" for attr in fields}
+        descriptions = {attr: "" for attr in fields}
+
+    for attr in fields:
         value = getattr(obj, attr, None)
         if value is None:
             continue
+        description = descriptions[attr]
+        annotation = annotations[attr]
 
         if isinstance(value, pydantic.BaseModel):
             if value in seen:
@@ -538,8 +570,8 @@ def ascii_table_repr(
             (
                 attr,
                 table_value,
-                _clean_annotation(field_info.annotation),
-                field_info.description or "",
+                _clean_annotation(annotation),
+                description or "",
             )
         )
 
@@ -554,3 +586,22 @@ def ascii_table_repr(
     table.add_rows(rows)
     table.set_style(display_options.ascii_table_type)
     return table
+
+
+def read_if_path(input: Union[pathlib.Path, str]) -> Tuple[Optional[pathlib.Path], str]:
+    if not input:
+        return None, input
+
+    path = pathlib.Path(input).resolve()
+    try:
+        is_path = isinstance(input, pathlib.Path) or path.exists()
+    except OSError:
+        is_path = False
+
+    if not is_path:
+        return None, str(input)
+
+    # Update our source path; we found a file.  This is probably what
+    # the user wants.
+    with open(path) as fp:
+        return path.absolute(), fp.read()
