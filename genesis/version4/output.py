@@ -42,16 +42,52 @@ logger = logging.getLogger(__name__)
 
 
 class RunInfo(pydantic.BaseModel):
-    error: bool = False
-    error_reason: Optional[str] = None
-    run_script: str = ""
-    output_log: str = pydantic.Field(default="", repr=False)
-    start_time: float = pydantic.Field(default=0.0, repr=False)
-    end_time: float = pydantic.Field(default=0.0, repr=False)
-    run_time: float = 0.0
+    """
+    Genesis 4 run information.
+
+    Attributes
+    ----------
+    error : bool
+        True if an error occurred during the Genesis run.
+    error_reason : str or None
+        Error explanation, if `error` is set.
+    run_script : str
+        The command-line arguments used to run Genesis
+    output_log : str
+        Genesis 4 output log
+    start_time : float
+        Start time of the process
+    end_time : float
+        End time of the process
+    run_time : float
+        Wall clock run time of the process
+    """
+
+    error: bool = pydantic.Field(
+        default=False, description="`True` if an error occurred during the Genesis run"
+    )
+    error_reason: Optional[str] = pydantic.Field(
+        default=None, description="Error explanation, if `error` is set."
+    )
+    run_script: str = pydantic.Field(
+        default="", description="The command-line arguments used to run Genesis"
+    )
+    output_log: str = pydantic.Field(
+        default="", repr=False, description="Genesis 4 output log"
+    )
+    start_time: float = pydantic.Field(
+        default=0.0, repr=False, description="Start time of the process"
+    )
+    end_time: float = pydantic.Field(
+        default=0.0, repr=False, description="End time of the process"
+    )
+    run_time: float = pydantic.Field(
+        default=0.0, description="Wall clock run time of the process"
+    )
 
     @property
     def success(self) -> bool:
+        """`True` if the run was successful."""
         return not self.error
 
 
