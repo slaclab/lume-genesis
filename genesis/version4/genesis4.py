@@ -397,9 +397,9 @@ class Genesis4(CommandWrapper):
         return self.input.write(workdir=path)
 
     def _archive(self, h5: h5py.Group):
-        tools.store_in_hdf5_file(h5, self.input, name="input")
+        tools.store_in_hdf5_file(h5, self.input, key="input")
         if self.output is not None:
-            tools.store_in_hdf5_file(h5, self.output, name="output")
+            tools.store_in_hdf5_file(h5, self.output, key="output")
 
     def archive(self, dest: Union[AnyPath, h5py.Group]):
         """Archive the latest run, input and output, to a single HDF5 file."""
@@ -412,9 +412,11 @@ class Genesis4(CommandWrapper):
     to_hdf5 = archive
 
     def _load_archive(self, h5: h5py.Group):
-        self.input = tools.restore_from_hdf5_file(h5, name="input")
-        if self.output is not None:
-            self.output = tools.restore_from_hdf5_file(h5, name="output")
+        self.input = tools.restore_from_hdf5_file(h5, key="input")
+        if "output" in h5:
+            self.output = tools.restore_from_hdf5_file(h5, key="output")
+        else:
+            self.output = None
 
     def load_archive(self, dest: Union[AnyPath, h5py.Group]):
         """Load an archive from a single HDF5 file."""

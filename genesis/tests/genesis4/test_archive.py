@@ -135,9 +135,10 @@ def test_hdf_archive(
     from .test_run import test_run_with_instances
 
     genesis = test_run_with_instances(main_input, lattice)
+    genesis.load_output()
     orig_input = genesis.input
     orig_output = genesis.output
     genesis.archive(hdf5_filename)
     genesis.load_archive(hdf5_filename)
-    assert orig_input == genesis.input
-    assert orig_output == genesis.output
+    assert orig_input.model_dump_json() == genesis.input.model_dump_json()
+    assert orig_output.model_dump_json() == genesis.output.model_dump_json()

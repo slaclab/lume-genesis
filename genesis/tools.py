@@ -14,7 +14,7 @@ import traceback
 import uuid
 
 from numbers import Number
-from typing import Any, Dict, Optional, Tuple, Union
+from typing import Any, Dict, Optional, Tuple, TypedDict, Union, cast
 
 import h5py
 import numpy as np
@@ -226,55 +226,96 @@ def import_by_name(clsname: str) -> type:
         raise ImportError(f"Unable to import {clsname!r} from module {module!r}")
 
 
+class _SerializationContext(TypedDict):
+    hdf5: h5py.Group
+    array_prefix: str
+    array_index: int
+
+
+class _DeserializationContext(TypedDict):
+    hdf5: h5py.Group
+
+
 def store_in_hdf5_file(
     h5: h5py.Group,
     obj: pydantic.BaseModel,
-    name: str = "",
-) -> Union[h5py.Group, h5py.File]:
+    key: str = "json",
+    encoding: str = "utf-8",
+) -> Tuple[str, _SerializationContext]:
     """
-    Store a generic object in an HDF5 file.
+    Store a generic Pydantic model instance in an HDF5 file.
 
-    This has its limitations but should work for Genesis 4 input and output
+    Numpy arrays are handled specially, where each array in the object
+    corresponds to an h5py dataset in the group.  The remainder of the data is
+    stored as Pydantic-serialized JSON.
+
+    This has limitations but is intended to support Genesis 4 input and output
     types.
 
     Parameters
     ----------
-    h5 : Union[h5py.File, h5py.Group]
+    h5 : h5py.Group
         The file or group to store ``dct`` in.
-    dct : dict
-        The data to store.
+    obj : pydantic.BaseModel
+        The object to store.
+    key : str, default="json"
+        The key where to store the JSON data.  Arrays will be stored with this
+        as a prefix.
+    encoding : str, default="utf-8"
+        String encoding for the data.
     """
-    json_data = obj.model_dump_json(
-        context={
-            "hdf5": h5,
-            "array_prefix": name or "arrays_",
-            "array_index": 0,
-        }
+    context: _SerializationContext = {
+        "hdf5": h5,
+        "array_prefix": key,
+        "array_index": 0,
+    }
+    json_data = obj.model_dump_json(context=cast(dict, context))
+    h5.attrs[f"__{key}_python_class_name__"] = (
+        f"{obj.__module__}.{obj.__class__.__name__}"
     )
-    h5.attrs["__python_class_name__"] = f"{obj.__module__}.{obj.__class__.__name__}"
-    h5.create_dataset(name=f"{name}_json", data=json_data)
+    h5.create_dataset(
+        name=key,
+        dtype=h5py.string_dtype(encoding=encoding),
+        data=json_data,
+    )
+    return json_data, context
 
 
 def restore_from_hdf5_file(
-    h5: Union[h5py.File, h5py.Group],
+    h5: h5py.Group,
+    key: str = "json",
+    encoding: str = "utf-8",
 ) -> Optional[pydantic.BaseModel]:
     """
-    Restore a dictionary from an HDF5 file.
+    Restore a Pydantic model instance from an HDF5 file stored using
+    `store_in_hdf5_file`.
 
     Parameters
     ----------
-    h5 : Union[h5py.File, h5py.Group]
+    h5 : h5py.Group
         The file or group to restore from.
+    key : str, default="json"
+        The key where to find the JSON data.  Arrays will be restored using
+        this as a prefix.
+    encoding : str, default="utf-8"
+        String encoding for the data.
     """
-    clsname = h5.attrs["__python_class_name__"]
+    clsname = str(h5.attrs[f"__{key}_python_class_name__"])
     try:
         cls = import_by_name(clsname)
     except Exception:
         logger.exception("Failed to import class: %s", clsname)
         return None
 
-    json_data = h5["json"]
-    return cls.model_validate_json(json_data, context={"hdf5": h5})
+    json_bytes = h5.require_dataset(
+        name=key,
+        dtype=h5py.string_dtype(encoding=encoding),
+        shape=(),
+    )
+    return cls.model_validate_json(
+        json_bytes[()].decode(encoding),
+        context={"hdf5": h5},
+    )
 
 
 def _truncated_string(value, max_length: int) -> str:

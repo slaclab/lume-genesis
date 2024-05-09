@@ -94,28 +94,28 @@ class RunInfo(pydantic.BaseModel):
 LatticeDict = TypedDict(
     "LatticeDict",
     {
-        "aw": np.ndarray,
-        "ax": np.ndarray,
-        "ay": np.ndarray,
-        "chic_angle": np.ndarray,
-        "chic_lb": np.ndarray,
-        "chic_ld": np.ndarray,
-        "chic_lt": np.ndarray,
-        "cx": np.ndarray,
-        "cy": np.ndarray,
-        "dz": np.ndarray,
-        "gradx": np.ndarray,
-        "grady": np.ndarray,
-        "ku": np.ndarray,
-        "kx": np.ndarray,
-        "ky": np.ndarray,
-        "phaseshift": np.ndarray,
-        "qf": np.ndarray,
-        "qx": np.ndarray,
-        "qy": np.ndarray,
-        "slippage": np.ndarray,
-        "z": np.ndarray,
-        "zplot": np.ndarray,
+        "aw": PydanticNDArray,
+        "ax": PydanticNDArray,
+        "ay": PydanticNDArray,
+        "chic_angle": PydanticNDArray,
+        "chic_lb": PydanticNDArray,
+        "chic_ld": PydanticNDArray,
+        "chic_lt": PydanticNDArray,
+        "cx": PydanticNDArray,
+        "cy": PydanticNDArray,
+        "dz": PydanticNDArray,
+        "gradx": PydanticNDArray,
+        "grady": PydanticNDArray,
+        "ku": PydanticNDArray,
+        "kx": PydanticNDArray,
+        "ky": PydanticNDArray,
+        "phaseshift": PydanticNDArray,
+        "qf": PydanticNDArray,
+        "qx": PydanticNDArray,
+        "qy": PydanticNDArray,
+        "slippage": PydanticNDArray,
+        "z": PydanticNDArray,
+        "zplot": PydanticNDArray,
     },
 )
 
@@ -123,36 +123,36 @@ LatticeDict = TypedDict(
 BeamDict = TypedDict(
     "BeamDict",
     {
-        "LSCfield": np.ndarray,
-        "alphax": np.ndarray,
-        "alphay": np.ndarray,
-        "betax": np.ndarray,
-        "betay": np.ndarray,
-        "bunching": np.ndarray,
-        "bunchingphase": np.ndarray,
-        "current": np.ndarray,
-        "efield": np.ndarray,
-        "emax": np.ndarray,
-        "emin": np.ndarray,
-        "emitx": np.ndarray,
-        "emity": np.ndarray,
-        "energy": np.ndarray,
-        "energyspread": np.ndarray,
-        "pxmax": np.ndarray,
-        "pxmin": np.ndarray,
-        "pxposition": np.ndarray,
-        "pymax": np.ndarray,
-        "pymin": np.ndarray,
-        "pyposition": np.ndarray,
-        "wakefield": np.ndarray,
-        "xmax": np.ndarray,
-        "xmin": np.ndarray,
-        "xposition": np.ndarray,
-        "xsize": np.ndarray,
-        "ymax": np.ndarray,
-        "ymin": np.ndarray,
-        "yposition": np.ndarray,
-        "ysize": np.ndarray,
+        "LSCfield": PydanticNDArray,
+        "alphax": PydanticNDArray,
+        "alphay": PydanticNDArray,
+        "betax": PydanticNDArray,
+        "betay": PydanticNDArray,
+        "bunching": PydanticNDArray,
+        "bunchingphase": PydanticNDArray,
+        "current": PydanticNDArray,
+        "efield": PydanticNDArray,
+        "emax": PydanticNDArray,
+        "emin": PydanticNDArray,
+        "emitx": PydanticNDArray,
+        "emity": PydanticNDArray,
+        "energy": PydanticNDArray,
+        "energyspread": PydanticNDArray,
+        "pxmax": PydanticNDArray,
+        "pxmin": PydanticNDArray,
+        "pxposition": PydanticNDArray,
+        "pymax": PydanticNDArray,
+        "pymin": PydanticNDArray,
+        "pyposition": PydanticNDArray,
+        "wakefield": PydanticNDArray,
+        "xmax": PydanticNDArray,
+        "xmin": PydanticNDArray,
+        "xposition": PydanticNDArray,
+        "xsize": PydanticNDArray,
+        "ymax": PydanticNDArray,
+        "ymin": PydanticNDArray,
+        "yposition": PydanticNDArray,
+        "ysize": PydanticNDArray,
     },
 )
 
@@ -192,11 +192,11 @@ VersionDict = TypedDict(
 GlobalDict = TypedDict(
     "GlobalDict",
     {
-        "frequency": np.ndarray,
+        "frequency": PydanticNDArray,
         "gamma0": float,
         "lambdaref": float,
         "one4one": float,
-        "s": np.ndarray,
+        "s": PydanticNDArray,
         "sample": float,
         "scan": float,
         "slen": float,
@@ -209,20 +209,20 @@ FieldDict = TypedDict(
     "FieldDict",
     {
         "dgrid": float,
-        "intensity-farfield": np.ndarray,
-        "intensity-nearfield": np.ndarray,
+        "intensity-farfield": PydanticNDArray,
+        "intensity-nearfield": PydanticNDArray,
         "ngrid": float,
-        "phase-farfield": np.ndarray,
-        "phase-nearfield": np.ndarray,
-        "power": np.ndarray,
-        "xdivergence": np.ndarray,
-        "xpointing": np.ndarray,
-        "xposition": np.ndarray,
-        "xsize": np.ndarray,
-        "ydivergence": np.ndarray,
-        "ypointing": np.ndarray,
-        "yposition": np.ndarray,
-        "ysize": np.ndarray,
+        "phase-farfield": PydanticNDArray,
+        "phase-nearfield": PydanticNDArray,
+        "power": PydanticNDArray,
+        "xdivergence": PydanticNDArray,
+        "xpointing": PydanticNDArray,
+        "xposition": PydanticNDArray,
+        "xsize": PydanticNDArray,
+        "ydivergence": PydanticNDArray,
+        "ypointing": PydanticNDArray,
+        "yposition": PydanticNDArray,
+        "ysize": PydanticNDArray,
     },
 )
 
@@ -250,7 +250,7 @@ FieldFileDict = TypedDict(
     "FieldFileDict",
     {
         "label": str,
-        "dfl": np.ndarray,
+        "dfl": PydanticNDArray,
         "param": FieldFileParamDict,
     },
 )
@@ -287,9 +287,11 @@ LoadableH5File = Union[
     _ParticleGroupH5File,
     _FieldH5File,
 ]
+_OutputBaseType = Union[PydanticNDArray, float, int, str]
+_OutputDataType = Union[_OutputBaseType, Dict[str, _OutputBaseType]]
 
 
-class Genesis4Output(pydantic.BaseModel):
+class Genesis4Output(pydantic.BaseModel, arbitrary_types_allowed=True):
     """
     Genesis 4 command output.
 
@@ -307,8 +309,14 @@ class Genesis4Output(pydantic.BaseModel):
         Dictionary of aliased data keys.
     """
 
-    data: Dict[str, Union[PydanticNDArray, float, int, str, dict]] = pydantic.Field(
-        default_factory=dict
+    data: Dict[str, _OutputDataType] = pydantic.Field(default_factory=dict)
+    field: Dict[str, FieldFileDict] = pydantic.Field(
+        default_factory=dict,
+        exclude=True,
+    )
+    particles: Dict[str, ParticleGroup] = pydantic.Field(
+        default_factory=dict,
+        exclude=True,
     )
     unit_info: Dict[str, PydanticPmdUnit] = pydantic.Field(default_factory=dict)
     run: RunInfo = pydantic.Field(default_factory=RunInfo)
@@ -357,16 +365,8 @@ class Genesis4Output(pydantic.BaseModel):
         return typing.cast(VersionDict, self._split_data("Meta/Version/"))
 
     @property
-    def field(self) -> dict[str, FieldFileDict]:
-        """Field file convenience dictionary."""
-        return self.data["field"]
-
-    fields = field
-
-    @property
-    def particles(self) -> dict:
-        """Loaded particles."""
-        return self.data.get("particles", {})
+    def fields(self) -> Dict[str, FieldFileDict]:
+        return self.field
 
     def _split_data(self, prefix: str) -> Dict[str, Any]:
         res = {}
@@ -459,8 +459,6 @@ class Genesis4Output(pydantic.BaseModel):
             data, loaded_units = parsers.extract_data_and_unit(h5)
 
         units.update(loaded_units)
-        data["field"] = {}
-        data["particles"] = {}
         fields = [
             _FieldH5File(
                 key=fn.name[: -len(".fld.h5")],

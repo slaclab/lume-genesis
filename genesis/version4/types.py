@@ -77,6 +77,11 @@ class _PydanticNDArray(pydantic.BaseModel):
         handler: pydantic.GetCoreSchemaHandler,
     ) -> pydantic_core.core_schema.CoreSchema:
         def serialize(obj: np.ndarray, info: pydantic.SerializationInfo):
+            if not isinstance(obj, np.ndarray):
+                raise ValueError(
+                    f"Only supports numpy ndarray. Got {type(obj).__name__}: {obj}"
+                )
+
             if info.context and isinstance(info.context, dict):
                 if "hdf5" in info.context:
                     h5: h5py.Group = info.context["hdf5"]
