@@ -11,7 +11,6 @@ from typing import (
     KeysView,
     List,
     Optional,
-    TypedDict,
     Union,
     ValuesView,
 )
@@ -26,7 +25,7 @@ from pmd_beamphysics.units import c_light, pmd_unit
 from . import parsers, readers
 from .. import tools
 from .plot import plot_stats_with_layout
-from .types import AnyPath, PydanticPmdUnit, PydanticNDArray
+from .types import AnyPath, PydanticPmdUnit, PydanticNDArray, TypedDict
 
 try:
     from typing import Literal
@@ -309,7 +308,10 @@ class Genesis4Output(pydantic.BaseModel, arbitrary_types_allowed=True):
         Dictionary of aliased data keys.
     """
 
-    data: Dict[str, _OutputDataType] = pydantic.Field(default_factory=dict)
+    data: Dict[str, PydanticNDArray] = pydantic.Field(default_factory=dict)
+    metadata: Dict[str, Union[float, int, str, bool]] = pydantic.Field(
+        default_factory=dict
+    )
     field: Dict[str, FieldFileDict] = pydantic.Field(
         default_factory=dict,
         exclude=True,
@@ -435,6 +437,7 @@ class Genesis4Output(pydantic.BaseModel, arbitrary_types_allowed=True):
 
         Parameters
         ----------
+        filename : pathlib.Path or str
         load_fields : bool, default=True
             After execution, load all field files.
             These are assumed to be in the same directory as the primary output
@@ -479,8 +482,14 @@ class Genesis4Output(pydantic.BaseModel, arbitrary_types_allowed=True):
             if alias_to in units:
                 units[alias_from] = units[alias_to]
 
+        metadata = {}
+        for key, value in dict(data).items():
+            if not isinstance(value, np.ndarray):
+                metadata[key] = data.pop(key)
+
         output = cls(
             data=data,
+            metadata=metadata,
             unit_info=units,
             alias=alias,
             field_files={field.key: field for field in fields},
@@ -510,7 +519,7 @@ class Genesis4Output(pydantic.BaseModel, arbitrary_types_allowed=True):
         """
         lazy = self.field_files[label]
         field = lazy.load()
-        self.data["field"][label] = field
+        self.field[label] = field
         logger.info(f"Loaded field data: '{label}'")
         return field
 
@@ -529,7 +538,7 @@ class Genesis4Output(pydantic.BaseModel, arbitrary_types_allowed=True):
         """
         lazy = self.particle_files[label]
         group = lazy.load(smear=smear)
-        self.data["particles"][label] = group
+        self.particles[label] = group
         logger.info(
             f"Loaded particle data: '{label}' as a ParticleGroup with "
             f"{len(group)} particles"
@@ -680,23 +689,17 @@ class Genesis4Output(pydantic.BaseModel, arbitrary_types_allowed=True):
         Gets an array, considering aliases
         """
         if key in self.data:
-            return self.data[key]
+            value = self.data[key]
+            assert isinstance(value, np.ndarray)
+            return value
         key = self.alias.get(key, key)
         if key in self.data:
-            return self.data[key]
+            value = self.data[key]
+            assert isinstance(value, np.ndarray)
+            return value
         raise ValueError(f"Unknown key: {key}")
 
-    def get_archive_data(self) -> Dict[str, Any]:
-        raise NotImplementedError()
-        return {
-            "output": self.data,
-            # "run": msgspec.to_builtins(self.run),
-            "alias": self.alias,
-            "field_files": list(self.field_files),
-            "particle_files": list(self.particle_files),
-        }
-
-    def archive(self, h5: h5py.Group):
+    def archive(self, h5: h5py.Group, key: str = "output") -> None:
         """
         Dump inputs and outputs into HDF5 file.
 
@@ -705,10 +708,10 @@ class Genesis4Output(pydantic.BaseModel, arbitrary_types_allowed=True):
         h5 : h5py.File or h5py.Group
             The HDF5 file in which to write the information.
         """
-        # tools.store_dict_in_hdf5_file(h5, self.get_archive_data())
+        tools.store_in_hdf5_file(h5, self, key="input")
 
     @classmethod
-    def from_archive(cls, h5, configure=True):
+    def from_archive(cls, h5: h5py.Group, key: str = "output") -> Genesis4Output:
         """
         Loads input and output from archived h5 file.
 
@@ -716,9 +719,14 @@ class Genesis4Output(pydantic.BaseModel, arbitrary_types_allowed=True):
         ----------
         h5 : str or h5py.File
             The filename or handle on h5py.File from which to load input and output data
-        configure : bool, optional
-            Whether or not to invoke the configure method after loading, by default True
         """
+        loaded = tools.restore_from_hdf5_file(h5, key=key)
+        if not isinstance(loaded, Genesis4Output):
+            raise ValueError(
+                f"Loaded {loaded.__class__.__name__} instead of a "
+                f"Genesis4Output instance.  Is key={key} correct?"
+            )
+        return loaded
 
     def plot(
         self,

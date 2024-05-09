@@ -138,35 +138,40 @@ def extract_data_and_unit(h5):
     data = {}
     unit = {}
 
-    def visitor_func(name, node):
+    def visitor_func(_name, node):
+        if isinstance(node, h5py.Group):
+            return
+
         if isinstance(node, h5py.Dataset):
             # node is a dataset
             key = node.name.strip("/")
             dat = node[:]
             if dat.shape == (1,):
                 dat = dat[0]
+
             if isinstance(dat, bytes):
-                dat = dat.decode("utf-8")
-            if isinstance(dat, np.integer):
-                dat = int(dat)
-            if isinstance(dat, np.floating):
-                dat = float(dat)
-            if isinstance(dat, np.bool_):
-                dat = bool(dat)
-            if isinstance(dat, np.unicode_):
-                dat = str(dat)
-            if isinstance(dat, np.ndarray):
+                data[key] = dat.decode("utf-8")
+            elif isinstance(dat, np.integer):
+                data[key] = int(dat)
+            elif isinstance(dat, np.floating):
+                data[key] = float(dat)
+            elif isinstance(dat, np.bool_):
+                data[key] = bool(dat)
+            elif isinstance(dat, np.unicode_):
+                data[key] = str(dat)
+            elif isinstance(dat, np.ndarray):
                 if dat.dtype is np.str_:
                     data[key] = str(dat)
+                else:
+                    data[key] = dat
+            else:
+                data[key] = dat
 
             if "unit" in node.attrs:
                 u = node.attrs["unit"].decode("utf-8")
                 u = try_pmd_unit(u)
                 if u:
                     unit[key] = u
-        else:
-            # node is a group
-            pass
 
     # Add in extra
     for k, v in EXTRA_UNITS.items():

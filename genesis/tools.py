@@ -1,31 +1,31 @@
 from __future__ import annotations
+
 import datetime
 import enum
 import functools
 import html
-import inspect
 import importlib
+import inspect
 import logging
 import pathlib
-import subprocess
 import string
+import subprocess
 import sys
 import traceback
 import uuid
-
 from numbers import Number
-from typing import Any, Dict, Optional, Tuple, TypedDict, Union, cast
+from typing import Any, Dict, Optional, Tuple, Union, cast
 
 import h5py
 import numpy as np
 import prettytable
 import pydantic
 
-
-try:
-    from typing import Literal
-except ImportError:
-    from typing_extensions import Literal
+if sys.version_info >= (3, 12):
+    from typing import TypedDict, Literal
+else:
+    # Pydantic specifically requires this for Python < 3.12
+    from typing_extensions import TypedDict, Literal
 
 
 logger = logging.getLogger(__name__)
