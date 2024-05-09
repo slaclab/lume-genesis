@@ -8,6 +8,7 @@ import traceback
 from time import monotonic
 from typing import ClassVar, Dict, Optional, Union
 
+import h5py
 from lume import tools as lume_tools
 from lume.base import CommandWrapper
 from pmd_beamphysics.units import pmd_unit
@@ -395,16 +396,33 @@ class Genesis4(CommandWrapper):
             raise ValueError("Path has not yet been set; cannot write input.")
         return self.input.write(workdir=path)
 
-    def archive(self, *args, **kwargs):
+    def _archive(self, h5: h5py.Group):
+        tools.store_in_hdf5_file(h5, self.input, name="input")
+        if self.output is not None:
+            tools.store_in_hdf5_file(h5, self.output, name="output")
+
+    def archive(self, dest: Union[AnyPath, h5py.Group]):
         """Archive the latest run, input and output, to a single HDF5 file."""
-        # TODO
-        # return self.output.archive(*args, **kwargs)
+        if isinstance(dest, (str, pathlib.Path)):
+            with h5py.File(dest, "w") as fp:
+                self._archive(fp)
+        elif isinstance(dest, (h5py.File, h5py.Group)):
+            self._archive(dest)
 
     to_hdf5 = archive
 
-    def load_archive(self, *args, **kwargs):
+    def _load_archive(self, h5: h5py.Group):
+        self.input = tools.restore_from_hdf5_file(h5, name="input")
+        if self.output is not None:
+            self.output = tools.restore_from_hdf5_file(h5, name="output")
+
+    def load_archive(self, dest: Union[AnyPath, h5py.Group]):
         """Load an archive from a single HDF5 file."""
-        # return Genesis4Output.from_archive(*args, **kwargs)
+        if isinstance(dest, (str, pathlib.Path)):
+            with h5py.File(dest, "r") as fp:
+                self._load_archive(fp)
+        elif isinstance(dest, (h5py.File, h5py.Group)):
+            self._load_archive(dest)
 
     def load_output(
         self,

@@ -1,9 +1,9 @@
+import pathlib
 from typing import Union
 
 import numpy as np
 import pytest
 
-from ...tools import DisplayOptions
 from ...version4.input import (
     AlterSetup,
     Beam,
@@ -19,6 +19,7 @@ from ...version4.input import (
     InitialParticles,
     Lattice,
     Line,
+    MainInput,
     Marker,
     PhaseShifter,
     ProfileArray,
@@ -41,33 +42,15 @@ from ...version4.input import (
     Write,
 )
 from ...version4.types import BeamlineElement, NameList
+from .test_run import lattice, main_input  # noqa: F401
 
 
-@pytest.fixture(
-    params=[
-        ("html", True),
-        ("markdown", True),
-        ("genesis", True),
-        ("html", False),
-        ("markdown", False),
-        ("genesis", False),
-    ],
-    ids=[
-        "html-with-desc",
-        "markdown-with-desc",
-        "genesis-with-desc",
-        "html-no-desc",
-        "markdown-no-desc",
-        "genesis-no-desc",
-    ],
-)
-def display_options(request: pytest.FixtureRequest) -> DisplayOptions:
-    mode, desc = request.param
-    return DisplayOptions(
-        jupyter_render_mode=mode,
-        console_render_mode=mode if mode != "html" else "genesis",
-        include_description=desc,
-    )
+@pytest.fixture
+def hdf5_filename(
+    tmp_path: pathlib.Path,
+    request: pytest.FixtureRequest,
+) -> pathlib.Path:
+    return tmp_path / f"{request.node.name}.h5"
 
 
 @pytest.mark.parametrize(
@@ -103,11 +86,10 @@ def display_options(request: pytest.FixtureRequest) -> DisplayOptions:
         pytest.param(Track(), id="Track"),
         pytest.param(Wake(), id="Wake"),
         pytest.param(Write(), id="Write"),
-        pytest.param(InitialParticles(), id="InitialParticles-File"),
         pytest.param(Lattice(), id="Lattice"),
         pytest.param(Line(), id="Line"),
         pytest.param(
-            ProfileArray(label="label", xdata=[0], ydata=[0]), id="ProfileArray"
+            ProfileArray(label="label", xdata=[0.0], ydata=[0.0]), id="ProfileArray"
         ),
         pytest.param(
             InitialParticles(
@@ -126,13 +108,36 @@ def display_options(request: pytest.FixtureRequest) -> DisplayOptions:
             ),
             id="InitialParticles-data",
         ),
+        pytest.param(
+            InitialParticles(filename=pathlib.Path("test.h5")),
+            id="InitialParticles-file",
+        ),
     ],
 )
-def test_render(
-    display_options: DisplayOptions, obj: Union[BeamlineElement, NameList]
+def test_round_trip_json(
+    obj: Union[NameList, BeamlineElement],
 ) -> None:
-    print("Render options", display_options)
-    print("Using __str__:")
-    print(str(obj))
-    print("Using _repr_html_:")
-    print(obj._repr_html_())
+    print("Object", obj)
+    as_json = obj.model_dump_json()
+    print("Dumped to JSON:")
+    print(as_json)
+    deserialized = obj.model_validate_json(as_json)
+    print("Back to Python:")
+    print(deserialized)
+    assert obj == deserialized
+
+
+def test_hdf_archive(
+    main_input: MainInput,  # noqa: F811  # this is intentional; it's a fixture
+    lattice: Lattice,  # noqa: F811  # this is intentional; it's a fixture
+    hdf5_filename: pathlib.Path,
+) -> None:
+    from .test_run import test_run_with_instances
+
+    genesis = test_run_with_instances(main_input, lattice)
+    orig_input = genesis.input
+    orig_output = genesis.output
+    genesis.archive(hdf5_filename)
+    genesis.load_archive(hdf5_filename)
+    assert orig_input == genesis.input
+    assert orig_output == genesis.output

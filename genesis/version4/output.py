@@ -26,7 +26,7 @@ from pmd_beamphysics.units import c_light, pmd_unit
 from . import parsers, readers
 from .. import tools
 from .plot import plot_stats_with_layout
-from .types import AnyPath, PydanticPmdUnit
+from .types import AnyPath, PydanticPmdUnit, PydanticNDArray
 
 try:
     from typing import Literal
@@ -307,7 +307,9 @@ class Genesis4Output(pydantic.BaseModel):
         Dictionary of aliased data keys.
     """
 
-    data: Dict[str, Any] = pydantic.Field(default_factory=dict)
+    data: Dict[str, Union[PydanticNDArray, float, int, str, dict]] = pydantic.Field(
+        default_factory=dict
+    )
     unit_info: Dict[str, PydanticPmdUnit] = pydantic.Field(default_factory=dict)
     run: RunInfo = pydantic.Field(default_factory=RunInfo)
     alias: Dict[str, str] = pydantic.Field(default_factory=dict)
@@ -696,7 +698,7 @@ class Genesis4Output(pydantic.BaseModel):
             "particle_files": list(self.particle_files),
         }
 
-    def archive(self, h5: Union[h5py.File, h5py.Group]):
+    def archive(self, h5: h5py.Group):
         """
         Dump inputs and outputs into HDF5 file.
 

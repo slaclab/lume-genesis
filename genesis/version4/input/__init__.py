@@ -38,8 +38,7 @@ from ._main import (
 from .core import (
     DuplicatedLineItem,
     Genesis4Input,
-    InitialParticlesData,
-    InitialParticlesFile,
+    InitialParticles,
     Lattice,
     Line,
     LineItem,
@@ -64,8 +63,7 @@ __all__ = [
     "Undulator",
     # Main:
     "Genesis4Input",
-    "InitialParticlesData",
-    "InitialParticlesFile",
+    "InitialParticles",
     "MainInput",
     "Setup",
     "AlterSetup",

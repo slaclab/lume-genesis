@@ -3,8 +3,9 @@ from __future__ import annotations
 import abc
 import pathlib
 import sys
-from typing import Any, Dict, Optional, Sequence, Tuple, Type, Union
+from typing import Any, Dict, Sequence, Tuple, Type, Union
 
+import h5py
 import numpy as np
 import pydantic
 import pydantic_core
@@ -13,9 +14,9 @@ from pmd_beamphysics.units import pmd_unit
 from .. import tools
 
 try:
-    from typing import Annotated, Literal
+    from typing import Annotated, Literal, NotRequired
 except ImportError:
-    from typing_extensions import Annotated, Literal
+    from typing_extensions import Annotated, Literal, NotRequired
 
 if sys.version_info >= (3, 12):
     from typing import TypedDict
@@ -75,18 +76,37 @@ class _PydanticNDArray(pydantic.BaseModel):
         source: Type[Any],
         handler: pydantic.GetCoreSchemaHandler,
     ) -> pydantic_core.core_schema.CoreSchema:
-        def to_list(obj: np.ndarray) -> list:
+        def serialize(obj: np.ndarray, info: pydantic.SerializationInfo):
+            if info.context and isinstance(info.context, dict):
+                if "hdf5" in info.context:
+                    h5: h5py.Group = info.context["hdf5"]
+                    array_prefix = info.context["array_prefix"]
+                    info.context["array_index"] += 1
+                    key = array_prefix + str(info.context["array_index"])
+                    h5.create_dataset(name=key, data=obj)
+                    full_path = f"{h5.name}/{key}" if h5.name else key
+                    return H5Reference(path=full_path).model_dump()
+
             return obj.tolist()
 
-        return pydantic_core.core_schema.no_info_plain_validator_function(
+        return pydantic_core.core_schema.with_info_plain_validator_function(
             cls._pydantic_validate,
             serialization=pydantic_core.core_schema.plain_serializer_function_ser_schema(
-                to_list, when_used="json-unless-none"
+                serialize, when_used="json-unless-none", info_arg=True
             ),
         )
 
     @classmethod
-    def _pydantic_validate(cls, value: Union[Any, np.ndarray, Sequence]) -> np.ndarray:
+    def _pydantic_validate(
+        cls,
+        value: Union[Any, np.ndarray, Sequence, H5Reference, dict],
+        info: pydantic.ValidationInfo,
+    ) -> np.ndarray:
+        if info.context and isinstance(info.context, dict) and "hdf5" in info.context:
+            h5: h5py.Group = info.context["hdf5"]
+            if isinstance(value, dict) and "path" in value:
+                ref = H5Reference.model_validate(value)
+                return ref.load(h5)
         if isinstance(value, np.ndarray):
             return value
         if isinstance(value, Sequence):
@@ -189,7 +209,7 @@ class ParticleData(TypedDict):
 
     # `species` is a proper species name: `'electron'`, etc.
     species: str
-    id: Optional[PydanticNDArray]
+    id: NotRequired[PydanticNDArray]
 
 
 class BeamlineElement(pydantic.BaseModel, abc.ABC):
@@ -238,13 +258,18 @@ class BeamlineElement(pydantic.BaseModel, abc.ABC):
         )
 
 
-PydanticPmdUnit = Annotated[pmd_unit, _PydanticPmdUnit]
-PydanticNDArray = Annotated[np.ndarray, _PydanticNDArray]
+class H5Reference(pydantic.BaseModel):
+    path: str
 
+    def load(self, h5: h5py.Group) -> np.ndarray:
+        return np.asarray(h5[self.path])
+
+
+ArrayType = Union[np.ndarray, Sequence[float], H5Reference]
 AnyPath = Union[pathlib.Path, str]
 ValueType = Union[int, float, bool, str, Reference]
-ArrayType = Union[Sequence[float], PydanticNDArray]
-Float = float
+PydanticPmdUnit = Annotated[pmd_unit, _PydanticPmdUnit]
+PydanticNDArray = Annotated[ArrayType, _PydanticNDArray]
 
 
 try:

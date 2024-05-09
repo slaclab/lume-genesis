@@ -3,6 +3,7 @@ from typing import Any, Dict
 import warnings
 
 import h5py
+import numpy as np
 from lume import tools
 from lume.parsers.namelist import parse_simple_namelist, parse_unrolled_namelist
 from pmd_beamphysics.units import e_charge, known_unit, mec2, pmd_unit, unit
@@ -146,7 +147,17 @@ def extract_data_and_unit(h5):
                 dat = dat[0]
             if isinstance(dat, bytes):
                 dat = dat.decode("utf-8")
-            data[key] = dat
+            if isinstance(dat, np.integer):
+                dat = int(dat)
+            if isinstance(dat, np.floating):
+                dat = float(dat)
+            if isinstance(dat, np.bool_):
+                dat = bool(dat)
+            if isinstance(dat, np.unicode_):
+                dat = str(dat)
+            if isinstance(dat, np.ndarray):
+                if dat.dtype is np.str_:
+                    data[key] = str(dat)
 
             if "unit" in node.attrs:
                 u = node.attrs["unit"].decode("utf-8")

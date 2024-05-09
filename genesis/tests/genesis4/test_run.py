@@ -330,7 +330,7 @@ def test_check_references(main_input: MainInput):
     assert "gamma = @beamgamma" in str(main_input)
 
 
-def test_run_with_instances(lattice: Lattice, main_input: MainInput):
+def test_run_with_instances(main_input: MainInput, lattice: Lattice) -> Genesis4:
     input = Genesis4Input(
         main=main_input,
         lattice=lattice,
@@ -338,6 +338,7 @@ def test_run_with_instances(lattice: Lattice, main_input: MainInput):
     genesis = Genesis4(input)
     output = genesis.run(raise_on_error=True)
     assert output.run.success
+    return genesis
 
 
 def test_run_with_source(

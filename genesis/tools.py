@@ -1,5 +1,4 @@
 from __future__ import annotations
-import dataclasses
 import datetime
 import enum
 import functools
@@ -15,15 +14,13 @@ import traceback
 import uuid
 
 from numbers import Number
-from typing import Any, Dict, Optional, Sequence, Tuple, Union
+from typing import Any, Dict, Optional, Tuple, Union
 
 import h5py
 import numpy as np
 import prettytable
 import pydantic
 
-from pmd_beamphysics import ParticleGroup
-from pmd_beamphysics.units import pmd_unit
 
 try:
     from typing import Literal
@@ -229,33 +226,10 @@ def import_by_name(clsname: str) -> type:
         raise ImportError(f"Unable to import {clsname!r} from module {module!r}")
 
 
-def _class_instance_to_hdf_dict(obj: object) -> Optional[dict[str, Any]]:
-    if isinstance(obj, pmd_unit):
-        return {
-            "unitSymbol": obj.unitSymbol,
-            "unitSI": obj.unitSI,
-            "unitDimension": obj.unitDimension,
-        }
-
-    if hasattr(obj, "to_genesis"):
-        return {"contents": obj.to_genesis()}
-
-    if dataclasses.is_dataclass(obj):
-        assert not isinstance(obj, type)
-        return dataclasses.asdict(obj)
-
-    if hasattr(obj, "__getnewargs_ex__"):
-        args, kwargs = obj.__getnewargs_ex__()
-        assert not args, "Only kwargs supported for now"
-        return kwargs
-
-    return None
-
-
 def store_in_hdf5_file(
-    h5: Union[h5py.File, h5py.Group],
-    obj: object,
-    key: Optional[str] = None,
+    h5: h5py.Group,
+    obj: pydantic.BaseModel,
+    name: str = "",
 ) -> Union[h5py.Group, h5py.File]:
     """
     Store a generic object in an HDF5 file.
@@ -269,77 +243,21 @@ def store_in_hdf5_file(
         The file or group to store ``dct`` in.
     dct : dict
         The data to store.
-    key : str, optional
-        The Group key under which the data should be stored, if applicable.
     """
-    if isinstance(obj, dict):
-        if key is not None:
-            h5 = h5.create_group(key)
-        h5.attrs.setdefault("_python_class_", "dict")
-        for inner_key, value in obj.items():
-            if not isinstance(inner_key, str):
-                logger.warning(
-                    "Skipping non-string dictionary key: %s[%s]", key, inner_key
-                )
-                continue
-            store_in_hdf5_file(
-                h5,
-                value,
-                key=inner_key,
-            )
-        return h5
-
-    if isinstance(obj, ParticleGroup):
-        if key is not None:
-            h5 = h5.create_group(key)
-        h5.attrs["_python_class_"] = "ParticleGroup"
-        obj.write(h5)
-        return h5
-
-    if hasattr(obj, "to_hdf5"):
-        group = h5.create_group(key) if key else h5
-        cls = type(obj)
-        obj.to_hdf5(group)
-        group.attrs["_python_class_"] = f"{cls.__module__}.{cls.__name__}"
-        group.attrs["_python_method_"] = "from_hdf5"
-        return group
-
-    dct = _class_instance_to_hdf_dict(obj)
-    if dct is not None:
-        group = h5.create_group(key) if key else h5
-        cls = type(obj)
-        store_in_hdf5_file(group, dct)
-        group.attrs["_python_class_"] = f"{cls.__module__}.{cls.__name__}"
-        return group
-
-    assert key is not None
-    if isinstance(obj, str):
-        h5.attrs[key] = str(obj)  # np.str_ as well
-    elif isinstance(obj, np.ndarray):
-        h5[key] = obj
-    elif isinstance(obj, Sequence):
-        try:
-            h5[key] = list(obj)
-        except TypeError:
-            logger.exception(f"Unable to store {key} in {h5} ({obj})")
-
-    elif obj is None:
-        ...
-    else:
-        try:
-            h5.attrs[key] = obj
-        except TypeError:
-            logger.warning(
-                f"Unable to store {key} in {h5}; storing as string instead: "
-                f"{key} is of type {type(obj).__name__}"
-            )
-            h5.attrs[key] = str(obj)
-    return h5
+    json_data = obj.model_dump_json(
+        context={
+            "hdf5": h5,
+            "array_prefix": name or "arrays_",
+            "array_index": 0,
+        }
+    )
+    h5.attrs["__python_class_name__"] = f"{obj.__module__}.{obj.__class__.__name__}"
+    h5.create_dataset(name=f"{name}_json", data=json_data)
 
 
 def restore_from_hdf5_file(
     h5: Union[h5py.File, h5py.Group],
-) -> dict:
+) -> Optional[pydantic.BaseModel]:
     """
     Restore a dictionary from an HDF5 file.
 
@@ -348,43 +266,15 @@ def restore_from_hdf5_file(
     h5 : Union[h5py.File, h5py.Group]
         The file or group to restore from.
     """
-    result = {}
+    clsname = h5.attrs["__python_class_name__"]
+    try:
+        cls = import_by_name(clsname)
+    except Exception:
+        logger.exception("Failed to import class: %s", clsname)
+        return None
 
-    def restore_group(obj: Union[h5py.File, h5py.Group], attrs: dict, data: dict):
-        clsname = attrs.pop("_python_class_", None)
-        if clsname == "dict" or clsname is None:
-            data.update(attrs)
-            return data
-        if clsname == "ParticleGroup":
-            return ParticleGroup(h5=obj)
-        assert isinstance(clsname, str)
-        try:
-            cls = import_by_name(clsname)
-        except Exception:
-            logger.exception("Failed to import class: %s", clsname)
-            return
-
-        method_name = attrs.pop("_python_method_", None)
-        if method_name:
-            method = getattr(cls, method_name)
-            return method(**data, **attrs)
-        return cls(**data, **attrs)
-
-    for key, value in h5.items():
-        if isinstance(value, (h5py.Group, h5py.File)):
-            attrs = {k: v for k, v in value.attrs.items()}
-            data = restore_from_hdf5_file(value)
-            result[key] = restore_group(value, attrs, data)
-        elif isinstance(value, h5py.Dataset):
-            result[key] = np.asarray(value)
-        else:
-            raise NotImplementedError(f"{type(value)}")
-
-    if isinstance(h5, h5py.File):
-        attrs = dict(h5.attrs)
-        return restore_group(h5, attrs, result)
-
-    return result
+    json_data = h5["json"]
+    return cls.model_validate_json(json_data, context={"hdf5": h5})
 
 
 def _truncated_string(value, max_length: int) -> str:
