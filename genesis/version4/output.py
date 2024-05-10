@@ -17,7 +17,6 @@ import matplotlib.figure
 import numpy as np
 import pydantic
 from pmd_beamphysics import ParticleGroup
-from pmd_beamphysics.interfaces.genesis import genesis4_par_to_data
 from pmd_beamphysics.units import c_light, pmd_unit
 
 from .. import tools
@@ -36,6 +35,7 @@ from .types import (
     PydanticNDArray,
     PydanticPmdUnit,
 )
+from .particles import load_particle_group
 
 try:
     from typing import Literal
@@ -750,22 +750,6 @@ def projected_variance_from_slice_data(x2, x1, current):
         np.sum((x2 + x1**2) * current, axis=1) / norm
         - (np.sum(x1 * current, axis=1) / norm) ** 2
     )
-
-
-def load_particle_group(h5: h5py.File, smear: bool = True) -> ParticleGroup:
-    """
-    Load a ParticleGroup from the provided h5py File instance.
-
-    Parameters
-    ----------
-    h5 : h5py.File
-    smear : bool
-
-    Returns
-    -------
-    ParticleGroup
-    """
-    return ParticleGroup(data=genesis4_par_to_data(h5, smear=smear))
 
 
 def load_field_file(file: Union[AnyPath, h5py.File]) -> FieldFileDict:

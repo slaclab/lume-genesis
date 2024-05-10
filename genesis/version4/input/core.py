@@ -8,6 +8,7 @@ import typing
 from contextlib import contextmanager
 from inspect import isclass
 from typing import (
+    Any,
     Dict,
     Generator,
     List,
@@ -50,6 +51,8 @@ from ._main import (
     SequenceFilelist,
     Setup,
 )
+from ..particles import load_particle_group
+
 
 try:
     from typing import Literal
@@ -164,7 +167,7 @@ class Line(BeamlineElement):
     elements: List[LineItem] = pydantic.Field(default_factory=list)
     label: str = ""
 
-    def __post_init__(self) -> None:
+    def model_post_init(self, __context: Any) -> None:
         self.elements = [_fix_line_item(item) for item in self.elements]
 
     @property
@@ -422,7 +425,7 @@ class ProfileArray(NameList):
         return self.to_profile_file().to_genesis()
 
 
-class InitialParticles(NameList):
+class InitialParticles(NameList, arbitrary_types_allowed=True):
     r"""
     This class is a lume-genesis convenience class for generating
     ``importdistribution`` namelists.
@@ -432,7 +435,7 @@ class InitialParticles(NameList):
     filename : str or pathlib.Path
         If ``data`` is not specified, ``filename`` is assumed to be a
         pre-existing particle file that follows the OpenPMD BeamPhysics
-        standard.
+        standard or the Genesis standard.
         If ``data`` is specified, particle data will be written to ``filename``
         when Genesis is launched.
         By default, this is a randomly-generated filename that lume-genesis
@@ -452,8 +455,24 @@ class InitialParticles(NameList):
     """
 
     type: Literal["InitialParticles"] = "InitialParticles"
-    filename: Optional[AnyPath] = None
     data: Optional[ParticleData] = None
+    temporary_filename: Optional[str] = None
+    filename: Optional[AnyPath] = pydantic.Field(init_var=True)
+    particles: ParticleGroup = pydantic.Field(exclude=True, default=None)
+
+    def model_post_init(self, __context: Any) -> None:
+        if self.filename is not None:
+            self.particles = load_particle_group(self.filename)
+            self.data = self.particles.data
+        elif self.particles is not None:
+            self.data = self.particles.data
+        else:
+            if self.data is None:
+                raise ValueError(
+                    "Either `filename` or `data` must be specified for "
+                    "InitialParticles."
+                )
+            self.particles = ParticleGroup(data=self.data)
 
     @property
     def slen(self) -> float:
@@ -488,42 +507,37 @@ class InitialParticles(NameList):
         -------
         pathlib.Path
         """
-        if not self.filename:
-            self.filename = util.get_temporary_filename(
+        if not self.temporary_filename:
+            self.temporary_filename = util.get_temporary_filename(
                 prefix=type(self).__name__, extension=".h5"
             )
 
-        if "/" in str(self.filename):
+        if "/" in str(self.temporary_filename):
             raise ValueError(
                 f"Filename is not allowed to contain the path separator "
                 f"forward slash (/).  Genesis 4 interprets these as part of "
                 f"the HDF group. "
-                f"filename={self.filename!r}"
+                f"temporary_filename={self.temporary_filename!r}"
             )
 
-        path = pathlib.Path(base_path) / self.filename
-        self.particles.write_genesis4_distribution(str(path))
+        path = pathlib.Path(base_path) / self.temporary_filename
+        self.particles.write_genesis4_distribution(str(path), verbose=True)
         logger.info("Saved particles to %s", path)
         return path
 
     def to_import_distribution(self) -> ImportDistribution:
-        if not self.filename:
-            self.filename = util.get_temporary_filename(
+        if not self.temporary_filename:
+            self.temporary_filename = util.get_temporary_filename(
                 prefix=type(self).__name__, extension=".h5"
             )
 
         return ImportDistribution(
-            file=str(self.filename),
+            file=str(self.temporary_filename),
             charge=self.particles.charge,
         )
 
     def to_genesis(self) -> str:
         return self.to_import_distribution().to_genesis()
-
-    def particles(self) -> ParticleGroup:
-        if self.data is not None:
-            return ParticleGroup(data=self.data)
-        return ParticleGroup(data=self.filename)
 
 
 class MainInput(pydantic.BaseModel):
@@ -708,7 +722,13 @@ class MainInput(pydantic.BaseModel):
 
         paths = []
         # Write out arrays to temporary HDF5 files so the user doesn't have to:
-        for cls in (ProfileArray, InitialParticles):
+        for cls in (InitialParticles,):
+            for idx, namelist in enumerate(self.by_namelist.get(cls, [])):
+                if not namelist.filename and namelist.data:
+                    namelist.filename = f"{cls.__name__}_{idx}.h5"
+                paths.append(namelist.write(workdir))
+
+        for cls in (ProfileArray,):
             for idx, namelist in enumerate(self.by_namelist.get(cls, [])):
                 if rename or not namelist.filename:
                     namelist.filename = f"{cls.__name__}_{idx}.h5"

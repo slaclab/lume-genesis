@@ -530,6 +530,11 @@ class Genesis4(CommandWrapper):
             raise RuntimeError(
                 "Genesis 4 has not yet been run; there is no output to plot."
             )
+
+        if not tools.is_jupyter():
+            # If not in jupyter mode, return a figure by default.
+            return_figure = True
+
         return self.output.plot(
             y=y,
             x=x,
