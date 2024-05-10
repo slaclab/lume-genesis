@@ -1,14 +1,19 @@
 import pathlib
+from typing import Optional
 
 from ...version4 import MainInput, Lattice, Genesis4, Genesis4Input
 
 
-def run_with_instances(main_input: MainInput, lattice: Lattice) -> Genesis4:
+def run_with_instances(
+    main_input: MainInput,
+    lattice: Lattice,
+    timeout: Optional[float] = None,
+) -> Genesis4:
     input = Genesis4Input(
         main=main_input,
         lattice=lattice,
     )
-    genesis = Genesis4(input)
+    genesis = Genesis4(input, timeout=timeout)
     output = genesis.run(raise_on_error=True)
     assert output.run.success
     return genesis

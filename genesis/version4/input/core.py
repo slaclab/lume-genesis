@@ -959,6 +959,9 @@ class Genesis4Input(pydantic.BaseModel):
         """
         Work directly with Genesis 4-compatible inputs.
 
+        If unspecified, `lattice` will be determined from the `main` input
+        settings.
+
         If the input refers to files that already exist on disk, ensures
         that `source_path` is set correctly.
         """

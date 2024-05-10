@@ -1,11 +1,10 @@
 import pathlib
+from typing import Optional
 
+import pytest
 
-from ...version4.input import (
-    Beam,
-    Lattice,
-    MainInput,
-)
+from ...version4 import Genesis4
+from ...version4.input import Beam, Lattice, MainInput
 from .conftest import run_basic
 from .util import run_with_instances, run_with_source
 
@@ -35,8 +34,19 @@ def test_check_references(main_input: MainInput):
     assert "gamma = @beamgamma" in str(main_input)
 
 
-def test_run_with_instances(main_input: MainInput, lattice: Lattice) -> None:
-    run_with_instances(main_input, lattice)
+@pytest.mark.parametrize(
+    "timeout",
+    [
+        pytest.param(30, id="no-timeout"),
+        pytest.param(None, id="with-timeout"),
+    ],
+)
+def test_run_with_instances(
+    main_input: MainInput,
+    lattice: Lattice,
+    timeout: Optional[float],
+) -> None:
+    run_with_instances(main_input, lattice, timeout=timeout)
 
 
 def test_run_with_source(
@@ -47,3 +57,32 @@ def test_run_with_source(
     run_with_source(
         lattice=lattice, main_input=main_input, workdir=tmp_path, source_path=run_basic
     )
+
+
+@pytest.mark.parametrize(
+    "mpi",
+    [
+        False,
+        True,
+    ],
+)
+def test_get_executable_smoke(genesis4: Genesis4, mpi: bool) -> None:
+    genesis4.use_mpi = mpi
+    assert genesis4.get_executable()
+
+
+@pytest.mark.parametrize(
+    "mpi, nproc",
+    [
+        (False, 0),
+        (False, 1),
+        (False, 4),
+        (True, 0),
+        (True, 1),
+        (True, 4),
+    ],
+)
+def test_get_run_prefix_smoke(genesis4: Genesis4, nproc: int, mpi: bool) -> None:
+    genesis4.nproc = nproc
+    genesis4.use_mpi = mpi
+    assert genesis4.get_run_prefix()

@@ -132,3 +132,17 @@ def test_plot_smoke(
     fig = output.plot(return_figure=True)
     assert fig is not None
     fig.savefig(test_root / "test_plot_smoke.png")
+
+
+def test_mock_load_failure(
+    genesis4: Genesis4,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    def load_raises(*_, **__) -> None:
+        raise ValueError("mock failure")
+
+    monkeypatch.setattr(genesis4, "load_output", load_raises)
+
+    with pytest.raises(ValueError) as captured:
+        genesis4.run(raise_on_error=True)
+    assert "mock failure" in str(captured.value)

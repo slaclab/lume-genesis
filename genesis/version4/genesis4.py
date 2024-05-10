@@ -63,31 +63,31 @@ def find_workdir():
 
 def _make_genesis4_input(
     input: Union[pathlib.Path, str],
-    lattice_source: Union[pathlib.Path, str] = "",
-    source_path: pathlib.Path = pathlib.Path("."),
+    lattice_source: Union[pathlib.Path, str],
+    source_path: pathlib.Path,
 ) -> Genesis4Input:
-    input_fn, input = tools.read_if_path(input)
-    if not input or not isinstance(input, str):
+    input_fn, input_source = tools.read_if_path(input)
+    if not input_source or not isinstance(input_source, str):
         raise ValueError(
-            "'input' must be either a Genesis4Input instance, a Genesis 4-"
-            "compatible main input, or a filename."
+            f"'input' must be either a Genesis4Input instance, a Genesis 4-"
+            f"compatible main input, or a filename. Got: {input}"
         )
 
     lattice_fn, lattice_source = tools.read_if_path(lattice_source)
-    if source_path == pathlib.Path("."):
-        if input_fn:
-            source_path = input_fn.parent
-        elif lattice_fn:
-            source_path = lattice_fn.parent
-
-    # if not lattice_source:
-    #     raise ValueError(
-    #         "When specifying a Genesis 4-compatible main input string, "
-    #         "you must also provide a lattice as a string or filename "
-    #         "(`lattice_source` argument)."
-    #     )
-    return Genesis4Input.from_strings(
+    logger.debug(
+        "Main input: main_fn=%s contents=\n%s",
+        input_fn,
         input,
+    )
+    if lattice_source or lattice_fn:
+        logger.debug(
+            "Lattice input: lattice_fn=%s contents=\n%s",
+            lattice_fn,
+            lattice_source,
+        )
+
+    return Genesis4Input.from_strings(
+        input_source,
         lattice_source,
         source_path=source_path,
     )

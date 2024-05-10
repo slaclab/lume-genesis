@@ -1,6 +1,7 @@
 import pathlib
 from typing import Union
 
+import h5py
 import numpy as np
 import pytest
 
@@ -140,6 +141,30 @@ def test_hdf_archive(
 
     genesis4.archive(hdf5_filename)
     genesis4.load_archive(hdf5_filename)
+    assert genesis4.output is not None
+
+    assert orig_input.model_dump_json() == genesis4.input.model_dump_json()
+    assert orig_output.model_dump_json() == genesis4.output.model_dump_json()
+
+
+def test_hdf_archive_using_group(
+    genesis4: Genesis4,
+    hdf5_filename: pathlib.Path,
+) -> None:
+    output = genesis4.run(raise_on_error=True)
+    assert output.run.success
+
+    genesis4.load_output()
+    orig_input = genesis4.input
+    orig_output = genesis4.output
+    assert orig_output is not None
+
+    with h5py.File(hdf5_filename, "w") as h5:
+        genesis4.archive(h5)
+
+    with h5py.File(hdf5_filename, "r") as h5:
+        genesis4.load_archive(h5)
+
     assert genesis4.output is not None
 
     assert orig_input.model_dump_json() == genesis4.input.model_dump_json()
