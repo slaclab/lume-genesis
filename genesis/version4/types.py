@@ -14,6 +14,14 @@ from pmd_beamphysics.units import pmd_unit
 from .. import tools
 
 try:
+    from types import UnionType
+except ImportError:
+    # Python < 3.10
+    union_types = {Union}
+else:
+    union_types = {UnionType, Union}
+
+try:
     from typing import Annotated, Literal, NotRequired
 except ImportError:
     from typing_extensions import Annotated, Literal, NotRequired
@@ -277,10 +285,139 @@ PydanticPmdUnit = Annotated[pmd_unit, _PydanticPmdUnit]
 PydanticNDArray = Annotated[ArrayType, _PydanticNDArray]
 
 
-try:
-    from types import UnionType
-except ImportError:
-    # Python < 3.10
-    union_types = {Union}
-else:
-    union_types = {UnionType, Union}
+class OutputLatticeDict(TypedDict):
+    aw: PydanticNDArray
+    ax: PydanticNDArray
+    ay: PydanticNDArray
+    chic_angle: PydanticNDArray
+    chic_lb: PydanticNDArray
+    chic_ld: PydanticNDArray
+    chic_lt: PydanticNDArray
+    cx: PydanticNDArray
+    cy: PydanticNDArray
+    dz: PydanticNDArray
+    gradx: PydanticNDArray
+    grady: PydanticNDArray
+    ku: PydanticNDArray
+    kx: PydanticNDArray
+    ky: PydanticNDArray
+    phaseshift: PydanticNDArray
+    qf: PydanticNDArray
+    qx: PydanticNDArray
+    qy: PydanticNDArray
+    slippage: PydanticNDArray
+    z: PydanticNDArray
+    zplot: PydanticNDArray
+
+
+class OutputBeamDict(TypedDict):
+    LSCfield: PydanticNDArray
+    alphax: PydanticNDArray
+    alphay: PydanticNDArray
+    betax: PydanticNDArray
+    betay: PydanticNDArray
+    bunching: PydanticNDArray
+    bunchingphase: PydanticNDArray
+    current: PydanticNDArray
+    efield: PydanticNDArray
+    emax: PydanticNDArray
+    emin: PydanticNDArray
+    emitx: PydanticNDArray
+    emity: PydanticNDArray
+    energy: PydanticNDArray
+    energyspread: PydanticNDArray
+    pxmax: PydanticNDArray
+    pxmin: PydanticNDArray
+    pxposition: PydanticNDArray
+    pymax: PydanticNDArray
+    pymin: PydanticNDArray
+    pyposition: PydanticNDArray
+    wakefield: PydanticNDArray
+    xmax: PydanticNDArray
+    xmin: PydanticNDArray
+    xposition: PydanticNDArray
+    xsize: PydanticNDArray
+    ymax: PydanticNDArray
+    ymin: PydanticNDArray
+    yposition: PydanticNDArray
+    ysize: PydanticNDArray
+
+
+class OutputMetaDumpsDict(TypedDict):
+    ndumps: int
+
+
+class OutputMetaVersionDict(TypedDict):
+    Beta: float
+    Build_Info: str
+    Major: float
+    Minor: float
+    Revision: float
+
+
+class OutputMetaDict(TypedDict):
+    Beamdumps: OutputMetaDumpsDict
+    Fielddumps: OutputMetaDumpsDict
+    HOST: str
+    InputFile: str
+    LatticeFile: str
+    TimeStamp: str
+    User: str
+    Version: OutputMetaVersionDict
+    cwd: str
+    mpisize: float
+
+
+class OutputGlobalDict(TypedDict):
+    frequency: PydanticNDArray
+    gamma0: float
+    lambdaref: float
+    one4one: float
+    s: PydanticNDArray
+    sample: float
+    scan: float
+    slen: float
+    time: float
+
+
+OutputFieldDict = TypedDict(
+    "OutputFieldDict",
+    {
+        "dgrid": float,
+        "intensity-farfield": PydanticNDArray,
+        "intensity-nearfield": PydanticNDArray,
+        "ngrid": float,
+        "phase-farfield": PydanticNDArray,
+        "phase-nearfield": PydanticNDArray,
+        "power": PydanticNDArray,
+        "xdivergence": PydanticNDArray,
+        "xpointing": PydanticNDArray,
+        "xposition": PydanticNDArray,
+        "xsize": PydanticNDArray,
+        "ydivergence": PydanticNDArray,
+        "ypointing": PydanticNDArray,
+        "yposition": PydanticNDArray,
+        "ysize": PydanticNDArray,
+    },
+)
+
+
+class FieldFileParamDict(TypedDict):
+    #  number of gridpoints in one transverse dimension equal to nx and ny above
+    gridpoints: int
+    # gridpoint spacing (meter)
+    gridsize: float
+    # starting position (meter)
+    refposition: float
+    # radiation wavelength (meter)
+    wavelength: float
+    # number of slices
+    slicecount: int
+    # slice spacing (meter)
+    slicespacing: float
+
+
+class FieldFileDict(TypedDict):
+    label: str
+    dfl: PydanticNDArray
+    param: FieldFileParamDict

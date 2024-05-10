@@ -397,12 +397,18 @@ class Genesis4(CommandWrapper):
         return self.input.write(workdir=path)
 
     def _archive(self, h5: h5py.Group):
-        tools.store_in_hdf5_file(h5, self.input, key="input")
+        self.input.archive(h5)
         if self.output is not None:
-            tools.store_in_hdf5_file(h5, self.output, key="output")
+            self.output.archive(h5)
 
-    def archive(self, dest: Union[AnyPath, h5py.Group]):
-        """Archive the latest run, input and output, to a single HDF5 file."""
+    def archive(self, dest: Union[AnyPath, h5py.Group]) -> None:
+        """
+        Archive the latest run, input and output, to a single HDF5 file.
+
+        Parameters
+        ----------
+        dest : filename or h5py.Group
+        """
         if isinstance(dest, (str, pathlib.Path)):
             with h5py.File(dest, "w") as fp:
                 self._archive(fp)
@@ -412,14 +418,20 @@ class Genesis4(CommandWrapper):
     to_hdf5 = archive
 
     def _load_archive(self, h5: h5py.Group):
-        self.input = tools.restore_from_hdf5_file(h5, key="input")
+        self.input = Genesis4Input.from_archive(h5)
         if "output" in h5:
-            self.output = tools.restore_from_hdf5_file(h5, key="output")
+            self.output = Genesis4Output.from_archive(h5)
         else:
             self.output = None
 
     def load_archive(self, dest: Union[AnyPath, h5py.Group]):
-        """Load an archive from a single HDF5 file."""
+        """
+        Load an archive from a single HDF5 file.
+
+        Parameters
+        ----------
+        dest : filename or h5py.Group
+        """
         if isinstance(dest, (str, pathlib.Path)):
             with h5py.File(dest, "r") as fp:
                 self._load_archive(fp)

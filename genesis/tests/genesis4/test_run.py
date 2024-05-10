@@ -298,8 +298,6 @@ def main_input() -> MainInput:
         ],
     )
 
-    print(lattice)
-
     # Restrict the simulation to a small Z range for the test suite:
     main.by_namelist[Track][0].zstop = 0.1
     return main

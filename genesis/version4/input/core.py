@@ -972,6 +972,39 @@ class Genesis4Input(pydantic.BaseModel):
             source_path=source_path,
         )
 
+    def archive(self, h5: h5py.Group, key: str = "input") -> None:
+        """
+        Dump input data into the given HDF5 group.
+
+        Parameters
+        ----------
+        h5 : h5py.Group
+            The HDF5 file in which to write the information.
+        key : str, default="input"
+            The key to use when storing the data.
+        """
+        tools.store_in_hdf5_file(h5, self, key=key)
+
+    @classmethod
+    def from_archive(cls, h5: h5py.Group, key: str = "input") -> Genesis4Input:
+        """
+        Loads input from archived h5 file.
+
+        Parameters
+        ----------
+        h5 : str or h5py.File
+            The filename or handle on h5py.File from which to load data.
+        key : str, default="input"
+            The key to use when restoring the data.
+        """
+        loaded = tools.restore_from_hdf5_file(h5, key=key)
+        if not isinstance(loaded, Genesis4Input):
+            raise ValueError(
+                f"Loaded {loaded.__class__.__name__} instead of a "
+                f"Genesis4Input instance.  Is key={key} correct?"
+            )
+        return loaded
+
 
 def new_parser(filename: AnyPath, **kwargs) -> lark.Lark:
     """

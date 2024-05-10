@@ -1,41 +1,19 @@
+from __future__ import annotations
+import typing
+from typing import Optional
+
+import matplotlib.figure
 import matplotlib.pyplot as plt
 import numpy as np
 from pmd_beamphysics.labels import mathlabel
 from pmd_beamphysics.units import nice_array, nice_scale_prefix
 
-
-def plot_stats(genesis4_object, keys=("beam_xsize", "beam_ysize"), tex=False, **kwargs):
-    """
-    Plots stats
-
-    """
-    nplots = len(keys)
-
-    fig, axs = plt.subplots(nplots, **kwargs)
-
-    # Make RHS axis for the solenoid field.
-    xdat = genesis4_object.stat("zplot")
-    xmin = min(xdat)
-    xmax = max(xdat)
-    for i, key in enumerate(keys):
-        ax = axs[i]
-
-        ydat = genesis4_object.stat(key)
-        ydat = np.mean(ydat, axis=1)  # Average over slices
-
-        ndat, factor, prefix = nice_array(ydat)
-        unit = genesis4_object.units(key)
-        units = f"{prefix}{unit}"
-        # Hangle label
-        ylabel = mathlabel(key, units=units, tex=tex)
-        ax.set_ylabel(ylabel)
-        ax.set_xlim(xmin, xmax)
-        ax.plot(xdat, ndat)
-    ax.set_xlabel("z (m)")
+if typing.TYPE_CHECKING:
+    from .output import Genesis4Output
 
 
 def add_layout_to_axes(
-    genesis4_object,
+    output: Genesis4Output,
     *,
     ax=None,
     bounds=None,
@@ -48,7 +26,7 @@ def add_layout_to_axes(
     """
 
     if bounds is None:
-        zmin, zmax = 0, genesis4_object.stat("z").max()
+        zmin, zmax = 0, output.stat("z").max()
     else:
         zmin, zmax = bounds
     ax.set_xlim(zmin, zmax)
@@ -57,14 +35,14 @@ def add_layout_to_axes(
 
     ax.set_xlabel(r"$z$ (m)")
 
-    zlist = genesis4_object.stat("z")
+    zlist = output.stat("z")
 
     lines = []
     for ax1, component, color, label, units in (
         (ax, "aw", "red", r"$aw$", "1"),
         (ax2, "qf", "blue", r"Quad $k$", r"$1/m^2$"),
     ):
-        fz = genesis4_object.stat(component)
+        fz = output.stat(component)
 
         y, factor, prefix = nice_array(fz)
 
@@ -79,7 +57,7 @@ def add_layout_to_axes(
 
 
 def plot_stats_with_layout(
-    genesis4_object,
+    output: Genesis4Output,
     ykeys="field_energy",
     ykeys2=(),
     xkey="zplot",
@@ -95,7 +73,7 @@ def plot_stats_with_layout(
     include_legend=True,
     return_figure=False,
     **kwargs,
-):
+) -> Optional[matplotlib.figure.Figure]:
     """
     Plots stat output multiple keys.
 
@@ -137,7 +115,7 @@ def plot_stats_with_layout(
 
     # assert xkey == 'mean_z', 'TODO: other x keys'
 
-    X = genesis4_object.stat(xkey)
+    X = output.stat(xkey)
 
     # Only get the data we need
     if xlim:
@@ -148,7 +126,7 @@ def plot_stats_with_layout(
         good = slice(None, None, None)  # everything
 
     # X axis scaling
-    units_x = str(genesis4_object.units(xkey))
+    units_x = str(output.units(xkey))
     if nice:
         X, factor_x, prefix_x = nice_array(X)
         units_x = prefix_x + units_x
@@ -176,7 +154,7 @@ def plot_stats_with_layout(
         linestyle = linestyles[ix]
 
         # Check that units are compatible
-        ulist = [genesis4_object.units(key) for key in keys]
+        ulist = [output.units(key) for key in keys]
         if len(ulist) > 1:
             for u2 in ulist[1:]:
                 assert ulist[0] == u2, f"Incompatible units: {ulist[0]} and {u2}"
@@ -184,7 +162,7 @@ def plot_stats_with_layout(
         unit = str(ulist[0])
 
         # Data
-        data = [genesis4_object.stat(key)[good] for key in keys]
+        data = [output.stat(key)[good] for key in keys]
 
         if nice:
             factor, prefix = nice_scale_prefix(np.ptp(data))
@@ -260,7 +238,7 @@ def plot_stats_with_layout(
         # else:
         #     ax_layout.set_xlabel('mean_z')
         #     xlim = (0, I.stop)
-        add_layout_to_axes(genesis4_object, ax=ax_layout, bounds=xlim)
+        add_layout_to_axes(output, ax=ax_layout, bounds=xlim)
 
     if return_figure:
         return fig

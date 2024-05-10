@@ -16,6 +16,7 @@ from typing import (
 )
 
 import h5py
+import matplotlib.figure
 import numpy as np
 import pydantic
 from pmd_beamphysics import ParticleGroup
@@ -25,7 +26,19 @@ from pmd_beamphysics.units import c_light, pmd_unit
 from . import parsers, readers
 from .. import tools
 from .plot import plot_stats_with_layout
-from .types import AnyPath, PydanticPmdUnit, PydanticNDArray, TypedDict
+from .types import (
+    AnyPath,
+    PydanticPmdUnit,
+    PydanticNDArray,
+    FieldFileDict,
+    FieldFileParamDict,
+    OutputLatticeDict,
+    OutputBeamDict,
+    OutputGlobalDict,
+    OutputMetaVersionDict,
+    OutputMetaDict,
+    OutputFieldDict,
+)
 
 try:
     from typing import Literal
@@ -90,171 +103,6 @@ class RunInfo(pydantic.BaseModel):
         return not self.error
 
 
-LatticeDict = TypedDict(
-    "LatticeDict",
-    {
-        "aw": PydanticNDArray,
-        "ax": PydanticNDArray,
-        "ay": PydanticNDArray,
-        "chic_angle": PydanticNDArray,
-        "chic_lb": PydanticNDArray,
-        "chic_ld": PydanticNDArray,
-        "chic_lt": PydanticNDArray,
-        "cx": PydanticNDArray,
-        "cy": PydanticNDArray,
-        "dz": PydanticNDArray,
-        "gradx": PydanticNDArray,
-        "grady": PydanticNDArray,
-        "ku": PydanticNDArray,
-        "kx": PydanticNDArray,
-        "ky": PydanticNDArray,
-        "phaseshift": PydanticNDArray,
-        "qf": PydanticNDArray,
-        "qx": PydanticNDArray,
-        "qy": PydanticNDArray,
-        "slippage": PydanticNDArray,
-        "z": PydanticNDArray,
-        "zplot": PydanticNDArray,
-    },
-)
-
-
-BeamDict = TypedDict(
-    "BeamDict",
-    {
-        "LSCfield": PydanticNDArray,
-        "alphax": PydanticNDArray,
-        "alphay": PydanticNDArray,
-        "betax": PydanticNDArray,
-        "betay": PydanticNDArray,
-        "bunching": PydanticNDArray,
-        "bunchingphase": PydanticNDArray,
-        "current": PydanticNDArray,
-        "efield": PydanticNDArray,
-        "emax": PydanticNDArray,
-        "emin": PydanticNDArray,
-        "emitx": PydanticNDArray,
-        "emity": PydanticNDArray,
-        "energy": PydanticNDArray,
-        "energyspread": PydanticNDArray,
-        "pxmax": PydanticNDArray,
-        "pxmin": PydanticNDArray,
-        "pxposition": PydanticNDArray,
-        "pymax": PydanticNDArray,
-        "pymin": PydanticNDArray,
-        "pyposition": PydanticNDArray,
-        "wakefield": PydanticNDArray,
-        "xmax": PydanticNDArray,
-        "xmin": PydanticNDArray,
-        "xposition": PydanticNDArray,
-        "xsize": PydanticNDArray,
-        "ymax": PydanticNDArray,
-        "ymin": PydanticNDArray,
-        "yposition": PydanticNDArray,
-        "ysize": PydanticNDArray,
-    },
-)
-
-
-MetaDict = TypedDict(
-    "MetaDict",
-    {
-        "Beamdumps/ndumps": int,
-        "Fielddumps/ndumps": int,
-        "HOST": str,
-        "InputFile": str,
-        "User": str,
-        "TimeStamp": str,
-        "Version/Beta": float,
-        "Version/Build_Info": str,
-        "Version/Major": float,
-        "Version/Minor": float,
-        "Version/Revision": float,
-        "cwd": str,
-        "mpisize": float,
-    },
-)
-
-
-VersionDict = TypedDict(
-    "VersionDict",
-    {
-        "Beta": float,
-        "Build_Info": str,
-        "Major": float,
-        "Minor": float,
-        "Revision": float,
-    },
-)
-
-
-GlobalDict = TypedDict(
-    "GlobalDict",
-    {
-        "frequency": PydanticNDArray,
-        "gamma0": float,
-        "lambdaref": float,
-        "one4one": float,
-        "s": PydanticNDArray,
-        "sample": float,
-        "scan": float,
-        "slen": float,
-        "time": float,
-    },
-)
-
-
-FieldDict = TypedDict(
-    "FieldDict",
-    {
-        "dgrid": float,
-        "intensity-farfield": PydanticNDArray,
-        "intensity-nearfield": PydanticNDArray,
-        "ngrid": float,
-        "phase-farfield": PydanticNDArray,
-        "phase-nearfield": PydanticNDArray,
-        "power": PydanticNDArray,
-        "xdivergence": PydanticNDArray,
-        "xpointing": PydanticNDArray,
-        "xposition": PydanticNDArray,
-        "xsize": PydanticNDArray,
-        "ydivergence": PydanticNDArray,
-        "ypointing": PydanticNDArray,
-        "yposition": PydanticNDArray,
-        "ysize": PydanticNDArray,
-    },
-)
-
-
-FieldFileParamDict = TypedDict(
-    "FieldFileParamDict",
-    {
-        #  number of gridpoints in one transverse dimension, equal to nx and ny above
-        "gridpoints": int,
-        # gridpoint spacing (meter)
-        "gridsize": float,
-        # starting position (meter)
-        "refposition": float,
-        # radiation wavelength (meter)
-        "wavelength": float,
-        # number of slices
-        "slicecount": int,
-        # slice spacing (meter)
-        "slicespacing": float,
-    },
-)
-
-
-FieldFileDict = TypedDict(
-    "FieldFileDict",
-    {
-        "label": str,
-        "dfl": PydanticNDArray,
-        "param": FieldFileParamDict,
-    },
-)
-
-
 class HDF5ReferenceFile(pydantic.BaseModel):
     """An externally-referenced HDF5 file.."""
 
@@ -286,8 +134,6 @@ LoadableH5File = Union[
     _ParticleGroupH5File,
     _FieldH5File,
 ]
-_OutputBaseType = Union[PydanticNDArray, float, int, str]
-_OutputDataType = Union[_OutputBaseType, Dict[str, _OutputBaseType]]
 
 
 class Genesis4Output(pydantic.BaseModel, arbitrary_types_allowed=True):
@@ -337,34 +183,34 @@ class Genesis4Output(pydantic.BaseModel, arbitrary_types_allowed=True):
         raise NotImplementedError(f"Render mode {mode} unsupported")
 
     @property
-    def beam(self) -> BeamDict:
+    def beam(self) -> OutputBeamDict:
         """Beam-related output information dictionary."""
-        return typing.cast(BeamDict, self._split_data("Beam/"))
+        return typing.cast(OutputBeamDict, self._split_data("Beam/"))
 
     @property
-    def field_info(self) -> FieldDict:
+    def field_info(self) -> OutputFieldDict:
         """Field-related output information dictionary."""
-        return typing.cast(FieldDict, self._split_data("Field/"))
+        return typing.cast(OutputFieldDict, self._split_data("Field/"))
 
     @property
-    def lattice(self) -> LatticeDict:
+    def lattice(self) -> OutputLatticeDict:
         """Lattice-related output information dictionary."""
-        return typing.cast(LatticeDict, self._split_data("Lattice/"))
+        return typing.cast(OutputLatticeDict, self._split_data("Lattice/"))
 
     @property
-    def global_(self) -> GlobalDict:
+    def global_(self) -> OutputGlobalDict:
         """Global settings-related output information dictionary."""
-        return typing.cast(GlobalDict, self._split_data("Global/"))
+        return typing.cast(OutputGlobalDict, self._split_data("Global/"))
 
     @property
-    def meta(self) -> MetaDict:
+    def meta(self) -> OutputMetaDict:
         """Run meta information information dictionary."""
-        return typing.cast(MetaDict, self._split_data("Meta/"))
+        return typing.cast(OutputMetaDict, self._split_data("Meta/"))
 
     @property
-    def version(self) -> VersionDict:
+    def version(self) -> OutputMetaVersionDict:
         """Version-related information dictionary."""
-        return typing.cast(VersionDict, self._split_data("Meta/Version/"))
+        return typing.cast(OutputMetaVersionDict, self._split_data("Meta/Version/"))
 
     @property
     def fields(self) -> Dict[str, FieldFileDict]:
@@ -372,10 +218,22 @@ class Genesis4Output(pydantic.BaseModel, arbitrary_types_allowed=True):
 
     def _split_data(self, prefix: str) -> Dict[str, Any]:
         res = {}
+
+        def add_item(key: str, value: Any, parent: Dict[str, Any]) -> None:
+            if "/" not in key:
+                parent[key] = value
+            else:
+                first, rest = key.split("/", 1)
+                add_item(key=rest, value=value, parent=parent.setdefault(first, {}))
+
         for key, value in self.data.items():
             if key.startswith(prefix):
                 key = key[len(prefix) :].lstrip("/")
-                res[key] = value
+                add_item(key, value, res)
+        for key, value in self.metadata.items():
+            if key.startswith(prefix):
+                key = key[len(prefix) :].lstrip("/")
+                add_item(key, value, res)
         return res
 
     @staticmethod
@@ -701,24 +559,28 @@ class Genesis4Output(pydantic.BaseModel, arbitrary_types_allowed=True):
 
     def archive(self, h5: h5py.Group, key: str = "output") -> None:
         """
-        Dump inputs and outputs into HDF5 file.
+        Dump outputs into the given HDF5 group.
 
         Parameters
         ----------
-        h5 : h5py.File or h5py.Group
+        h5 : h5py.Group
             The HDF5 file in which to write the information.
+        key : str, default="output"
+            The key to use when storing the data.
         """
-        tools.store_in_hdf5_file(h5, self, key="input")
+        tools.store_in_hdf5_file(h5, self, key=key)
 
     @classmethod
     def from_archive(cls, h5: h5py.Group, key: str = "output") -> Genesis4Output:
         """
-        Loads input and output from archived h5 file.
+        Loads output from the given HDF5 group.
 
         Parameters
         ----------
         h5 : str or h5py.File
-            The filename or handle on h5py.File from which to load input and output data
+            The filename or handle on h5py.File from which to load data.
+        key : str, default="output"
+            The key to use when restoring the data.
         """
         loaded = tools.restore_from_hdf5_file(h5, key=key)
         if not isinstance(loaded, Genesis4Output):
@@ -744,7 +606,7 @@ class Genesis4Output(pydantic.BaseModel, arbitrary_types_allowed=True):
         return_figure=False,
         tex=False,
         **kwargs,
-    ):
+    ) -> Optional[matplotlib.figure.Figure]:
         """
         Plots output multiple keys.
 
@@ -818,7 +680,11 @@ class Genesis4Output(pydantic.BaseModel, arbitrary_types_allowed=True):
         print("Output data\n")
         print("key                       value              unit")
         print(50 * "-")
-        for k in sorted(list(self.data)):
+        for k in sorted(self.data):
+            line = self.get_description_for_key(k)
+            print(line)
+
+        for k in sorted(self.metadata):
             line = self.get_description_for_key(k)
             print(line)
 
