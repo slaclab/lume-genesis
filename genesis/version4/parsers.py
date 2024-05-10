@@ -1,6 +1,6 @@
 import os
-from typing import Any, Dict
 import warnings
+from typing import Any, Dict
 
 import h5py
 import numpy as np
