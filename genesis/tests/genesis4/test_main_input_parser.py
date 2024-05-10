@@ -5,7 +5,7 @@ import lark
 import pytest
 
 from ...version4.input.core import new_main_input_parser
-from ...version4.input import MainInput
+from ...version4 import Genesis4, MainInput
 
 
 test_v4_root = pathlib.Path(__file__).resolve().parent
@@ -64,6 +64,13 @@ def test_load_file(main_input_parser: lark.Lark, filename: pathlib.Path) -> None
     print("\n\nChecking file output vs initial dataclasses..")
     second_inp = MainInput.from_contents(round_tripped)
     assert str(inp) == str(second_inp)
+
+
+@pytest.mark.parametrize(
+    "filename", [pytest.param(fn, id=fn.name) for fn in genesis4_input_files[:1]]
+)
+def test_load_file_with_input_parser_helper(filename: pathlib.Path) -> None:
+    assert isinstance(Genesis4.input_parser(filename), MainInput)
 
 
 @pytest.mark.parametrize(

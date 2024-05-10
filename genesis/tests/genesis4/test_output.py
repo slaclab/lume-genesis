@@ -1,5 +1,6 @@
 from typing import Dict, List
 
+import numpy as np
 import pydantic
 import pytest
 
@@ -131,7 +132,7 @@ def test_plot_smoke(
 ) -> None:
     fig = output.plot(return_figure=True)
     assert fig is not None
-    fig.savefig(test_root / "test_plot_smoke.png")
+    fig.savefig(test_root / "test_output_plot_smoke.png")
 
 
 def test_mock_load_failure(
@@ -146,3 +147,14 @@ def test_mock_load_failure(
     with pytest.raises(ValueError) as captured:
         genesis4.run(raise_on_error=True)
     assert "mock failure" in str(captured.value)
+
+
+def test_convenience_methods(
+    output: Genesis4Output,
+) -> None:
+    output.info()
+    output["beam_xsize"]
+
+    with pytest.raises(TypeError):
+        # Not a mutable mapping
+        output["testing"] = np.asarray([0])

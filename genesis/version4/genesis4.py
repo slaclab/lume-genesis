@@ -15,7 +15,7 @@ from pmd_beamphysics.units import pmd_unit
 
 from .. import tools
 from . import parsers
-from .input.core import Genesis4Input, MainInput
+from .input import Genesis4Input, MainInput, Lattice
 from .output import Genesis4Output, RunInfo
 from .types import AnyPath
 
@@ -558,18 +558,35 @@ class Genesis4(CommandWrapper):
         return self.output.stat(key=key)
 
     @staticmethod
-    def input_parser(path):
+    def input_parser(path: AnyPath) -> MainInput:
         """
-        Invoke the specialized input parser and returns the dataclass.
+        Invoke the specialized main input parser and returns the `MainInput`
+        instance.
 
         Parameters
         ----------
-        path : str
+        path : str or pathlib.Path
             Path to the main input file.
 
         Returns
         -------
         MainInput
-            The input dictionary
         """
         return MainInput.from_file(path)
+
+    @staticmethod
+    def lattice_parser(path: AnyPath) -> Lattice:
+        """
+        Invoke the specialized lattice input parser and returns the `Lattice`
+        instance.
+
+        Parameters
+        ----------
+        path : str or pathlib.Path
+            Path to the lattice input file.
+
+        Returns
+        -------
+        Lattice
+        """
+        return Lattice.from_file(path)

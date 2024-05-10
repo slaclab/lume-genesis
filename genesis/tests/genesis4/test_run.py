@@ -3,6 +3,8 @@ from typing import Optional
 
 import pytest
 
+from ..conftest import test_root
+
 from ...version4 import Genesis4
 from ...version4.input import Beam, Lattice, MainInput
 from .conftest import run_basic
@@ -47,6 +49,17 @@ def test_run_with_instances(
     timeout: Optional[float],
 ) -> None:
     run_with_instances(main_input, lattice, timeout=timeout)
+
+
+def test_run_with_instances_check_output(
+    main_input: MainInput,
+    lattice: Lattice,
+) -> None:
+    genesis = run_with_instances(main_input, lattice)
+    fig = genesis.plot(return_figure=True)
+    assert fig is not None
+    fig.savefig(test_root / "test_output_plot_smoke.png")
+    genesis.stat("beam_xsize")
 
 
 def test_run_with_source(

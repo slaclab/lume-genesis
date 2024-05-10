@@ -7,12 +7,9 @@ from typing import (
     Any,
     Dict,
     Generator,
-    ItemsView,
-    KeysView,
     List,
     Optional,
     Union,
-    ValuesView,
 )
 
 import h5py
@@ -45,6 +42,10 @@ try:
 except ImportError:
     from typing_extensions import Literal
 
+try:
+    from collections.abc import Mapping
+except ImportError:
+    from typing import Mapping
 
 if typing.TYPE_CHECKING:
     from .input.core import Genesis4Input
@@ -136,7 +137,7 @@ LoadableH5File = Union[
 ]
 
 
-class Genesis4Output(pydantic.BaseModel, arbitrary_types_allowed=True):
+class Genesis4Output(Mapping, pydantic.BaseModel, arbitrary_types_allowed=True):
     """
     Genesis 4 command output.
 
@@ -676,7 +677,7 @@ class Genesis4Output(pydantic.BaseModel, arbitrary_types_allowed=True):
             **kwargs,
         )
 
-    def info(self):
+    def info(self) -> None:
         print("Output data\n")
         print("key                       value              unit")
         print(50 * "-")
@@ -692,60 +693,32 @@ class Genesis4Output(pydantic.BaseModel, arbitrary_types_allowed=True):
         """
         Returns a line describing an output
         """
-        value = self.data[key]
+        value = self[key]
         units = self.unit_info.get(key, "")
         return get_description_for_value(key, value, units)
 
-    # The following are for MutableMapping support.  We're unable to mixin
-    # MutableMapping with pydantic.BaseModel, so we define them ourselves here.
-
-    def keys(self) -> KeysView:
-        """Data keys available in the output."""
-        return self.data.keys()
-
-    def values(self) -> ValuesView:
-        """Data values available in the output."""
-        return self.data.values()
-
-    def items(self) -> ItemsView:
-        """Data items available in the output."""
-        return self.data.items()
-
-    def get(self, key: str, default: Optional[Any] = None) -> ItemsView:
-        """Get a key from the output."""
-        return self.data.get(key, default)
-
-    def __contains__(self, key: str) -> bool:
-        """Support for MutableMapping -> key check."""
-        return key in self.data
-
-    def __eq__(self, value: Any) -> bool:
-        """Support for MutableMapping -> equality check."""
-        return self.data == value
-
-    def __ne__(self, value: Any) -> bool:
-        """Support for MutableMapping -> equality check."""
-        return self.data != value
-
     def __getitem__(self, key: str) -> Any:
         """Support for Mapping -> easy access to data."""
-        return self.data[key]
-
-    def __setitem__(self, key: str, value: Any) -> None:
-        """Support for MutableMapping -> easy access to data."""
-        self.data[key] = value
-
-    def __delitem__(self, key: str) -> None:
-        """Support for MutableMapping -> easy access to data."""
-        del self.data[key]
+        if key in self.data:
+            return self.data[key]
+        if key in self.metadata:
+            return self.metadata[key]
+        if key in self.alias:
+            alias = self.alias[key]
+            if alias in self.data:
+                return self.data[alias]
+            if alias in self.metadata:
+                return self.metadata[alias]
+        raise KeyError(key)
 
     def __iter__(self) -> Generator[str, None, None]:
         """Support for Mapping -> easy access to data."""
         yield from iter(self.data)
+        yield from iter(self.metadata)
 
     def __len__(self) -> int:
         """Support for Mapping -> easy access to data."""
-        return len(self.data)
+        return len(set(self.data) | set(self.metadata))
 
 
 def get_description_for_value(key: str, value, units) -> str:
