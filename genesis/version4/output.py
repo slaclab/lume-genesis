@@ -135,6 +135,7 @@ LoadableH5File = Union[
     _ParticleGroupH5File,
     _FieldH5File,
 ]
+DataType = Union[float, int, str, bool, PydanticNDArray]
 
 
 class Genesis4Output(Mapping, pydantic.BaseModel, arbitrary_types_allowed=True):
@@ -155,10 +156,7 @@ class Genesis4Output(Mapping, pydantic.BaseModel, arbitrary_types_allowed=True):
         Dictionary of aliased data keys.
     """
 
-    data: Dict[str, PydanticNDArray] = pydantic.Field(default_factory=dict)
-    metadata: Dict[str, Union[float, int, str, bool]] = pydantic.Field(
-        default_factory=dict
-    )
+    data: Dict[str, DataType] = pydantic.Field(default_factory=dict)
     field: Dict[str, FieldFileDict] = pydantic.Field(
         default_factory=dict,
         exclude=True,
@@ -228,10 +226,6 @@ class Genesis4Output(Mapping, pydantic.BaseModel, arbitrary_types_allowed=True):
                 add_item(key=rest, value=value, parent=parent.setdefault(first, {}))
 
         for key, value in self.data.items():
-            if key.startswith(prefix):
-                key = key[len(prefix) :].lstrip("/")
-                add_item(key, value, res)
-        for key, value in self.metadata.items():
             if key.startswith(prefix):
                 key = key[len(prefix) :].lstrip("/")
                 add_item(key, value, res)
@@ -341,14 +335,8 @@ class Genesis4Output(Mapping, pydantic.BaseModel, arbitrary_types_allowed=True):
             if alias_to in units:
                 units[alias_from] = units[alias_to]
 
-        metadata = {}
-        for key, value in dict(data).items():
-            if not isinstance(value, np.ndarray):
-                metadata[key] = data.pop(key)
-
         output = cls(
             data=data,
-            metadata=metadata,
             unit_info=units,
             alias=alias,
             field_files={field.key: field for field in fields},
@@ -685,10 +673,6 @@ class Genesis4Output(Mapping, pydantic.BaseModel, arbitrary_types_allowed=True):
             line = self.get_description_for_key(k)
             print(line)
 
-        for k in sorted(self.metadata):
-            line = self.get_description_for_key(k)
-            print(line)
-
     def get_description_for_key(self, key: str) -> str:
         """
         Returns a line describing an output
@@ -701,24 +685,19 @@ class Genesis4Output(Mapping, pydantic.BaseModel, arbitrary_types_allowed=True):
         """Support for Mapping -> easy access to data."""
         if key in self.data:
             return self.data[key]
-        if key in self.metadata:
-            return self.metadata[key]
         if key in self.alias:
             alias = self.alias[key]
             if alias in self.data:
                 return self.data[alias]
-            if alias in self.metadata:
-                return self.metadata[alias]
         raise KeyError(key)
 
     def __iter__(self) -> Generator[str, None, None]:
         """Support for Mapping -> easy access to data."""
         yield from iter(self.data)
-        yield from iter(self.metadata)
 
     def __len__(self) -> int:
         """Support for Mapping -> easy access to data."""
-        return len(set(self.data) | set(self.metadata))
+        return len(self.data)
 
 
 def get_description_for_value(key: str, value, units) -> str:

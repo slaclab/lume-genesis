@@ -98,6 +98,11 @@ def test_stat_smoke(
 ) -> None:
     """Smoke test calling 'stat' on all keys"""
     for key in output.data:
+        value = output[key]
+        if not isinstance(value, np.ndarray):
+            print(f"Skipping non-array key: {key}")
+            continue
+
         try:
             print(key, output.stat(key))
         except ValueError as ex:
