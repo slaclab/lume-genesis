@@ -4,6 +4,7 @@ from typing import Union
 import numpy as np
 import pytest
 
+from ...version4 import Genesis4
 from ...version4.input import (
     AlterSetup,
     Beam,
@@ -19,7 +20,6 @@ from ...version4.input import (
     InitialParticles,
     Lattice,
     Line,
-    MainInput,
     Marker,
     PhaseShifter,
     ProfileArray,
@@ -42,7 +42,6 @@ from ...version4.input import (
     Write,
 )
 from ...version4.types import BeamlineElement, NameList
-from .test_run import lattice, main_input  # noqa: F401
 
 
 @pytest.fixture
@@ -128,17 +127,20 @@ def test_round_trip_json(
 
 
 def test_hdf_archive(
-    main_input: MainInput,  # noqa: F811  # this is intentional; it's a fixture
-    lattice: Lattice,  # noqa: F811  # this is intentional; it's a fixture
+    genesis4: Genesis4,
     hdf5_filename: pathlib.Path,
 ) -> None:
-    from .test_run import test_run_with_instances
+    output = genesis4.run(raise_on_error=True)
+    assert output.run.success
 
-    genesis = test_run_with_instances(main_input, lattice)
-    genesis.load_output()
-    orig_input = genesis.input
-    orig_output = genesis.output
-    genesis.archive(hdf5_filename)
-    genesis.load_archive(hdf5_filename)
-    assert orig_input.model_dump_json() == genesis.input.model_dump_json()
-    assert orig_output.model_dump_json() == genesis.output.model_dump_json()
+    genesis4.load_output()
+    orig_input = genesis4.input
+    orig_output = genesis4.output
+    assert orig_output is not None
+
+    genesis4.archive(hdf5_filename)
+    genesis4.load_archive(hdf5_filename)
+    assert genesis4.output is not None
+
+    assert orig_input.model_dump_json() == genesis4.input.model_dump_json()
+    assert orig_output.model_dump_json() == genesis4.output.model_dump_json()

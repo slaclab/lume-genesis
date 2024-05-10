@@ -3,8 +3,8 @@ from typing import Dict, List
 import pydantic
 import pytest
 
+from ...version4 import Genesis4
 from ...version4.output import Genesis4Output
-from ...version4.input import Lattice, MainInput
 from ...version4.parsers import extract_aliases
 from ...version4.types import (
     OutputLatticeDict,
@@ -15,7 +15,6 @@ from ...version4.types import (
     OutputFieldDict,
 )
 from ..conftest import test_root
-from .test_run import lattice, main_input  # noqa: F401
 
 
 @pytest.mark.parametrize(
@@ -58,13 +57,11 @@ def test_extract_aliases(keys: List[str], expected_aliases: Dict[str, str]) -> N
 
 @pytest.fixture(scope="function")
 def output(
-    main_input: MainInput,  # noqa: F811  # this is intentional; it's a fixture
-    lattice: Lattice,  # noqa: F811  # this is intentional; it's a fixture
+    genesis4: Genesis4,
 ) -> Genesis4Output:
-    from .test_run import test_run_with_instances
-
-    genesis = test_run_with_instances(main_input, lattice)
-    return genesis.load_output()
+    output = genesis4.run(raise_on_error=True)
+    assert output.run.success
+    return output
 
 
 @pytest.mark.parametrize(
