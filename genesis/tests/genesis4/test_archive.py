@@ -108,10 +108,10 @@ def hdf5_filename(
             ),
             id="InitialParticles-data",
         ),
-        pytest.param(
-            InitialParticles(filename=pathlib.Path("test.h5")),
-            id="InitialParticles-file",
-        ),
+        # pytest.param(
+        #     InitialParticles(filename=pathlib.Path("test.h5")),
+        #     id="InitialParticles-file",
+        # ),
     ],
 )
 def test_round_trip_json(

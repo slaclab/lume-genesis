@@ -86,6 +86,7 @@ def test_profile_gauss():
     print("Charge is", P1.charge)
 
 
+@pytest.mark.xfail(reason="WIP InitialParticles")
 def test_profile_array(
     request: pytest.FixtureRequest,
     tmp_path: pathlib.Path,

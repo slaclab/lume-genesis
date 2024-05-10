@@ -457,7 +457,7 @@ class InitialParticles(NameList, arbitrary_types_allowed=True):
     type: Literal["InitialParticles"] = "InitialParticles"
     data: Optional[ParticleData] = None
     temporary_filename: Optional[str] = None
-    filename: Optional[AnyPath] = pydantic.Field(init_var=True)
+    filename: Optional[AnyPath] = pydantic.Field(init_var=True, default=None)
     particles: ParticleGroup = pydantic.Field(exclude=True, default=None)
 
     def model_post_init(self, __context: Any) -> None:

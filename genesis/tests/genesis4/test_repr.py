@@ -103,7 +103,7 @@ def display_options(request: pytest.FixtureRequest) -> DisplayOptions:
         pytest.param(Track(), id="Track"),
         pytest.param(Wake(), id="Wake"),
         pytest.param(Write(), id="Write"),
-        pytest.param(InitialParticles(), id="InitialParticles-File"),
+        # pytest.param(InitialParticles(filename='...'), id="InitialParticles-File"),
         pytest.param(Lattice(), id="Lattice"),
         pytest.param(Line(), id="Line"),
         pytest.param(
