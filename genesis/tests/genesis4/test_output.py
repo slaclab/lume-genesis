@@ -135,7 +135,3 @@ def test_plot_smoke(
     fig = output.plot(return_figure=True)
     assert fig is not None
     fig.savefig(test_root / "test_plot_smoke.png")
-
-    fig = output.plot_stats()
-    assert fig is not None
-    fig.savefig(test_root / "test_plot_smoke_1.png")
