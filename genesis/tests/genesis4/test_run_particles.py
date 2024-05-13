@@ -74,7 +74,7 @@ def test_profile_gauss():
     G = Genesis4(input=input, verbose=True)
     output = G.run(raise_on_error=True)
 
-    print("delz=", G.input.main.get_setup().delz)
+    print("delz=", G.input.main.setup.delz)
 
     output.load_particles()
     P1 = output.particles["end"]
@@ -86,7 +86,6 @@ def test_profile_gauss():
     print("Charge is", P1.charge)
 
 
-@pytest.mark.xfail(reason="WIP InitialParticles")
 def test_profile_array(
     request: pytest.FixtureRequest,
     tmp_path: pathlib.Path,
@@ -179,7 +178,7 @@ def test_profile_array(
     # When using the lume-genesis-specific `InitialParticles` namelist, the
     # appropriate input will be written automatically. Be sure to add it before
     # the first "Track" or "Write" namelist in the main input.
-    initial_particles = InitialParticles(filename=dist_file)
+    initial_particles = InitialParticles(particles=P1r)
 
     main = MainInput(
         namelists=[
@@ -222,3 +221,14 @@ def test_profile_array(
     # Notice that `importdistribution` is filled in:
     list(output.beam)
     G1.input
+
+    G1.archive(tmp_path / "archive.h5")
+    loaded_g1 = Genesis4.from_archive(tmp_path / "archive.h5")
+
+    for key, value in loaded_g1.input.main.by_namelist[InitialParticles][
+        0
+    ].data.items():
+        if isinstance(value, np.ndarray):
+            np.testing.assert_allclose(value, initial_particles.data[key])
+        else:
+            assert value == initial_particles.data[key]

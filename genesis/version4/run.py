@@ -1,3 +1,4 @@
+from __future__ import annotations
 import logging
 import os
 import pathlib
@@ -66,14 +67,14 @@ def _make_genesis4_input(
     lattice_source: Union[pathlib.Path, str],
     source_path: Optional[AnyPath] = None,
 ) -> Tuple[pathlib.Path, Genesis4Input]:
-    input_fn, input_source = tools.read_if_path(input)
+    input_fn, input_source = tools.read_if_path(input, source_path)
     if not input_source or not isinstance(input_source, str):
         raise ValueError(
             f"'input' must be either a Genesis4Input instance, a Genesis 4-"
             f"compatible main input, or a filename. Got: {input}"
         )
 
-    lattice_fn, lattice_source = tools.read_if_path(lattice_source)
+    lattice_fn, lattice_source = tools.read_if_path(lattice_source, source_path)
     logger.debug(
         "Main input: main_fn=%s contents=\n%s",
         input_fn,
@@ -157,7 +158,7 @@ class Genesis4(CommandWrapper):
 
     def __init__(
         self,
-        input: Union[MainInput, Genesis4Input, str, pathlib.Path],
+        input: Optional[Union[MainInput, Genesis4Input, str, pathlib.Path]] = None,
         lattice_source: Union[str, pathlib.Path] = "",
         *,
         workdir: Optional[Union[str, pathlib.Path]] = None,
@@ -185,7 +186,9 @@ class Genesis4(CommandWrapper):
             **kwargs,
         )
 
-        if isinstance(input, MainInput):
+        if input is None:
+            input = Genesis4Input(main=MainInput(), lattice=Lattice())
+        elif isinstance(input, MainInput):
             input = Genesis4Input.from_main_input(
                 main=input,
                 lattice=lattice_source,
@@ -409,7 +412,10 @@ class Genesis4(CommandWrapper):
 
         if path is None:
             raise ValueError("Path has not yet been set; cannot write input.")
-        return self.input.write(workdir=path)
+
+        path = pathlib.Path(path)
+        self.input.write(workdir=path)
+        self.input.write_run_script(path / "run", command_prefix=self.get_run_prefix())
 
     def _archive(self, h5: h5py.Group):
         self.input.archive(h5)
@@ -439,19 +445,32 @@ class Genesis4(CommandWrapper):
         else:
             self.output = None
 
-    def load_archive(self, dest: Union[AnyPath, h5py.Group]):
+    def load_archive(self, arch: Union[AnyPath, h5py.Group]) -> None:
         """
-        Load an archive from a single HDF5 file.
+        Load an archive from a single HDF5 file into this Genesis4 object.
 
         Parameters
         ----------
-        dest : filename or h5py.Group
+        arch : filename or h5py.Group
         """
-        if isinstance(dest, (str, pathlib.Path)):
-            with h5py.File(dest, "r") as fp:
+        if isinstance(arch, (str, pathlib.Path)):
+            with h5py.File(arch, "r") as fp:
                 self._load_archive(fp)
-        elif isinstance(dest, (h5py.File, h5py.Group)):
-            self._load_archive(dest)
+        elif isinstance(arch, (h5py.File, h5py.Group)):
+            self._load_archive(arch)
+
+    @classmethod
+    def from_archive(cls, arch: Union[AnyPath, h5py.Group]) -> Genesis4:
+        """
+        Create a new Genesis4 object from an archive file.
+
+        Parameters
+        ----------
+        arch : filename or h5py.Group
+        """
+        inst = cls()
+        inst.load_archive(arch)
+        return inst
 
     def load_output(
         self,

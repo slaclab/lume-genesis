@@ -197,7 +197,7 @@ class ParticleData(TypedDict):
     * `px`, `py`, `pz` are np.ndarray momenta in units of [eV/c]
     * `t` is a np.ndarray of time in [s]
     * `status` is a status coordinate np.ndarray
-    * `weight` is the macro-charge weight in [C], used for all statistical calulations.
+    * `weight` is the macro-charge weight in [C], used for all statistical calculations.
     * `species` is a proper species name: `'electron'`, etc.
     The following keys are optional:
     * `id` is an optional np.ndarray of unique IDs
@@ -217,7 +217,8 @@ class ParticleData(TypedDict):
     t: PydanticNDArray
     status: PydanticNDArray
 
-    # `weight` is the macro-charge weight in [C], used for all statistical calulations.
+    # `weight` is the macro-charge weight in [C], used for all statistical
+    # calculations.
     weight: PydanticNDArray
 
     # `species` is a proper species name: `'electron'`, etc.

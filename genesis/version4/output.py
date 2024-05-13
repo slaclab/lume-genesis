@@ -137,6 +137,23 @@ LoadableH5File = Union[
 DataType = Union[float, int, str, bool, PydanticNDArray]
 
 
+def _split_data(data: Dict[str, DataType], prefix: str) -> Dict[str, Any]:
+    res = {}
+
+    def add_item(key: str, value: Any, parent: Dict[str, Any]) -> None:
+        if "/" not in key:
+            parent[key] = value
+        else:
+            first, rest = key.split("/", 1)
+            add_item(key=rest, value=value, parent=parent.setdefault(first, {}))
+
+    for key, value in data.items():
+        if key.startswith(prefix):
+            key = key[len(prefix) :].lstrip("/")
+            add_item(key, value, res)
+    return res
+
+
 class Genesis4Output(Mapping, pydantic.BaseModel, arbitrary_types_allowed=True):
     """
     Genesis 4 command output.
@@ -183,58 +200,43 @@ class Genesis4Output(Mapping, pydantic.BaseModel, arbitrary_types_allowed=True):
     @property
     def beam(self) -> OutputBeamDict:
         """Beam-related output information dictionary."""
-        return typing.cast(OutputBeamDict, self._split_data("Beam/"))
+        return typing.cast(OutputBeamDict, _split_data(self.data, "Beam/"))
 
     @property
     def field_info(self) -> OutputFieldDict:
         """Field-related output information dictionary."""
-        return typing.cast(OutputFieldDict, self._split_data("Field/"))
+        return typing.cast(OutputFieldDict, _split_data(self.data, "Field/"))
 
     @property
     def lattice(self) -> OutputLatticeDict:
         """Lattice-related output information dictionary."""
-        return typing.cast(OutputLatticeDict, self._split_data("Lattice/"))
+        return typing.cast(OutputLatticeDict, _split_data(self.data, "Lattice/"))
 
     @property
     def global_(self) -> OutputGlobalDict:
         """Global settings-related output information dictionary."""
-        return typing.cast(OutputGlobalDict, self._split_data("Global/"))
+        return typing.cast(OutputGlobalDict, _split_data(self.data, "Global/"))
 
     @property
     def meta(self) -> OutputMetaDict:
         """Run meta information information dictionary."""
-        return typing.cast(OutputMetaDict, self._split_data("Meta/"))
+        return typing.cast(OutputMetaDict, _split_data(self.data, "Meta/"))
 
     @property
     def version(self) -> OutputMetaVersionDict:
         """Version-related information dictionary."""
-        return typing.cast(OutputMetaVersionDict, self._split_data("Meta/Version/"))
+        return typing.cast(
+            OutputMetaVersionDict, _split_data(self.data, "Meta/Version/")
+        )
 
     @property
     def fields(self) -> Dict[str, FieldFileDict]:
         return self.field
 
-    def _split_data(self, prefix: str) -> Dict[str, Any]:
-        res = {}
-
-        def add_item(key: str, value: Any, parent: Dict[str, Any]) -> None:
-            if "/" not in key:
-                parent[key] = value
-            else:
-                first, rest = key.split("/", 1)
-                add_item(key=rest, value=value, parent=parent.setdefault(first, {}))
-
-        for key, value in self.data.items():
-            if key.startswith(prefix):
-                key = key[len(prefix) :].lstrip("/")
-                add_item(key, value, res)
-        return res
-
     @staticmethod
     def get_output_filename(input: Genesis4Input, workdir: AnyPath) -> pathlib.Path:
         """Get the output filename based on the input/run-related settings."""
-        setup = input.main.get_setup()
-        root_name = input.output_path or setup.rootname
+        root_name = input.output_path or input.main.setup.rootname
         if not root_name:
             raise RuntimeError(
                 "Unable to find 'rootname'; cannot determine output filename."

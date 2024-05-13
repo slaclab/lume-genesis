@@ -234,6 +234,7 @@ class _SerializationContext(TypedDict):
 
 class _DeserializationContext(TypedDict):
     hdf5: h5py.Group
+    workdir: pathlib.Path
 
 
 def store_in_hdf5_file(
@@ -283,6 +284,7 @@ def store_in_hdf5_file(
 
 def restore_from_hdf5_file(
     h5: h5py.Group,
+    workdir: Optional[pathlib.Path] = None,
     key: str = "json",
     encoding: str = "utf-8",
 ) -> Optional[pydantic.BaseModel]:
@@ -312,9 +314,20 @@ def restore_from_hdf5_file(
         dtype=h5py.string_dtype(encoding=encoding),
         shape=(),
     )
+
+    if workdir is None:
+        if h5.file.filename:
+            workdir = pathlib.Path(h5.file.filename).resolve().parent
+        else:
+            workdir = pathlib.Path(".")
+
+    ctx: _DeserializationContext = {
+        "hdf5": h5,
+        "workdir": workdir,
+    }
     return cls.model_validate_json(
         json_bytes[()].decode(encoding),
-        context={"hdf5": h5},
+        context=ctx,
     )
 
 
@@ -353,20 +366,20 @@ def html_table_repr(
     seen.append(obj)
     rows = []
     if isinstance(obj, pydantic.BaseModel):
-        fields = obj.model_fields
+        fields = {attr: getattr(obj, attr, None) for attr in obj.model_fields}
         annotations = {
-            attr: field_info.annotation for attr, field_info in fields.items()
+            attr: field_info.annotation for attr, field_info in obj.model_fields.items()
         }
         descriptions = {
-            attr: field_info.description for attr, field_info in fields.items()
+            attr: field_info.description
+            for attr, field_info in obj.model_fields.items()
         }
     else:
         fields = obj
         annotations = {attr: "" for attr in fields}
         descriptions = {attr: "" for attr in fields}
 
-    for attr in fields:
-        value = getattr(obj, attr, None)
+    for attr, value in fields.items():
         if value is None:
             continue
         annotation = annotations[attr]
@@ -529,14 +542,22 @@ def check_if_existing_path(input: str) -> Optional[pathlib.Path]:
     return None
 
 
-def read_if_path(input: Union[pathlib.Path, str]) -> Tuple[Optional[pathlib.Path], str]:
+def read_if_path(
+    input: Union[pathlib.Path, str],
+    source_path: Optional[Union[pathlib.Path, str]] = None,
+) -> Tuple[Optional[pathlib.Path], str]:
     if not input:
         return None, input
+
+    if source_path is None:
+        source_path = pathlib.Path(".")
+
+    source_path = pathlib.Path(source_path)
 
     if isinstance(input, pathlib.Path):
         path = input
     else:
-        path = check_if_existing_path(input)
+        path = check_if_existing_path(str(source_path / input))
         if not path:
             return None, str(input)
 

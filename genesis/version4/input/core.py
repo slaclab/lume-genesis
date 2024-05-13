@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 import os
 import pathlib
+import shlex
 import shutil
 import typing
 from contextlib import contextmanager
@@ -24,6 +25,7 @@ import h5py
 import lark
 import numpy as np
 import pydantic
+from lume import tools as lume_tools
 from pmd_beamphysics import ParticleGroup
 from pmd_beamphysics.units import c_light
 
@@ -82,6 +84,8 @@ class DuplicatedLineItem(pydantic.BaseModel):
     """
     A Genesis 4 lattice Line item which is at a certain position.
 
+    This corresponds to Genesis 4 `"COUNT*LABEL"`.
+
     Attributes
     ----------
     label : str
@@ -111,6 +115,8 @@ class DuplicatedLineItem(pydantic.BaseModel):
 class PositionedLineItem(pydantic.BaseModel):
     """
     A Genesis 4 lattice Line item which is at a certain position.
+
+    This corresponds to Genesis 4 `"LABEL@POSITION"`.
 
     Attributes
     ----------
@@ -447,41 +453,48 @@ class InitialParticles(NameList, arbitrary_types_allowed=True):
         standard or the Genesis standard.
         If ``data`` is specified, particle data will be written to ``filename``
         when Genesis is launched.
-        By default, this is a randomly-generated filename that lume-genesis
-        manages for you.  If desirable, you may set a fixed filename relative
-        to the main input file.  Path delimiters (such as ``/``) are not
-        allowed.
     data : ParticleData
         The following keys are required:
         * `x`, `y`, `z` are np.ndarray in units of [m]
         * `px`, `py`, `pz` are np.ndarray momenta in units of [eV/c]
         * `t` is a np.ndarray of time in [s]
         * `status` is a status coordinate np.ndarray
-        * `weight` is the macro-charge weight in [C], used for all statistical calulations.
+        * `weight` is the macro-charge weight in [C], used for all statistical
+        calculations.
         * `species` is a proper species name: `'electron'`, etc.
         The following keys are optional:
         * `id` is an optional np.ndarray of unique IDs
+    temporary_filename : str
+        By default, this is a randomly-generated filename that lume-genesis
+        manages for you.  If desirable, you may set a fixed filename relative
+        to the main input file.  Path delimiters (such as ``/``) are not
+        allowed.
     """
 
     type: Literal["InitialParticles"] = "InitialParticles"
     data: Optional[ParticleData] = None
-    temporary_filename: Optional[str] = None
     filename: Optional[AnyPath] = pydantic.Field(init_var=True, default=None)
     particles: ParticleGroup = pydantic.Field(exclude=True, default=None)
+    temporary_filename: Optional[str] = None
 
-    def model_post_init(self, __context: Any) -> None:
+    def model_post_init(self, context) -> None:
+        workdir = pathlib.Path(".")
+        if context and isinstance(context, dict):
+            workdir = context.get("workdir", pathlib.Path("."))
+
         if self.filename is not None:
-            self.particles = load_particle_group(self.filename)
+            self.particles = load_particle_group(workdir / self.filename)
             self.data = self.particles.data
-        elif self.particles is not None:
+            return
+
+        if self.particles is not None:
             self.data = self.particles.data
-        else:
-            if self.data is None:
-                raise ValueError(
-                    "Either `filename` or `data` must be specified for "
-                    "InitialParticles."
-                )
-            self.particles = ParticleGroup(data=self.data)
+
+        if self.data is None:
+            raise ValueError(
+                "Either `filename` or `data` must be specified for " "InitialParticles."
+            )
+        self.particles = ParticleGroup(data=self.data)
 
     @property
     def slen(self) -> float:
@@ -579,7 +592,8 @@ class MainInput(pydantic.BaseModel):
             by_namelist[type(namelist)].append(namelist)
         return by_namelist
 
-    def get_setup(self) -> Setup:
+    @property
+    def setup(self) -> Setup:
         """Get the required setup namelist."""
         setups = self.by_namelist.get(Setup, [])
         if len(setups) == 0:
@@ -743,7 +757,7 @@ class MainInput(pydantic.BaseModel):
         for cls in (InitialParticles,):
             for idx, namelist in enumerate(self.by_namelist.get(cls, [])):
                 if not namelist.filename and namelist.data:
-                    namelist.filename = f"{cls.__name__}_{idx}.h5"
+                    namelist.temporary_filename = f"{cls.__name__}_{idx}.h5"
                 paths.append(namelist.write(workdir))
 
         for cls in (ProfileArray,):
@@ -848,7 +862,7 @@ class Genesis4Input(pydantic.BaseModel):
         The filename to use when writing the lattice.  As a user,
         you should not need to worry about this as Genesis4Input will
         handle it for you.
-    input_filename : str = "input.in"
+    input_filename : str = "genesis4.in"
         The filename to use when writing the main input file. As a user, you
         should not need to worry about this as Genesis4Input will handle it for
         you.
@@ -862,7 +876,7 @@ class Genesis4Input(pydantic.BaseModel):
     source_path: pathlib.Path = pathlib.Path(".")
     output_path: Optional[AnyPath] = None
     lattice_filename: str = "genesis.lat"
-    input_filename: str = "input.in"
+    input_filename: str = "genesis4.in"
 
     def get_arguments(self) -> List[str]:
         """
@@ -889,9 +903,15 @@ class Genesis4Input(pydantic.BaseModel):
             str(self.input_filename),
         ]
 
+    def _fix_lattice_filename(self) -> None:
+        setup = self.main.setup
+        if setup.lattice != self.lattice_filename:
+            self.lattice_filename = setup.lattice
+
     def write(
         self,
         workdir: AnyPath = pathlib.Path("."),
+        write_run_script: bool = True,
         rename: bool = True,
     ) -> List[pathlib.Path]:
         """
@@ -919,8 +939,18 @@ class Genesis4Input(pydantic.BaseModel):
             source_path=self.source_path,
         )
         self.lattice.to_file(filename=path / self.lattice_filename)
-
         return [path / self.input_filename, path / self.lattice_filename, *extra_paths]
+
+    def write_run_script(
+        self,
+        path: pathlib.Path,
+        command_prefix: str = "genesis4",
+    ) -> None:
+        with open(path, mode="wt") as fp:
+            print(
+                shlex.join(shlex.split(command_prefix) + self.get_arguments()), file=fp
+            )
+        lume_tools.make_executable(str(path))
 
     @contextmanager
     def write_context(
@@ -963,14 +993,19 @@ class Genesis4Input(pydantic.BaseModel):
         If the input refers to files that already exist on disk, ensures
         that `source_path` is set correctly.
         """
+        lattice_filename = "genesis.lat"
         if lattice:
-            _, lattice = tools.read_if_path(lattice)
+            lattice_path, lattice = tools.read_if_path(lattice)
+            if lattice_path:
+                # Use the lattice filename from the file on disk
+                lattice_filename = lattice_path.name
         else:
             logger.debug("Lattice not specified; determining from main input")
             setup = None
             try:
-                setup = main.get_setup()
-                with open(source_path / setup.lattice) as fp:
+                setup = main.setup
+                # Use the lattice filename from main input's setup:
+                with open(source_path / lattice_filename) as fp:
                     lattice = fp.read()
             except Exception:
                 logger.exception(
@@ -979,11 +1014,14 @@ class Genesis4Input(pydantic.BaseModel):
                     setup,
                 )
                 raise
+            else:
+                lattice_filename = setup.lattice
 
         return cls(
             main=main,
             lattice=Lattice.from_contents(lattice),
             source_path=source_path,
+            lattice_filename=str(lattice_filename),
         )
 
     @classmethod
