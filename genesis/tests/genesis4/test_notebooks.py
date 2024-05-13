@@ -1,18 +1,21 @@
-import matplotlib.pyplot as plt
+import pathlib
+import textwrap
+
 import matplotlib.animation as animation
+import matplotlib.pyplot as plt
 import numpy as np
 from pmd_beamphysics import ParticleGroup
 
+from genesis.version4.input import MainInput, Track, Write
 from genesis.version4.types import FieldFileDict
 
 from ...version4 import Genesis4
 from ..conftest import genesis4_examples
 
-
 example_data = genesis4_examples / "data"
 
 
-def test_example1():
+def test_example1() -> None:
     workdir = example_data / "example1-steadystate"
     G = Genesis4(workdir / "Example1.in")
     G.verbose = True
@@ -74,7 +77,7 @@ def test_example1():
     plt.show()
 
 
-def test_example2():
+def test_example2() -> None:
     G = Genesis4(example_data / "example2-dumps" / "Example2.in")
     output = G.run(raise_on_error=True)
     G.plot(["beam_xsize", "beam_ysize", "field_xsize", "field_ysize"])
@@ -171,3 +174,265 @@ def test_example2():
         fig, animate2, init_func=init, blit=False, interval=20, frames=500
     )
     anim.save("Animation2.mp4")
+
+
+# TODO: fodo_scan_model
+
+
+def test_fodo(tmp_path: pathlib.Path) -> None:
+    """fodo_scan with *reduced* zstop and scan parameters."""
+    REDUCE = 0.1
+
+    LATFILE = str(tmp_path / "genesis4_fodo.lat")
+
+    def make_lat(k1=2, latfile=LATFILE):
+        lat = textwrap.dedent(
+            f"""\
+            D1: DRIFT = {{ l = 0.445}};
+            D2: DRIFT = {{ l = 0.24}};
+            QF: QUADRUPOLE = {{ l = 0.080000, k1= {k1} }};
+            QD: QUADRUPOLE = {{ l = 0.080000, k1= {-k1} }};
+
+            UND: UNDULATOR = {{ lambdau=0.015000,nwig=266,aw=0.84853}};
+
+            FODO: LINE= {{UND,D1,QF,D2,UND,D1,QD,D2}};
+
+            ARAMIS: LINE= {{13*FODO}};
+            """
+        )
+        with open(latfile, "w") as f:
+            f.write(lat)
+
+        return latfile
+
+    make_lat()
+
+    INPUT0 = [
+        {
+            "type": "setup",
+            "rootname": "Benchmark",
+            "lattice": make_lat(k1=2),
+            "beamline": "ARAMIS",
+            "lambda0": 1e-10,
+            "gamma0": 11357.82,
+            "delz": 0.045,
+            "shotnoise": 0,
+            "beam_global_stat": True,
+            "field_global_stat": True,
+        },
+        {
+            "type": "lattice",
+            "zmatch": 9.5,
+        },
+        {
+            "type": "field",
+            "power": 5000,
+            "dgrid": 0.0002,
+            "ngrid": 255,
+            "waist_size": 3e-05,
+        },
+        {"type": "beam", "current": 3000, "delgam": 1, "ex": 4e-07, "ey": 4e-07},
+        {"type": "track", "zstop": 123.5 * REDUCE},
+    ]
+
+    main = MainInput.from_dicts(INPUT0)
+
+    G = Genesis4(main)
+    G.nproc = 0  # Auto-select
+    G.run()
+    G.plot("power", yscale="log", y2=["beam_xsize", "beam_ysize"], ylim2=(0, 50e-6))
+
+    def run1(k):
+        make_lat(k)
+        main.setup.lattice = LATFILE
+        main.by_namelist[Track][0].zstop = 20
+        G = Genesis4(main)
+        G.nproc = 8
+        G.run()
+        return G
+
+    G2 = run1(4)
+    G2.plot("power", yscale="log", y2=["beam_xsize", "beam_ysize"], ylim2=(0, 50e-6))
+
+    klist = np.linspace(1, 3, int(10 * REDUCE))
+    Glist = [run1(k) for k in klist]
+
+    fig, ax = plt.subplots()
+    for k, g in zip(klist, Glist):
+        x = g.stat("zplot")
+        y = g.stat("power")
+        ax.plot(x, y / 1e6, label=f"{k:0.1f}")
+    ax.set_yscale("log")
+    ax.set_xlabel(r"$z$ (m)")
+    ax.set_ylabel("power (MW)")
+    plt.legend(title=r"$k$ (1/m$^2$)")
+
+    fig, ax = plt.subplots()
+    y = np.array([g.stat("power")[-1] for g in Glist])
+    ixbest = y.argmax()
+    _Gbest = Glist[ixbest]
+    kbest = klist[ixbest]
+    ybest = y[ixbest]
+    ax.plot(klist, y / 1e6)
+    ax.scatter(kbest, ybest / 1e6, marker="*", label=rf"$k$= {kbest:0.1f} 1/m$^2$")
+    ax.set_ylabel("end power (MW)")
+    ax.set_xlabel(r"$k$ (1/m$^2$)")
+    plt.legend()
+
+    fig, ax = plt.subplots()
+    for k, g in zip(klist, Glist):
+        x = g.stat("zplot")
+        y = g.stat("beam_xsize")
+        if k == kbest:
+            color = "black"
+        else:
+            color = None
+        ax.plot(x, y * 1e6, label=f"{k:0.1f}", color=color)
+
+    ax.set_xlabel(r"$z$ (m)")
+    ax.set_ylabel("Beam xsize (µm)")
+    # ax.set_ylim(0, None)
+    plt.legend(title=r"$k$ (1/m$^2$)")
+
+
+def test_genesis4_example(tmp_path: pathlib.Path) -> None:
+    """genesis4_example with *reduced* zstop."""
+    REDUCE = 0.1
+
+    G = Genesis4(
+        genesis4_examples / "data/basic4/cu_hxr.in",
+        genesis4_examples / "data/basic4/hxr.lat",
+        verbose=True,
+    )
+    G.input.main.by_namelist[Track]
+    for track in G.input.main.by_namelist[Track]:
+        track.zstop = 92 * REDUCE
+    G.input.main.by_namelist[Track]
+    G.input.main.by_namelist[Track][0]
+    # Add writing a field file
+    G.input.main.namelists.append(Write(field="end"))
+    # Add writing a beam (particle) file
+    G.input.main.namelists.append(Write(beam="end"))
+    # This is tested elsewhere
+    # genesis.global_display_options.include_description = False
+    #
+    # print("Viewed as an HTML table:")
+    #
+    # for write in G.input.main.by_namelist[Write]:
+    #     IPython.display.display(write)
+    print("Or viewed as a markdown table:")
+    for write in G.input.main.by_namelist[Write]:
+        print(write)
+        print()
+    G.nproc = 0
+    G.run()
+    assert G.output
+    if G.output.run.error:
+        print(G.output.run.error_reason)
+    else:
+        print("No error")
+    # The main output is an HDF5. The Genesis4 object loads all array data into a flat dict
+    list(G.output)
+    # This is the output file that was loaded
+    print("Took", G.output.run.run_time, "sec")
+    print(list(G.output.keys())[:10], "...")
+    print(G.output.alias["alphax"])
+    # There are many outputs. `.output_info()` gives a convenient table describing what was read in.
+    G.output.info()
+    # Field files can be very large and are made readily available for lazy loading.
+    # Loaded fields are present in `.field` in the output:
+    list(G.output.field)
+    # For convenience, fields and particles may be automatically loaded after a run by using `run(load_fields=True, load_particles=True)` instead.
+    # Otherwise, these can be manually loaded individually or all at once:
+    G.output.load_fields()
+    list(G.output.field)
+    # This field data has two parts: basic parameters `param`, and the raw 3D complex array `dfl`:
+    G.output.field["end"]["param"]
+    G.output.field["end"]["dfl"].shape
+    # Sum over y and compute the absolute square
+    dfl = G.output.field["end"]["dfl"]
+    param = G.output.field["end"]["param"]
+    dat2 = np.abs(np.sum(dfl, axis=1)) ** 2
+    plt.imshow(dat2)
+
+    def plot_slice(i=0):
+        dat = np.angle(dfl[:, :, i])
+        dx = param["gridsize"] * 1e6
+        plt.xlabel("x (µm)")
+        plt.xlabel("y (µm)")
+        plt.title(f"Phase for slize {i}")
+        plt.imshow(dat.T, origin="lower", extent=[-dx, dx, -dx, dx])
+
+    plot_slice(i=100)
+    # # Particles
+    #
+    # Particle files can be read in as [openPMD-beamphysics](https://christophermayes.github.io/openPMD-beamphysics/) `ParticleGroup` objects.
+    # These are lazily loaded by default (`run(load_particles=False)`). They may also be loaded all at once, with `load_particles()`. `output.particle_files` will only show not-yet-loaded particle files.
+    G.output.particle_files
+    G.output.load_particles()
+    G.output.particles
+    P = G.output.particles["end"]
+    P.plot("z", "energy")
+    # Change to z coordinates to see the current. Note that the head of the bunch is now on the left.
+    P.drift_to_z()
+    P.plot("t", "energy")
+    # Check some statistics
+    print(P["norm_emit_x"], P["norm_emit_y"], P["mean_gamma"])
+    wavelength = G.input.main.setup.lambda0
+    bunching_key = f"bunching_{wavelength}"
+    P.drift_to_t()
+    P.slice_plot(bunching_key, n_slice=1000)
+    # Genesis4 data
+    final_bunching = G.output.beam["bunching"][-1, :]
+    _current = G.output.beam["current"][-1, :]
+    s = G.output.global_["s"]
+    # ParticleGroup data
+    ss = P.slice_statistics(bunching_key, n_slice=len(s))
+    ss.keys()
+    x = ss["mean_z"]
+    y = ss[bunching_key]
+    # Compare
+    fig, ax = plt.subplots()
+    ax.plot(x * 1e6, y, label="ParticleGroup")
+    ax.plot(s * 1e6, final_bunching, "--", label="Genesis4 output")
+    ax.set_xlabel("s (µm)")
+    ax.set_ylabel("bunching")
+    plt.legend()
+    # This is the average bunching from the ParticleGroup:
+    P.bunching(wavelength)
+    # That agrees with the appropriate averaging of Genesis4's bunching calc:
+    G.stat("bunching")[-1]
+    G.plot("bunching")
+    # Check the total charge in pC:
+    print(P["charge"] / 1e-12)  # pC
+    # Each item in the output dict has a corresponding units
+    G.output.units("Beam/betax")
+    # # Plotting
+    #
+    # Convenient plotting of the data in `.output` is provided by `.plot`. The default is to plot the power. Depending on the key these statistics are averaged or integrated over the slices. Some keys like `power` are converted to `peak_power`, while `field_energy` is the integral over `field_power`.
+    print(G.output.alias["power"])
+    G.plot()
+    # Left and right axes can be set this way:
+    G.plot(
+        "field_energy", yscale="log", y2=["beam_xsize", "beam_ysize"], ylim2=(0, 100e-6)
+    )
+    # By default, these plots average over slices. In the case of beam sizes, simply averaging these does not take into account the effect of misaligned slices. To plot this, LUME-Genesis provides additional `beam_sigma_x`, `beam_sima_y`, `beam_sigma_energy` keys that properly project these quantities. The difference is noticable in the energy spread calculation:
+    G.plot(["beam_sigma_energy", "Beam/energyspread"], ylim=(0, 100))
+    G.plot(["field_xsize", "field_ysize"])
+    plt.imshow(G.output.field_info["power"], aspect="auto")
+    G.archive("archived.h5")
+    Grestored = Genesis4.from_archive("archived.h5")
+    assert Grestored.output is not None
+    Grestored.output.plot()
+    # # Manual loading of Genesis4 data
+    #
+    # Sometimes it is necessary to run Genesis4 manually, and load the output into LUME-Genesis for further analysis.
+    #
+    # First, let's create some input to run in a local directory `temp/`:
+    new_path = tmp_path / "abc"
+    G.write_input(new_path)
+    # Now run on the command line:
+    # Using the `use_temp_dir=False` and `workdir` options, the input and output data can be loaded into a new Genesis4 object:
+    G2 = Genesis4("genesis4.in", use_temp_dir=False, workdir=new_path, verbose=True)
+    G2.run()
+    G2.plot()
