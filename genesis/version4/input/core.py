@@ -297,8 +297,17 @@ class Lattice(pydantic.BaseModel):
         Lattice
         """
         parser = new_lattice_parser()
-        tree = parser.parse(contents)
         filename = filename or "unknown"
+        try:
+            tree = parser.parse(contents)
+        except Exception:
+            if "\n" not in contents:
+                raise ValueError(
+                    f"Unable to parse the provided input in Genesis4 lattice "
+                    f"format. It looks like this might have been a filename: "
+                    f"{contents!r}"
+                )
+            raise
         return _LatticeTransformer(filename).transform(tree)
 
     @classmethod
@@ -634,8 +643,17 @@ class MainInput(pydantic.BaseModel):
         MainInput
         """
         parser = new_main_input_parser()
-        tree = parser.parse(contents)
         filename = filename or "unknown"
+        try:
+            tree = parser.parse(contents)
+        except Exception:
+            if "\n" not in contents:
+                raise ValueError(
+                    f"Unable to parse the provided input in Genesis4 main input "
+                    f"format. It looks like this might have been a filename: "
+                    f"{contents!r}"
+                )
+            raise
         return _MainInputTransformer(filename).transform(tree)
 
     @classmethod
@@ -957,7 +975,7 @@ class Genesis4Input(pydantic.BaseModel):
             except Exception:
                 logger.exception(
                     "Lattice not specified and unable to determine it "
-                    "from the main input's setup. Setup=%s",
+                    "from the main input's setup. Setup=\n%s",
                     setup,
                 )
                 raise
@@ -986,6 +1004,7 @@ class Genesis4Input(pydantic.BaseModel):
         that `source_path` is set correctly.
         """
         main_config = MainInput.from_contents(main)
+
         if not lattice:
             return cls.from_main_input(main_config, source_path=source_path)
 

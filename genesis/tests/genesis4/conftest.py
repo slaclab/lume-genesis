@@ -1,9 +1,11 @@
 import copy
-import pathlib
 import h5py
+import matplotlib.pyplot as plt
+import matplotlib.animation
 import numpy as np
 import pytest
 
+from ..conftest import test_artifacts, test_root
 from ...version4 import Genesis4, Genesis4Input
 from ...version4.types import Reference
 from ...version4.input import (
@@ -24,8 +26,7 @@ from ...version4.input import (
 )
 
 
-test_path = pathlib.Path(__file__).resolve().parent
-run_basic = test_path / "run_basic"
+run_basic = test_root / "genesis4" / "run_basic"
 
 
 def create_run_basic_lattice() -> Lattice:
@@ -327,3 +328,36 @@ def genesis4_input(request: pytest.FixtureRequest) -> Genesis4Input:
 @pytest.fixture
 def genesis4(genesis4_input: Genesis4Input) -> Genesis4:
     return Genesis4(genesis4_input)
+
+
+@pytest.fixture(autouse=True, scope="function")
+def _plot_show_to_savefig(
+    request: pytest.FixtureRequest,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    index = 0
+
+    def savefig():
+        nonlocal index
+        filename = test_artifacts / f"{request.node.name}_{index}.png"
+        print(f"Saving figure (_plot_show_to_savefig fixture) to {filename}")
+        plt.savefig(filename)
+        index += 1
+
+    monkeypatch.setattr(plt, "show", savefig)
+
+    def plot_and_savefig(*args, **kwargs):
+        res = orig_plot(*args, **kwargs)
+        savefig()
+        return res
+
+    orig_plot = Genesis4.plot
+    monkeypatch.setattr(Genesis4, "plot", plot_and_savefig)
+
+    def anim_save(self, filename, *args, **kwargs):
+        new_filename = test_artifacts / f"{request.node.name}_{filename}"
+        return orig_anim_save(self, new_filename, *args, **kwargs)
+
+    anim = matplotlib.animation.FuncAnimation
+    orig_anim_save = anim.save
+    monkeypatch.setattr(anim, "save", anim_save)

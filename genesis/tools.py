@@ -519,18 +519,26 @@ def ascii_table_repr(
     return table
 
 
+def check_if_existing_path(input: str) -> Optional[pathlib.Path]:
+    path = pathlib.Path(input).resolve()
+    try:
+        if path.exists():
+            return path
+    except OSError:
+        ...
+    return None
+
+
 def read_if_path(input: Union[pathlib.Path, str]) -> Tuple[Optional[pathlib.Path], str]:
     if not input:
         return None, input
 
-    path = pathlib.Path(input).resolve()
-    try:
-        is_path = isinstance(input, pathlib.Path) or path.exists()
-    except OSError:
-        is_path = False
-
-    if not is_path:
-        return None, str(input)
+    if isinstance(input, pathlib.Path):
+        path = input
+    else:
+        path = check_if_existing_path(input)
+        if not path:
+            return None, str(input)
 
     # Update our source path; we found a file.  This is probably what
     # the user wants.

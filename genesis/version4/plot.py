@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import typing
-from typing import Optional
+from typing import Optional, Sequence, Union
 
 import matplotlib.figure
 import matplotlib.pyplot as plt
@@ -59,8 +59,8 @@ def add_layout_to_axes(
 
 def plot_stats_with_layout(
     output: Genesis4Output,
-    ykeys="field_energy",
-    ykeys2=(),
+    ykeys: Union[str, Sequence[str]] = "field_energy",
+    ykeys2: Union[str, Sequence[str]] = (),
     xkey="zplot",
     xlim=None,
     ylim=None,
@@ -70,7 +70,6 @@ def plot_stats_with_layout(
     nice=True,
     tex=False,
     include_layout=True,
-    include_labels=True,
     include_legend=True,
     return_figure=False,
     **kwargs,

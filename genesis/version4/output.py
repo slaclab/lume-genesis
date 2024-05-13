@@ -9,6 +9,7 @@ from typing import (
     Generator,
     List,
     Optional,
+    Sequence,
     Union,
 )
 
@@ -116,8 +117,6 @@ class _FieldH5File(HDF5ReferenceFile):
 
     def load(self, **kwargs) -> FieldFileDict:
         with h5py.File(self.filename) as h5:
-            if self.type == "particle_group":
-                return load_particle_group(h5, **kwargs)
             if self.type == "field":
                 return load_field_file(h5, **kwargs)
         raise NotImplementedError(self.type)
@@ -126,7 +125,7 @@ class _FieldH5File(HDF5ReferenceFile):
 class _ParticleGroupH5File(HDF5ReferenceFile):
     type: Literal["particle_group"] = "particle_group"
 
-    def load(self, **kwargs) -> FieldFileDict:
+    def load(self, **kwargs) -> ParticleGroup:
         with h5py.File(self.filename) as h5:
             return load_particle_group(h5, **kwargs)
 
@@ -324,7 +323,7 @@ class Genesis4Output(Mapping, pydantic.BaseModel, arbitrary_types_allowed=True):
         ]
         particles = [
             _ParticleGroupH5File(
-                key=fn.name.split(".")[0],
+                key=fn.name[: -len(".par.h5")],
                 filename=fn,
             )
             for fn in output_root.glob("*.par.h5")
@@ -581,14 +580,14 @@ class Genesis4Output(Mapping, pydantic.BaseModel, arbitrary_types_allowed=True):
 
     def plot(
         self,
-        y="field_energy",
+        y: Union[str, Sequence[str]] = "field_energy",
         x="zplot",
         xlim=None,
         ylim=None,
         ylim2=None,
         yscale="linear",
         yscale2="linear",
-        y2=[],
+        y2: Union[str, Sequence[str]] = (),
         nice=True,
         include_layout=True,
         include_legend=True,
@@ -601,7 +600,7 @@ class Genesis4Output(Mapping, pydantic.BaseModel, arbitrary_types_allowed=True):
 
         Parameters
         ----------
-        y : list
+        y : str or list of str
             List of keys to be displayed on the Y axis
         x : str
             Key to be displayed as X axis
@@ -640,6 +639,9 @@ class Genesis4Output(Mapping, pydantic.BaseModel, arbitrary_types_allowed=True):
             y = y.split()
         if isinstance(y2, str):
             y2 = y2.split()
+
+        y = list(y)
+        y2 = list(y2)
 
         # Special case
         for yk in (y, y2):

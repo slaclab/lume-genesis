@@ -6,7 +6,7 @@ import shlex
 import shutil
 import traceback
 from time import monotonic
-from typing import ClassVar, Dict, Optional, Union
+from typing import ClassVar, Dict, Optional, Sequence, Tuple, Union
 
 import h5py
 from lume import tools as lume_tools
@@ -64,8 +64,8 @@ def find_workdir():
 def _make_genesis4_input(
     input: Union[pathlib.Path, str],
     lattice_source: Union[pathlib.Path, str],
-    source_path: pathlib.Path,
-) -> Genesis4Input:
+    source_path: Optional[AnyPath] = None,
+) -> Tuple[pathlib.Path, Genesis4Input]:
     input_fn, input_source = tools.read_if_path(input)
     if not input_source or not isinstance(input_source, str):
         raise ValueError(
@@ -86,7 +86,16 @@ def _make_genesis4_input(
             lattice_source,
         )
 
-    return Genesis4Input.from_strings(
+    if source_path is None:
+        if input_fn:
+            source_path = input_fn.parent
+        elif lattice_fn:
+            source_path = lattice_fn.parent
+        else:
+            source_path = pathlib.Path(".")
+
+    source_path = pathlib.Path(source_path)
+    return source_path, Genesis4Input.from_strings(
         input_source,
         lattice_source,
         source_path=source_path,
@@ -151,7 +160,7 @@ class Genesis4(CommandWrapper):
         input: Union[MainInput, Genesis4Input, str, pathlib.Path],
         lattice_source: Union[str, pathlib.Path] = "",
         *,
-        workdir: Union[str, pathlib.Path] = ".",
+        workdir: Optional[Union[str, pathlib.Path]] = None,
         output: Optional[Genesis4Output] = None,
         alias: Optional[Dict[str, str]] = None,
         units: Optional[Dict[str, pmd_unit]] = None,
@@ -175,19 +184,25 @@ class Genesis4(CommandWrapper):
             timeout=timeout,
             **kwargs,
         )
-        self.original_path = workdir
+
         if isinstance(input, MainInput):
             input = Genesis4Input.from_main_input(
                 main=input,
                 lattice=lattice_source,
+                source_path=pathlib.Path(workdir or "."),
             )
         elif not isinstance(input, Genesis4Input):
-            input = _make_genesis4_input(
+            # We have either a string or a filename for our main input.
+            workdir, input = _make_genesis4_input(
                 input,
                 lattice_source,
-                source_path=pathlib.Path(workdir),
+                source_path=workdir,
             )
 
+        if workdir is None:
+            workdir = pathlib.Path(".")
+
+        self.original_path = workdir
         self.input = input
         self.output = output
 
@@ -473,7 +488,7 @@ class Genesis4(CommandWrapper):
 
     def plot(
         self,
-        y="field_energy",
+        y: Union[str, Sequence[str]] = "field_energy",
         x="zplot",
         xlim=None,
         ylim=None,

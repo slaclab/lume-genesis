@@ -1,4 +1,5 @@
 import pathlib
+from typing import Sequence
 import pytest
 import numpy as np
 from pmd_beamphysics.units import pmd_unit
@@ -59,5 +60,20 @@ def test_nd_array(arr: np.ndarray) -> None:
     dumped = adapter.dump_json(arr)
     print("Dumped:", repr(dumped))
     deserialized = adapter.validate_json(dumped, strict=True)
+    print("Deserialized:", repr(deserialized))
+    np.testing.assert_allclose(arr, deserialized)
+
+
+@pytest.mark.parametrize(
+    "arr",
+    [
+        [0, 1, 2, 3],
+        (0, 1, 2, 3),
+    ],
+)
+def test_sequence_as_ndarray(arr: Sequence[float]) -> None:
+    print("Array:", arr)
+    adapter = TypeAdapter(PydanticNDArray)
+    deserialized = adapter.validate_python(arr, strict=True)
     print("Deserialized:", repr(deserialized))
     np.testing.assert_allclose(arr, deserialized)

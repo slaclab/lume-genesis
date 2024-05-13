@@ -278,7 +278,8 @@ class H5Reference(pydantic.BaseModel):
         return np.asarray(h5[self.path])
 
 
-ArrayType = Union[np.ndarray, Sequence[float], H5Reference]
+# ArrayType = Union[np.ndarray, Sequence[float], H5Reference]
+ArrayType = np.ndarray
 AnyPath = Union[pathlib.Path, str]
 ValueType = Union[int, float, bool, str, Reference]
 PydanticPmdUnit = Annotated[pmd_unit, _PydanticPmdUnit]
