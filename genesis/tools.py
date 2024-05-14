@@ -274,6 +274,10 @@ def store_in_hdf5_file(
     h5.attrs[f"__{key}_python_class_name__"] = (
         f"{obj.__module__}.{obj.__class__.__name__}"
     )
+    from . import __version__ as lume_genesis_version
+
+    h5.attrs[f"__{key}_archive_version__"] = "v1"
+    h5.attrs[f"__{key}_lume_genesis_version__"] = lume_genesis_version
     h5.create_dataset(
         name=key,
         dtype=h5py.string_dtype(encoding=encoding),
@@ -303,6 +307,11 @@ def restore_from_hdf5_file(
         String encoding for the data.
     """
     clsname = str(h5.attrs[f"__{key}_python_class_name__"])
+    version = str(h5.attrs[f"__{key}_archive_version__"])
+
+    if version != "v1":
+        raise ValueError(f"Unsupported archive format version: {version}")
+
     try:
         cls = import_by_name(clsname)
     except Exception:
