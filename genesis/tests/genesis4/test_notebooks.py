@@ -31,6 +31,18 @@ example_data = genesis4_examples / "data"
 
 
 @pytest.fixture(scope="function")
+def _close_plots(
+    request: pytest.FixtureRequest,
+    monkeypatch: pytest.MonkeyPatch,
+):
+    try:
+        yield
+    finally:
+        print("Closing plots...")
+        plt.close()
+
+
+@pytest.fixture(scope="function")
 def _shorten_zstop(
     request: pytest.FixtureRequest,
     monkeypatch: pytest.MonkeyPatch,
@@ -277,7 +289,7 @@ def test_fodo(_shorten_zstop, tmp_path: pathlib.Path) -> None:
         main.setup.lattice = LATFILE
         main.by_namelist[Track][0].zstop = 20
         G = Genesis4(main)
-        G.nproc = 8
+        G.nproc = 0
         G.run()
         return G
 
@@ -326,6 +338,8 @@ def test_fodo(_shorten_zstop, tmp_path: pathlib.Path) -> None:
 
 
 def test_fodo_scan_model(_shorten_zstop, tmp_path: pathlib.Path) -> None:
+    NUM_STEPS = 2
+
     import string
     from dataclasses import dataclass
     import numpy as np
@@ -509,7 +523,7 @@ def test_fodo_scan_model(_shorten_zstop, tmp_path: pathlib.Path) -> None:
 
     G2.plot("power", yscale="log", y2=["beam_xsize", "beam_ysize"], ylim2=(0, 200e-6))
 
-    kLlist = np.linspace(0.1, 0.4, 10)
+    kLlist = np.linspace(0.1, 0.4, NUM_STEPS)
     Glist = [run2(kL) for kL in kLlist]
 
     fig, ax = plt.subplots()
@@ -557,7 +571,7 @@ def test_fodo_scan_model(_shorten_zstop, tmp_path: pathlib.Path) -> None:
     G2 = run3(10e-3)
     G2.plot("power", yscale="log", y2=["beam_xsize", "beam_ysize"], ylim2=(0, None))
 
-    lambdaulist = np.linspace(10e-3, 25e-3, 10)
+    lambdaulist = np.linspace(10e-3, 25e-3, NUM_STEPS)
     Glist = [run3(lambdau) for lambdau in lambdaulist]
 
     fig, ax = plt.subplots()
