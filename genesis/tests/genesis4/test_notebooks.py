@@ -181,7 +181,7 @@ def test_example2() -> None:
 
 def test_fodo(tmp_path: pathlib.Path) -> None:
     """fodo_scan with *reduced* zstop and scan parameters."""
-    REDUCE = 0.1
+    ZSTOP_SHORTEN_FACTOR = 0.1
 
     LATFILE = str(tmp_path / "genesis4_fodo.lat")
 
@@ -232,7 +232,7 @@ def test_fodo(tmp_path: pathlib.Path) -> None:
             "waist_size": 3e-05,
         },
         {"type": "beam", "current": 3000, "delgam": 1, "ex": 4e-07, "ey": 4e-07},
-        {"type": "track", "zstop": 123.5 * REDUCE},
+        {"type": "track", "zstop": 123.5 * ZSTOP_SHORTEN_FACTOR},
     ]
 
     main = MainInput.from_dicts(INPUT0)
@@ -254,7 +254,7 @@ def test_fodo(tmp_path: pathlib.Path) -> None:
     G2 = run1(4)
     G2.plot("power", yscale="log", y2=["beam_xsize", "beam_ysize"], ylim2=(0, 50e-6))
 
-    klist = np.linspace(1, 3, int(10 * REDUCE))
+    klist = np.linspace(1, 3, int(10 * ZSTOP_SHORTEN_FACTOR))
     Glist = [run1(k) for k in klist]
 
     fig, ax = plt.subplots()
@@ -296,8 +296,8 @@ def test_fodo(tmp_path: pathlib.Path) -> None:
 
 
 def test_genesis4_example(tmp_path: pathlib.Path) -> None:
-    """genesis4_example with *reduced* zstop."""
-    REDUCE = 0.1
+    """genesis4_example with *significantly shortened* zstop."""
+    ZSTOP_SHORTEN_FACTOR = 0.005
 
     G = Genesis4(
         genesis4_examples / "data/basic4/cu_hxr.in",
@@ -306,7 +306,7 @@ def test_genesis4_example(tmp_path: pathlib.Path) -> None:
     )
     G.input.main.by_namelist[Track]
     for track in G.input.main.by_namelist[Track]:
-        track.zstop = 92 * REDUCE
+        track.zstop = 92 * ZSTOP_SHORTEN_FACTOR
     G.input.main.by_namelist[Track]
     G.input.main.by_namelist[Track][0]
     # Add writing a field file
@@ -429,7 +429,7 @@ def test_genesis4_example(tmp_path: pathlib.Path) -> None:
     # Sometimes it is necessary to run Genesis4 manually, and load the output into LUME-Genesis for further analysis.
     #
     # First, let's create some input to run in a local directory `temp/`:
-    new_path = tmp_path / "abc"
+    new_path = tmp_path / "manual-loading-test"
     G.write_input(new_path)
     # Now run on the command line:
     # Using the `use_temp_dir=False` and `workdir` options, the input and output data can be loaded into a new Genesis4 object:
