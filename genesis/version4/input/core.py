@@ -858,10 +858,6 @@ class Genesis4Input(pydantic.BaseModel):
     source_path : Optional[AnyPath] = None
         When using Genesis 4-compatible input as strings, this is the directory
         where we expect to find other input HDF5 files.
-    lattice_filename : str = "genesis.lat"
-        The filename to use when writing the lattice.  As a user,
-        you should not need to worry about this as Genesis4Input will
-        handle it for you.
     input_filename : str = "genesis4.in"
         The filename to use when writing the main input file. As a user, you
         should not need to worry about this as Genesis4Input will handle it for
@@ -875,7 +871,6 @@ class Genesis4Input(pydantic.BaseModel):
     seed: Optional[str] = None
     source_path: pathlib.Path = pathlib.Path(".")
     output_path: Optional[AnyPath] = None
-    lattice_filename: str = "genesis.lat"
     input_filename: str = "genesis4.in"
 
     def get_arguments(self) -> List[str]:
@@ -903,10 +898,17 @@ class Genesis4Input(pydantic.BaseModel):
             str(self.input_filename),
         ]
 
-    def _fix_lattice_filename(self) -> None:
+    @property
+    def lattice_filename(self) -> str:
+        """
+        The filename of the lattice, determined from the Setup namelist.
+
+        Defaults to "genesis.lat" if not previously set.
+        """
         setup = self.main.setup
-        if setup.lattice != self.lattice_filename:
-            self.lattice_filename = setup.lattice
+        if not setup.lattice:
+            setup.lattice = "genesis.lat"
+        return setup.lattice
 
     def write(
         self,
@@ -938,8 +940,9 @@ class Genesis4Input(pydantic.BaseModel):
             main_filename=self.input_filename,
             source_path=self.source_path,
         )
-        self.lattice.to_file(filename=path / self.lattice_filename)
-        return [path / self.input_filename, path / self.lattice_filename, *extra_paths]
+        lattice_path = path / self.lattice_filename
+        self.lattice.to_file(filename=lattice_path)
+        return [path / self.input_filename, lattice_path, *extra_paths]
 
     def write_run_script(
         self,
@@ -993,35 +996,40 @@ class Genesis4Input(pydantic.BaseModel):
         If the input refers to files that already exist on disk, ensures
         that `source_path` is set correctly.
         """
-        lattice_filename = "genesis.lat"
         if lattice:
             lattice_path, lattice = tools.read_if_path(lattice)
-            if lattice_path:
-                # Use the lattice filename from the file on disk
-                lattice_filename = lattice_path.name
+            if lattice_path is not None:
+                try:
+                    setup = main.setup
+                except ValueError:
+                    # No setup yet; skip for now
+                    pass
+                else:
+                    main.setup.lattice = lattice_path.name
         else:
             logger.debug("Lattice not specified; determining from main input")
             setup = None
             try:
                 setup = main.setup
+                assert setup is not None
                 # Use the lattice filename from main input's setup:
-                with open(source_path / lattice_filename) as fp:
+                with open(source_path / setup.lattice) as fp:
                     lattice = fp.read()
             except Exception:
-                logger.exception(
-                    "Lattice not specified and unable to determine it "
-                    "from the main input's setup. Setup=\n%s",
-                    setup,
-                )
+                if setup is not None:
+                    logger.exception(
+                        "Lattice not specified and unable to determine it from the "
+                        "main input's setup. Setup.lattice=%s Lattice file should "
+                        "be located here: %s",
+                        setup.lattice,
+                        source_path / setup.lattice,
+                    )
                 raise
-            else:
-                lattice_filename = setup.lattice
 
         return cls(
             main=main,
             lattice=Lattice.from_contents(lattice),
             source_path=source_path,
-            lattice_filename=str(lattice_filename),
         )
 
     @classmethod
