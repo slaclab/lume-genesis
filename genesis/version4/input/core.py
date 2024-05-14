@@ -443,7 +443,18 @@ class ProfileArray(NameList):
 class InitialParticles(NameList, arbitrary_types_allowed=True):
     r"""
     This class is a lume-genesis convenience class for generating
-    ``importdistribution`` namelists.
+    ``importdistribution`` namelists from OpenPMD-beamphysics `ParticleGroup`
+    instances.
+
+    Three methods are supported for using `InitialParticles`:
+
+    * Passing a `filename` of an existing particle file in the OpenPMD
+      BeamPhysics standard.
+    * Passing a `data` dictionary of all particle data (see the `data`
+      parameter or the `ParticleData` type for details).
+    * Passing an existing `ParticleGroup` instance as `particles`.  Note that
+      this is equivalent to passing `data=particles.data` as `ParticleGroup`
+      does not store source filename information.
 
     Attributes
     ----------
@@ -475,6 +486,9 @@ class InitialParticles(NameList, arbitrary_types_allowed=True):
     data: Optional[ParticleData] = None
     filename: Optional[AnyPath] = pydantic.Field(init_var=True, default=None)
     particles: ParticleGroup = pydantic.Field(exclude=True, default=None)
+    import_distribution: ImportDistribution = pydantic.Field(
+        default_factory=ImportDistribution
+    )
     temporary_filename: Optional[str] = None
 
     def model_post_init(self, context) -> None:
@@ -512,13 +526,22 @@ class InitialParticles(NameList, arbitrary_types_allowed=True):
             self.particles.z.ptp(),
         )
 
+    def _update_import_distribution(self) -> None:
+        if not self.temporary_filename:
+            self.temporary_filename = util.get_temporary_filename(
+                prefix=type(self).__name__, extension=".h5"
+            )
+
+        self.import_distribution.file = str(self.temporary_filename)
+        self.import_distribution.charge = self.particles.charge
+
     def write(self, base_path: AnyPath) -> pathlib.Path:
         """
         Write the particles to disk for usage with Genesis 4.
 
         Lume-genesis will assign a filename using this base path. Except for
         expert-level usage, you should not need to configure the specific
-        filename as it is transparent to the user.
+        filename as it is intended to be transparent to the user.
 
         Parameters
         ----------
@@ -529,11 +552,7 @@ class InitialParticles(NameList, arbitrary_types_allowed=True):
         -------
         pathlib.Path
         """
-        if not self.temporary_filename:
-            self.temporary_filename = util.get_temporary_filename(
-                prefix=type(self).__name__, extension=".h5"
-            )
-
+        self._update_import_distribution()
         if "/" in str(self.temporary_filename):
             raise ValueError(
                 f"Filename is not allowed to contain the path separator "
@@ -547,19 +566,9 @@ class InitialParticles(NameList, arbitrary_types_allowed=True):
         logger.info("Saved particles to %s", path)
         return path
 
-    def to_import_distribution(self) -> ImportDistribution:
-        if not self.temporary_filename:
-            self.temporary_filename = util.get_temporary_filename(
-                prefix=type(self).__name__, extension=".h5"
-            )
-
-        return ImportDistribution(
-            file=str(self.temporary_filename),
-            charge=self.particles.charge,
-        )
-
     def to_genesis(self) -> str:
-        return self.to_import_distribution().to_genesis()
+        self._update_import_distribution()
+        return self.import_distribution.to_genesis()
 
 
 class MainInput(pydantic.BaseModel):
