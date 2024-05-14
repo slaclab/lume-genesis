@@ -417,9 +417,3 @@ class FieldFileParamDict(TypedDict):
     slicecount: int
     # slice spacing (meter)
     slicespacing: float
-
-
-class FieldFileDict(TypedDict):
-    label: str
-    dfl: PydanticNDArray
-    param: FieldFileParamDict

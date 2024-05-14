@@ -7,7 +7,7 @@ import numpy as np
 from pmd_beamphysics import ParticleGroup
 
 from genesis.version4.input import MainInput, Track, Write
-from genesis.version4.types import FieldFileDict
+from genesis.version4.types import FieldFile
 
 from ...version4 import Genesis4
 from ..conftest import genesis4_examples
@@ -85,12 +85,12 @@ def test_example2() -> None:
     print("Loaded fields:", output.load_fields())
     print("Loaded particles:", output.load_particles())
 
-    def get_slice(field: FieldFileDict, slc: int) -> np.ndarray:
-        return field["dfl"][:, :, slc]
+    def get_slice(field: FieldFile, slc: int) -> np.ndarray:
+        return field.dfl[:, :, slc]
 
-    def getWF(field: FieldFileDict, slice=0):
-        ng = field["param"]["gridpoints"]
-        dg = field["param"]["gridsize"]
+    def getWF(field: FieldFile, slice=0):
+        ng = field.param["gridpoints"]
+        dg = field.param["gridsize"]
         # inten = np.reshape(fre * fre + fim * fim, (ng, ng))
         inten = np.abs(get_slice(field, slice) ** 2)
         return inten, dg * (ng - 1) * 0.5 * 1e3

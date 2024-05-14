@@ -25,7 +25,6 @@ from . import parsers, readers
 from .plot import plot_stats_with_layout
 from .types import (
     AnyPath,
-    FieldFileDict,
     FieldFileParamDict,
     OutputBeamDict,
     OutputFieldDict,
@@ -53,6 +52,35 @@ if typing.TYPE_CHECKING:
 
 
 logger = logging.getLogger(__name__)
+
+
+class FieldFile(pydantic.BaseModel):
+    label: str
+    dfl: PydanticNDArray
+    param: FieldFileParamDict
+
+    def write_pmd_wavefront(
+        self,
+        dest: Union[AnyPath, h5py.Group],
+        verbose: bool = True,
+    ) -> None:
+        """
+        Write the field file information to the given HDF5 file in
+        OpenPMD-wavefront format.
+
+        Parameters
+        ----------
+        dest : str, pathlib.Path, or h5py.Group
+            Filename or already-open h5py.Group to write to.
+        """
+        from .writers import write_openpmd_wavefront_h5, write_openpmd_wavefront
+
+        if isinstance(dest, (str, pathlib.Path)):
+            write_openpmd_wavefront(str(dest), self.dfl, self.param, verbose=verbose)
+        elif isinstance(dest, h5py.Group):
+            write_openpmd_wavefront_h5(dest, self.dfl, self.param)
+        else:
+            raise ValueError(type(dest))
 
 
 class RunInfo(pydantic.BaseModel):
@@ -115,7 +143,7 @@ class HDF5ReferenceFile(pydantic.BaseModel):
 class _FieldH5File(HDF5ReferenceFile):
     type: Literal["field"] = "field"
 
-    def load(self, **kwargs) -> FieldFileDict:
+    def load(self, **kwargs) -> FieldFile:
         with h5py.File(self.filename) as h5:
             if self.type == "field":
                 return load_field_file(h5, **kwargs)
@@ -173,7 +201,7 @@ class Genesis4Output(Mapping, pydantic.BaseModel, arbitrary_types_allowed=True):
     """
 
     data: Dict[str, DataType] = pydantic.Field(default_factory=dict)
-    field: Dict[str, FieldFileDict] = pydantic.Field(
+    field: Dict[str, FieldFile] = pydantic.Field(
         default_factory=dict,
         exclude=True,
     )
@@ -230,7 +258,7 @@ class Genesis4Output(Mapping, pydantic.BaseModel, arbitrary_types_allowed=True):
         )
 
     @property
-    def fields(self) -> Dict[str, FieldFileDict]:
+    def fields(self) -> Dict[str, FieldFile]:
         return self.field
 
     @staticmethod
@@ -352,7 +380,7 @@ class Genesis4Output(Mapping, pydantic.BaseModel, arbitrary_types_allowed=True):
 
         return output
 
-    def load_field_by_name(self, label: str) -> FieldFileDict:
+    def load_field_by_name(self, label: str) -> FieldFile:
         """
         Loads a single field file by name into a dictionary.
 
@@ -363,7 +391,7 @@ class Genesis4Output(Mapping, pydantic.BaseModel, arbitrary_types_allowed=True):
 
         Returns
         -------
-        FieldFileDict
+        FieldFile
         """
         lazy = self.field_files[label]
         field = lazy.load()
@@ -756,7 +784,7 @@ def projected_variance_from_slice_data(x2, x1, current):
     )
 
 
-def load_field_file(file: Union[AnyPath, h5py.File]) -> FieldFileDict:
+def load_field_file(file: Union[AnyPath, h5py.File]) -> FieldFile:
     """
     Load a single .dfl.h5 file into .output
     """
@@ -775,8 +803,8 @@ def load_field_file(file: Union[AnyPath, h5py.File]) -> FieldFileDict:
     if label.endswith("fld.h5"):
         label = label[:-7]
 
-    return {
-        "label": label,
-        "dfl": dfl,
-        "param": typing.cast(FieldFileParamDict, param),
-    }
+    return FieldFile(
+        label=label,
+        dfl=dfl,
+        param=typing.cast(FieldFileParamDict, param),
+    )
