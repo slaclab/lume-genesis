@@ -10,14 +10,18 @@ nav:
             - examples/genesis2/genesis2_example.ipynb
             - examples/genesis2/example_parse_genesis_lattice.ipynb
             - examples/genesis2/example_parsing_genesis_out.ipynb
-            - examples/genesis2/example_parsing_genesis_field.ipynb       
+            - examples/genesis2/example_parsing_genesis_field.ipynb
         - Genesis4:
-            - examples/genesis4/genesis4_example.ipynb  
-            - examples/genesis4/genesis4_field.ipynb 
-            - examples/genesis4/genesis4_particles.ipynb 
-            - examples/genesis4/fodo_scan.ipynb 
-            - examples/genesis4/fodo_scan_model.ipynb 
-            - examples/genesis4/perlmutter_benchmark.ipynb 
+            - examples/genesis4/genesis4_field.ipynb
+            - examples/genesis4/genesis4_parsing.ipynb
+            - examples/genesis4/genesis4_particles.ipynb
+            - examples/genesis4/Example1.ipynb
+            - examples/genesis4/Example2.ipynb
+            - examples/genesis4/fodo_scan.ipynb
+            - examples/genesis4/fodo_scan_model.ipynb
+            - examples/genesis4/genesis4_example.ipynb
+            - examples/genesis4/perlmutter_benchmark.ipynb
+
     - API:
       - Genesis2: api/genesis2.md
       - Genesis4: api/genesis4.md
@@ -50,7 +54,7 @@ markdown_extensions:
   - pymdownx.highlight
   - pymdownx.superfences
   - toc:
-      permalink: true  
+      permalink: true
 
 extra:
   generator: false
@@ -60,7 +64,7 @@ extra:
       name: LUME-Genesis
 
 extra_css:
-  - stylesheets/extra.css      
+  - stylesheets/extra.css
 
 plugins:
     - search
@@ -81,9 +85,3 @@ plugins:
             rendering:
               show_source: true
               show_root_heading: true
-
-
-
-
-
-

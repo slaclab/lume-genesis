@@ -1,11 +1,11 @@
 #!/bin/bash
 set -e
 
-NOTEBOOKS=$(find docs/examples/genesis4/ -type f -name "*.ipynb" -not -path '*/.*')
+cd docs/examples/genesis4 || exit 1
 
-SKIP_PATTERNS=("perlmutter" "fodo")  
+NOTEBOOKS=$(git ls-files "*.ipynb")
 
-#echo $NOTEBOOKS
+SKIP_PATTERNS=("perlmutter" "fodo")
 
 # Silence Jupyterlab warning
 export PYDEVD_DISABLE_FILE_VALIDATION=1
@@ -21,10 +21,11 @@ do
     done
 
     if [ "$should_skip" = true ]; then
-        echo "Skipping file $file"
-    # Add your skip logic here
+        echo "Skipping: $file"
     else
-        echo "Processing file $file"
-        jupyter nbconvert --to notebook --execute $file --inplace
+        echo "Processing: $file"
+        pushd "$(dirname "$file")" || exit
+        jupyter nbconvert --to notebook --execute "$(basename "$file")" --inplace
+        popd || exit
     fi
 done
