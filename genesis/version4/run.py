@@ -436,9 +436,9 @@ class Genesis4(CommandWrapper):
         self.input.write_run_script(path / "run", command_prefix=self.get_run_prefix())
 
     def _archive(self, h5: h5py.Group):
-        self.input.archive(h5)
+        self.input.archive(h5.create_group("input"))
         if self.output is not None:
-            self.output.archive(h5)
+            self.output.archive(h5.create_group("output"))
 
     def archive(self, dest: Union[AnyPath, h5py.Group]) -> None:
         """
@@ -457,9 +457,9 @@ class Genesis4(CommandWrapper):
     to_hdf5 = archive
 
     def _load_archive(self, h5: h5py.Group):
-        self.input = Genesis4Input.from_archive(h5)
+        self.input = Genesis4Input.from_archive(h5["input"])
         if "output" in h5:
-            self.output = Genesis4Output.from_archive(h5)
+            self.output = Genesis4Output.from_archive(h5["output"])
         else:
             self.output = None
 
