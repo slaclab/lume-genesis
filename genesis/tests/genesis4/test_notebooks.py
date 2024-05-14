@@ -1,4 +1,5 @@
 import pathlib
+import pprint
 import textwrap
 
 import matplotlib.animation as animation
@@ -6,10 +7,11 @@ import matplotlib.pyplot as plt
 import numpy as np
 from pmd_beamphysics import ParticleGroup
 
-from genesis.version4.input import MainInput, Track, Write
-from genesis.version4.types import FieldFile
+from genesis.version4.input import MainInput, Track, Write, Lattice
+from genesis.version4.output import FieldFile
 
 from ...version4 import Genesis4
+from ...version4.types import Reference
 from ..conftest import genesis4_examples
 
 example_data = genesis4_examples / "data"
@@ -347,11 +349,11 @@ def test_genesis4_example(tmp_path: pathlib.Path) -> None:
     G.output.load_fields()
     list(G.output.field)
     # This field data has two parts: basic parameters `param`, and the raw 3D complex array `dfl`:
-    G.output.field["end"]["param"]
-    G.output.field["end"]["dfl"].shape
+    print(G.output.field["end"].param)
+    print(G.output.field["end"].dfl.shape)
     # Sum over y and compute the absolute square
-    dfl = G.output.field["end"]["dfl"]
-    param = G.output.field["end"]["param"]
+    dfl = G.output.field["end"].dfl
+    param = G.output.field["end"].param
     dat2 = np.abs(np.sum(dfl, axis=1)) ** 2
     plt.imshow(dat2)
 
@@ -436,3 +438,197 @@ def test_genesis4_example(tmp_path: pathlib.Path) -> None:
     G2 = Genesis4("genesis4.in", use_temp_dir=False, workdir=new_path, verbose=True)
     G2.run()
     G2.plot()
+
+
+def test_parsing():
+    FILE = genesis4_examples / "data/basic4/cu_hxr.in"
+    input = MainInput.from_file(FILE)
+    input.namelists
+    print(input.setup)
+    input = MainInput.from_contents(
+        """
+    &setup
+      rootname = LCLS2_HXR_9keV
+      lattice = hxr.lat
+      beamline = HXR
+      gamma0 = 19174.0776
+      lambda0 = 1.3789244869952112e-10
+      delz = 0.026
+      seed = 84672
+      npart = 1024
+    &end
+    """
+    )
+
+    FILE = genesis4_examples / "data/basic4/hxr.lat"
+    lat = Lattice.from_file(FILE)
+    lat.elements
+    print(lat.to_genesis())
+    lat = Lattice.from_contents(
+        """
+    CORR32: corrector = {l=0.001};
+    CORR33: corrector = {l=0.001};
+    """
+    )
+
+
+def test_genesis4_particles(tmp_path: pathlib.Path):
+    from genesis.version4.input import (
+        Genesis4Input,
+        Line,
+        Beam,
+        Drift,
+        Lattice,
+        MainInput,
+        ProfileArray,
+        ProfileGauss,
+        Setup,
+        Time,
+        Track,
+        Write,
+    )
+    import numpy as np
+    from scipy.constants import c
+    from math import sqrt, pi
+    import matplotlib.pyplot as plt
+
+    D1 = Drift(L=1)
+    lattice = Lattice(elements={"D1": D1, "LAT": Line(elements=[D1])})
+    PEAK_CURRENT = 1000
+    BUNCH_CHARGE = 100e-12
+    SIGMA_T = BUNCH_CHARGE / (sqrt(2 * pi) * PEAK_CURRENT)
+    SIGMA_Z = SIGMA_T * c
+    SLEN = 6 * SIGMA_Z
+    S0 = 3 * SIGMA_Z
+    print(SIGMA_T, SIGMA_Z, SLEN)
+    main = MainInput(
+        namelists=[
+            Setup(
+                rootname="drift_test",
+                # lattice="LATFILE",
+                beamline="LAT",
+                gamma0=1000,
+                lambda0=1e-07,
+                delz=0.026,
+                seed=123456,
+                npart=128,
+            ),
+            Time(slen=SLEN),
+            ProfileGauss(
+                label="beamcurrent",
+                c0=PEAK_CURRENT,
+                s0=S0,
+                sig=SIGMA_Z,
+            ),
+            Beam(
+                gamma=1000,
+                delgam=1,
+                current=Reference("beamcurrent"),
+            ),
+            Track(zstop=1),
+            Write(beam="end"),
+        ],
+    )
+    G = Genesis4(main, lattice, verbose=True)
+    output = G.run()
+    G.input.main.setup.delz
+    print(G.output.run.output_log)
+    output.load_particles()
+    P1 = output.particles["end"]
+    P1.drift_to_z()
+    P1.plot("t", "energy")
+    P1
+    output.particles["end"]
+    P1.charge
+    NPTS = 100
+    SLEN = 100e-6
+    S = np.linspace(0, SLEN, NPTS)
+    CURRENT = np.linspace(1, 1000.0, NPTS)
+    plt.plot(S, CURRENT)
+    main = MainInput(
+        namelists=[
+            Setup(
+                rootname="drift_test",
+                # lattice=lattice,
+                beamline="LAT",
+                gamma0=1000,
+                lambda0=1e-07,
+                delz=0.026,
+                seed=123456,
+                npart=128,
+            ),
+            Time(slen=SLEN),
+            ProfileArray(label="beamcurrent", xdata=S, ydata=CURRENT),
+            Beam(
+                gamma=1000,
+                delgam=1,
+                current="beamcurrent",
+                ex=1e-06,
+                ey=1e-06,
+                betax=7.910909406464387,
+                betay=16.881178621346898,
+                alphax=-0.7393217413918415,
+                alphay=1.3870723536888105,
+            ),
+            Track(zstop=1),
+            Write(beam="end"),
+        ]
+    )
+    G = Genesis4(main, lattice, verbose=True)
+    output = G.run()
+    print(main.to_genesis())
+    print(lattice.to_genesis())
+    print(output.run.output_log)
+    output.meta
+    output.load_particles()
+    P1 = output.particles["end"]
+    P1.drift_to_z()
+    P1.plot("t", "energy")
+    print(P1)
+    NSAMPLE = len(P1)
+    P1r = P1.resample(NSAMPLE)
+    P1r.plot("t", "energy")
+    print(P1r)
+    P1r.pz[0 : len(P1) // 2] *= 1.1
+    P1r.plot("t", "energy")
+
+    DIST_FILE = tmp_path / "genesis4_distribution.h5"
+    P1r.write_genesis4_distribution(str(DIST_FILE), verbose=True)
+    from genesis.version4.input import InitialParticles
+
+    initial_particles = InitialParticles(particles=P1r)
+    main = MainInput(
+        namelists=[
+            Setup(
+                rootname="drift_test",
+                # lattice=full_path(LATFILE),
+                beamline="LAT",
+                gamma0=1000,
+                lambda0=1e-07,
+                delz=0.026,
+                seed=123456,
+                npart=512,
+            ),
+            Time(slen=initial_particles.slen),
+            initial_particles,
+            Track(zstop=1),
+            Write(beam="end"),
+        ],
+    )
+    input = Genesis4Input(
+        main=main,
+        lattice=lattice,
+    )
+    G1 = Genesis4(input=input, verbose=True)
+    output = G1.run()
+    pprint.pprint(output.run)
+    print(output.run.output_log)
+    output.load_particles()
+    P2 = output.particles["end"]
+    P2.z
+    P2.drift_to_z()
+    P2.plot("t", "energy")
+    print(P2)
+    P2.plot("weight", bins=100)
+    list(output.beam)
+    G1.input

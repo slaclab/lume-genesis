@@ -59,7 +59,7 @@ class FieldFile(pydantic.BaseModel):
     dfl: PydanticNDArray
     param: FieldFileParamDict
 
-    def write_pmd_wavefront(
+    def write_openpmd_wavefront(
         self,
         dest: Union[AnyPath, h5py.Group],
         verbose: bool = True,
@@ -697,13 +697,16 @@ class Genesis4Output(Mapping, pydantic.BaseModel, arbitrary_types_allowed=True):
             **kwargs,
         )
 
-    def info(self) -> None:
-        print("Output data\n")
-        print("key                       value              unit")
-        print(50 * "-")
-        for k in sorted(self.data):
-            line = self.get_description_for_key(k)
-            print(line)
+    def info(self):
+        info = {
+            key: get_description_for_value(key, self.data[key])
+            for key in sorted(self.data)
+        }
+        annotations = {key: str(self.unit_info.get(key, "")) for key in info}
+        return tools.table_output(
+            info,
+            annotations=annotations,
+        )
 
     def get_description_for_key(self, key: str) -> str:
         """
@@ -732,7 +735,7 @@ class Genesis4Output(Mapping, pydantic.BaseModel, arbitrary_types_allowed=True):
         return len(self.data)
 
 
-def get_description_for_value(key: str, value, units) -> str:
+def get_description_for_value(key: str, value) -> str:
     """
     Returns a line describing an output
     """
@@ -741,20 +744,15 @@ def get_description_for_value(key: str, value, units) -> str:
 
     if isinstance(value, str):
         if len(value) > 200:
-            descrip = "long str: " + value[0:20].replace("\n", " ") + "..."
-        else:
-            descrip = value
-    elif np.isscalar(value):
-        descrip = f"{value} {units} "
-    elif isinstance(value, np.ndarray):
-        descrip = f"array: {str(value.shape):10}  {units}"
-    elif isinstance(value, list):
-        descrip = str(value)
-    else:
-        raise ValueError(f"Cannot describe {key}")
-
-    line = f"{key:25} {descrip}"
-    return line
+            return "long str: " + value[0:20].replace("\n", " ") + "..."
+        return value
+    if np.isscalar(value):
+        return f"{value}"
+    if isinstance(value, np.ndarray):
+        return f"array: {str(value.shape):10}"
+    if isinstance(value, list):
+        return str(value)
+    raise ValueError(f"Cannot describe {key}")
 
 
 def projected_variance_from_slice_data(x2, x1, current):

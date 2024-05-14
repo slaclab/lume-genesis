@@ -64,7 +64,7 @@ def find_workdir():
 
 def _make_genesis4_input(
     input: Union[pathlib.Path, str],
-    lattice_source: Union[pathlib.Path, str],
+    lattice_source: Union[Lattice, pathlib.Path, str],
     source_path: Optional[AnyPath] = None,
 ) -> Tuple[pathlib.Path, Genesis4Input]:
     input_fn, input_source = tools.read_if_path(input, source_path)
@@ -72,6 +72,22 @@ def _make_genesis4_input(
         raise ValueError(
             f"'input' must be either a Genesis4Input instance, a Genesis 4-"
             f"compatible main input, or a filename. Got: {input}"
+        )
+
+    if isinstance(lattice_source, Lattice):
+        # This is nearly *too* flexible as far as supported input formats
+        # go. Let's see what Chris thinks...
+        if source_path is None:
+            if input_fn:
+                source_path = input_fn.parent
+            else:
+                source_path = pathlib.Path(".")
+
+        source_path = pathlib.Path(source_path)
+        return source_path, Genesis4Input(
+            main=MainInput.from_contents(input_source),
+            lattice=lattice_source,
+            source_path=source_path,
         )
 
     lattice_fn, lattice_source = tools.read_if_path(lattice_source, source_path)
@@ -119,7 +135,7 @@ class Genesis4(CommandWrapper):
         Input settings for the Genesis 4 run.  This may be a full configuration
         (`Genesis4Input`), main input file contents, or a path to an existing
         file with main input settings (e.g., ``genesis4.in``).
-    lattice_source : str or pathlib.Path, optional
+    lattice : Lattice, str or pathlib.Path, optional
         Lattice file source code or path to a lattice file.
         Not required if ``Genesis4Input`` is used for the ``input`` parameter.
     command: str, default="genesis4"
@@ -159,7 +175,7 @@ class Genesis4(CommandWrapper):
     def __init__(
         self,
         input: Optional[Union[MainInput, Genesis4Input, str, pathlib.Path]] = None,
-        lattice_source: Union[str, pathlib.Path] = "",
+        lattice: Union[Lattice, str, pathlib.Path] = "",
         *,
         workdir: Optional[Union[str, pathlib.Path]] = None,
         output: Optional[Genesis4Output] = None,
@@ -191,14 +207,14 @@ class Genesis4(CommandWrapper):
         elif isinstance(input, MainInput):
             input = Genesis4Input.from_main_input(
                 main=input,
-                lattice=lattice_source,
+                lattice=lattice,
                 source_path=pathlib.Path(workdir or "."),
             )
         elif not isinstance(input, Genesis4Input):
             # We have either a string or a filename for our main input.
             workdir, input = _make_genesis4_input(
                 input,
-                lattice_source,
+                lattice,
                 source_path=workdir,
             )
 
@@ -393,7 +409,7 @@ class Genesis4(CommandWrapper):
 
         runscript = [
             *shlex.split(self.get_run_prefix()),
-            *self.input.get_arguments(),
+            *self.input.arguments,
         ]
 
         return shlex.join(runscript)
@@ -496,7 +512,10 @@ class Genesis4(CommandWrapper):
         Genesis4Output
         """
         if self.path is None:
-            raise ValueError("Cannot load the output if path is not set.")
+            raise ValueError(
+                "Cannot load the output if path is not set. "
+                "Did you forget to run `.configure()`?"
+            )
         return Genesis4Output.from_input_settings(
             input=self.input,
             workdir=pathlib.Path(self.path),

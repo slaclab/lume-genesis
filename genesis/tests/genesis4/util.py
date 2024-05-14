@@ -28,7 +28,7 @@ def run_with_source(
     wrote_files = main_input.write_files(workdir, source_path=source_path)
     genesis = Genesis4(
         input=main_input.to_genesis(),
-        lattice_source=lattice.to_genesis(),
+        lattice=lattice.to_genesis(),
         workdir=workdir,
         use_temp_dir=False,
     )

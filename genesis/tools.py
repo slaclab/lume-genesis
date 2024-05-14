@@ -14,7 +14,7 @@ import sys
 import traceback
 import uuid
 from numbers import Number
-from typing import Any, Dict, Optional, Tuple, Union, cast
+from typing import Any, Dict, Mapping, Optional, Tuple, Union, cast
 
 import h5py
 import numpy as np
@@ -351,42 +351,176 @@ def _truncated_string(value, max_length: int) -> str:
 def _clean_annotation(annotation) -> str:
     if inspect.isclass(annotation):
         return annotation.__name__
-    return str(annotation).replace("typing.", "")
+    annotation = str(annotation)
+    for remove in [
+        "typing.",
+        "typing_extensions.",
+        "genesis.version4.input._lattice.",
+        "genesis.version4.input._main.",
+        "genesis.version4.input.",
+        "genesis.version4.output.",
+    ]:
+        annotation = annotation.replace(remove, "")
+
+    if annotation.startswith("Literal['"):
+        # This is a bit of an implementation detail we don't necessarily need
+        # to expose to the user; Literal['type'] is used to differentiate
+        # beamline elements and namelists during deserialization.
+        return "str"
+    return annotation
+
+
+def table_output(
+    obj: Union[pydantic.BaseModel, Dict[str, Any]],
+    display_options: DisplayOptions = global_display_options,
+    descriptions: Optional[Mapping[str, Optional[str]]] = None,
+    annotations: Optional[Mapping[str, Optional[str]]] = None,
+):
+    """
+    Create a table based on user settings for the given object.
+
+    In Jupyter (with "html" render mode configured), this will display
+    an HTML table.
+
+    In the terminal, this will create a markdown ASCII table.
+
+    Parameters
+    ----------
+    obj : model instance or dict
+    seen : list of objects
+        Used to ensure that objects are only shown once.
+    display_options: DisplayOptions, optional
+        Defaults to `global_display_options`.
+    descriptions : dict of str to str, optional
+        Optional override of descriptions found on the object.
+    annotations : dict of str to str, optional
+        Optional override of annotations found on the object.
+    """
+    if is_jupyter() and display_options.jupyter_render_mode == "html":
+
+        class _InfoObj:
+            def _repr_html_(_self) -> str:
+                return html_table_repr(
+                    obj,
+                    seen=[],
+                    descriptions=descriptions,
+                    annotations=annotations,
+                    display_options=display_options,
+                )
+
+        return _InfoObj()
+
+    ascii_table = ascii_table_repr(
+        obj,
+        seen=[],
+        display_options=display_options,
+        descriptions=descriptions,
+        annotations=annotations,
+    )
+    print(ascii_table)
+
+
+def _copy_to_clipboard_html(contents: str) -> str:
+    return string.Template(
+        """
+        <div style="display: flex; justify-content: flex-end;">
+          <button class="copy-${hash_}">
+            Copy to clipboard
+          </button>
+          <br />
+        </div>
+        <script type="text/javascript">
+          function copy_to_clipboard(text) {
+            navigator.clipboard.writeText(text).then(
+              function () {
+                console.log("Copied to clipboard:", text);
+              },
+              function (err) {
+                console.error("Failed to copy to clipboard:", err, text);
+              },
+            );
+          }
+          var copy_button = document.querySelector(".copy-${hash_}");
+          copy_button.addEventListener("click", function (event) {
+            copy_to_clipboard(`${table}`);
+          });
+        </script>
+        """
+    ).substitute(
+        hash_=uuid.uuid4().hex,
+        table=contents.replace("`", r"\`"),
+    )
+
+
+def _get_table_fields(
+    obj: Union[pydantic.BaseModel, Dict[str, Any]],
+    descriptions: Optional[Mapping[str, Optional[str]]] = None,
+    annotations: Optional[Mapping[str, Optional[str]]] = None,
+):
+    if isinstance(obj, pydantic.BaseModel):
+        fields = {attr: getattr(obj, attr, None) for attr in obj.model_fields}
+        if annotations is None:
+            annotations = {
+                attr: field_info.annotation
+                for attr, field_info in obj.model_fields.items()
+            }
+        if descriptions is None:
+            descriptions = {
+                attr: field_info.description
+                for attr, field_info in obj.model_fields.items()
+            }
+    else:
+        fields = obj
+        if annotations is None:
+            annotations = {attr: "" for attr in fields}
+        if descriptions is None:
+            descriptions = {attr: "" for attr in fields}
+
+    return fields, descriptions, annotations
 
 
 def html_table_repr(
     obj: Union[pydantic.BaseModel, Dict[str, Any]],
     seen: list,
     display_options: DisplayOptions = global_display_options,
+    descriptions: Optional[Mapping[str, Optional[str]]] = None,
+    annotations: Optional[Mapping[str, Optional[str]]] = None,
 ) -> str:
     """
     Pydantic model table HTML representation for Jupyter.
 
     Parameters
     ----------
-    obj : model instance
+    obj : model instance or dict
     seen : list of objects
+        Used to ensure that objects are only shown once.
+    display_options: DisplayOptions, optional
+        Defaults to `global_display_options`.
+    descriptions : dict of str to str, optional
+        Optional override of descriptions found on the object.
+    annotations : dict of str to str, optional
+        Optional override of annotations found on the object.
 
     Returns
     -------
     str
         HTML table representation.
     """
+    # For the "copy to clipboard" functionality below:
+    ascii_table = str(
+        ascii_table_repr(
+            obj,
+            descriptions=descriptions,
+            annotations=annotations,
+            seen=list(seen),
+        )
+    )
+
     seen.append(obj)
     rows = []
-    if isinstance(obj, pydantic.BaseModel):
-        fields = {attr: getattr(obj, attr, None) for attr in obj.model_fields}
-        annotations = {
-            attr: field_info.annotation for attr, field_info in obj.model_fields.items()
-        }
-        descriptions = {
-            attr: field_info.description
-            for attr, field_info in obj.model_fields.items()
-        }
-    else:
-        fields = obj
-        annotations = {attr: "" for attr in fields}
-        descriptions = {attr: "" for attr in fields}
+    fields, descriptions, annotations = _get_table_fields(
+        obj, descriptions, annotations
+    )
 
     for attr, value in fields.items():
         if value is None:
@@ -420,36 +554,7 @@ def html_table_repr(
             f"</tr>"
         )
 
-    ascii_table = str(ascii_table_repr(obj, list(seen))).replace("`", r"\`")
-    copy_to_clipboard = string.Template(
-        """
-        <div style="display: flex; justify-content: flex-end;">
-          <button class="copy-${hash_}">
-            Copy to clipboard
-          </button>
-          <br />
-        </div>
-        <script type="text/javascript">
-          function copy_to_clipboard(text) {
-            navigator.clipboard.writeText(text).then(
-              function () {
-                console.log("Copied to clipboard:", text);
-              },
-              function (err) {
-                console.error("Failed to copy to clipboard:", err, text);
-              },
-            );
-          }
-          var copy_button = document.querySelector(".copy-${hash_}");
-          copy_button.addEventListener("click", function (event) {
-            copy_to_clipboard(`${table}`);
-          });
-        </script>
-        """
-    ).substitute(
-        hash_=uuid.uuid4().hex,
-        table=ascii_table,
-    )
+    copy_to_clipboard = _copy_to_clipboard_html(ascii_table)
     return "\n".join(
         [
             copy_to_clipboard,
@@ -473,14 +578,23 @@ def ascii_table_repr(
     obj: Union[pydantic.BaseModel, Dict[str, Any]],
     seen: list,
     display_options: DisplayOptions = global_display_options,
+    descriptions: Optional[Mapping[str, Optional[str]]] = None,
+    annotations: Optional[Mapping[str, Optional[str]]] = None,
 ) -> prettytable.PrettyTable:
     """
     Pydantic model table ASCII representation for the terminal.
 
     Parameters
     ----------
-    obj : model instance
+    obj : model instance or dict
     seen : list of objects
+        Used to ensure that objects are only shown once.
+    display_options: DisplayOptions, optional
+        Defaults to `global_display_options`.
+    descriptions : dict of str to str, optional
+        Optional override of descriptions found on the object.
+    annotations : dict of str to str, optional
+        Optional override of annotations found on the object.
 
     Returns
     -------
@@ -489,21 +603,11 @@ def ascii_table_repr(
     """
     seen.append(obj)
     rows = []
-    if isinstance(obj, pydantic.BaseModel):
-        fields = obj.model_fields
-        annotations = {
-            attr: field_info.annotation for attr, field_info in fields.items()
-        }
-        descriptions = {
-            attr: field_info.description for attr, field_info in fields.items()
-        }
-    else:
-        fields = obj
-        annotations = {attr: "" for attr in fields}
-        descriptions = {attr: "" for attr in fields}
+    fields, descriptions, annotations = _get_table_fields(
+        obj, descriptions, annotations
+    )
 
-    for attr in fields:
-        value = getattr(obj, attr, None)
+    for attr, value in fields.items():
         if value is None:
             continue
         description = descriptions[attr]

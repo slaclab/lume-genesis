@@ -30,10 +30,10 @@ def test_compare_lattice_to_file(lattice: Lattice):
 
 def test_check_references(main_input: MainInput):
     beam: Beam = main_input.by_namelist[Beam][0]
-    assert str(beam.current) == "@beamcurrent"
-    assert str(beam.gamma) == "@beamgamma"
-    assert "current = @beamcurrent" in str(main_input)
-    assert "gamma = @beamgamma" in str(main_input)
+    assert beam.current == "@beamcurrent"
+    assert beam.gamma == "@beamgamma"
+    assert "current = @beamcurrent" in main_input.to_genesis()
+    assert "gamma = @beamgamma" in main_input.to_genesis()
 
 
 @pytest.mark.parametrize(

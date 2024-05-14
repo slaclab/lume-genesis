@@ -586,9 +586,6 @@ class MainInput(pydantic.BaseModel):
     namelists: List[AnyNameList] = pydantic.Field(default_factory=list)
     filename: Optional[pathlib.Path] = None
 
-    def __str__(self) -> str:
-        return self.to_genesis()
-
     def to_genesis(self) -> str:
         return "\n\n".join(namelist.to_genesis() for namelist in self.namelists)
 
@@ -882,7 +879,8 @@ class Genesis4Input(pydantic.BaseModel):
     output_path: Optional[AnyPath] = None
     input_filename: str = "genesis4.in"
 
-    def get_arguments(self) -> List[str]:
+    @property
+    def arguments(self) -> List[str]:
         """
         Get all of the command-line arguments for running Genesis 4.
 
@@ -959,9 +957,7 @@ class Genesis4Input(pydantic.BaseModel):
         command_prefix: str = "genesis4",
     ) -> None:
         with open(path, mode="wt") as fp:
-            print(
-                shlex.join(shlex.split(command_prefix) + self.get_arguments()), file=fp
-            )
+            print(shlex.join(shlex.split(command_prefix) + self.arguments), file=fp)
         lume_tools.make_executable(str(path))
 
     @contextmanager
@@ -994,17 +990,24 @@ class Genesis4Input(pydantic.BaseModel):
     def from_main_input(
         cls,
         main: MainInput,
-        lattice: Union[str, pathlib.Path] = "",
+        lattice: Union[Lattice, str, pathlib.Path] = "",
         *,
         source_path: pathlib.Path = pathlib.Path("."),
     ) -> Genesis4Input:
         """
         Work with a lume-genesis MainInput and potentially an external
-        lattice file.
+        lattice file or instance.
 
         If the input refers to files that already exist on disk, ensures
         that `source_path` is set correctly.
         """
+        if isinstance(lattice, Lattice):
+            return cls(
+                main=main,
+                lattice=lattice,
+                source_path=source_path,
+            )
+
         if lattice:
             lattice_path, lattice = tools.read_if_path(lattice)
             if lattice_path is not None:
@@ -1015,6 +1018,7 @@ class Genesis4Input(pydantic.BaseModel):
                     pass
                 else:
                     main.setup.lattice = lattice_path.name
+            lattice = Lattice.from_contents(lattice)
         else:
             logger.debug("Lattice not specified; determining from main input")
             setup = None
@@ -1034,10 +1038,11 @@ class Genesis4Input(pydantic.BaseModel):
                         source_path / setup.lattice,
                     )
                 raise
+            lattice = Lattice.from_contents(lattice)
 
         return cls(
             main=main,
-            lattice=Lattice.from_contents(lattice),
+            lattice=lattice,
             source_path=source_path,
         )
 

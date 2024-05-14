@@ -58,12 +58,12 @@ def test_load_file(main_input_parser: lark.Lark, filename: pathlib.Path) -> None
     pprint.pprint(inp, width=1)
 
     print("\n\nSerialized back to a file:")
-    round_tripped = str(inp)
+    round_tripped = inp.to_genesis()
     print(round_tripped)
 
     print("\n\nChecking file output vs initial dataclasses..")
     second_inp = MainInput.from_contents(round_tripped)
-    assert str(inp) == str(second_inp)
+    assert inp.to_genesis() == second_inp.to_genesis()
 
 
 @pytest.mark.parametrize(
