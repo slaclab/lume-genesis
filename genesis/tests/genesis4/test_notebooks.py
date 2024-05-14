@@ -1,10 +1,23 @@
+"""
+This file contains conversions of example notebooks to regular Python.
+
+The goal here is to run those example notebooks relatively quickly so that
+the majority of their functionality can be covered in the test suite.
+
+Running the notebooks themselves (as in `jupyter execute`) will be performed
+as part of the documentation generation process.
+"""
+
 import pathlib
 import pprint
 import textwrap
+from math import sqrt, pi
+from typing import Optional
 
 import matplotlib.animation as animation
 import matplotlib.pyplot as plt
 import numpy as np
+import pytest
 from pmd_beamphysics import ParticleGroup
 
 from genesis.version4.input import MainInput, Track, Write, Lattice
@@ -17,7 +30,25 @@ from ..conftest import genesis4_examples
 example_data = genesis4_examples / "data"
 
 
-def test_example1() -> None:
+@pytest.fixture(scope="function")
+def _shorten_zstop(
+    request: pytest.FixtureRequest,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    def short_run(self, *args, **kwargs):
+        for track in self.input.main.by_namelist[Track]:
+            print(f"Reducing simulation range from {track.zstop}")
+            track.zstop *= 0.05
+            track.zstop = min((1, track.zstop))
+            print(f"... now {track.zstop}")
+        res = orig_run(self, *args, **kwargs)
+        return res
+
+    orig_run = Genesis4.run
+    monkeypatch.setattr(Genesis4, "run", short_run)
+
+
+def test_example1(_shorten_zstop) -> None:
     workdir = example_data / "example1-steadystate"
     G = Genesis4(workdir / "Example1.in")
     G.verbose = True
@@ -178,12 +209,9 @@ def test_example2() -> None:
     anim.save("Animation2.mp4")
 
 
-# TODO: fodo_scan_model
-
-
-def test_fodo(tmp_path: pathlib.Path) -> None:
+def test_fodo(_shorten_zstop, tmp_path: pathlib.Path) -> None:
     """fodo_scan with *reduced* zstop and scan parameters."""
-    ZSTOP_SHORTEN_FACTOR = 0.1
+    NUM_STEPS = 2
 
     LATFILE = str(tmp_path / "genesis4_fodo.lat")
 
@@ -234,7 +262,7 @@ def test_fodo(tmp_path: pathlib.Path) -> None:
             "waist_size": 3e-05,
         },
         {"type": "beam", "current": 3000, "delgam": 1, "ex": 4e-07, "ey": 4e-07},
-        {"type": "track", "zstop": 123.5 * ZSTOP_SHORTEN_FACTOR},
+        {"type": "track", "zstop": 123.5},
     ]
 
     main = MainInput.from_dicts(INPUT0)
@@ -256,7 +284,7 @@ def test_fodo(tmp_path: pathlib.Path) -> None:
     G2 = run1(4)
     G2.plot("power", yscale="log", y2=["beam_xsize", "beam_ysize"], ylim2=(0, 50e-6))
 
-    klist = np.linspace(1, 3, int(10 * ZSTOP_SHORTEN_FACTOR))
+    klist = np.linspace(1, 3, NUM_STEPS)
     Glist = [run1(k) for k in klist]
 
     fig, ax = plt.subplots()
@@ -297,10 +325,253 @@ def test_fodo(tmp_path: pathlib.Path) -> None:
     plt.legend(title=r"$k$ (1/m$^2$)")
 
 
-def test_genesis4_example(tmp_path: pathlib.Path) -> None:
-    """genesis4_example with *significantly shortened* zstop."""
-    ZSTOP_SHORTEN_FACTOR = 0.005
+def test_fodo_scan_model(_shorten_zstop, tmp_path: pathlib.Path) -> None:
+    import string
+    from dataclasses import dataclass
+    import numpy as np
+    import matplotlib.pyplot as plt
+    from genesis.version4 import Genesis4, MainInput
 
+    def make_fodo(
+        Lcell=9.5,
+        kL=None,
+        lambdau=15e-3,
+        Ltot=150.0,
+        Lpad=0.685 / 2,  # Will be adjusted slightly to make Lcell exact
+        Lquad=0.08,
+        aw=0.84853,
+    ):
+        if kL is None:
+            #  Optimal for flat beam
+            kL = 1 / (sqrt(2) * Lcell / 2)
+
+            # Optimal for round beam (90 deg phase advance)
+            # k1L_optimal = 2*sqrt(2) / Lcell
+
+        k1 = kL / Lquad
+
+        # Length for single wiggler
+        Lwig = (Lcell - 4 * Lpad - 2 * Lquad) / 2
+        nwig = round(Lwig / lambdau)
+
+        # Set padding exactly
+        Lwig = lambdau * nwig
+        Lpad = round((Lcell - 2 * Lwig - 2 * Lquad) / 4, 9)
+
+        ncell = round(Ltot // Lcell)
+
+        lat = string.Template(
+            """
+            D1: DRIFT = { l = ${Lpad} };
+            D2: DRIFT = { l = ${Lpad} };
+            QF: QUADRUPOLE = { l = ${Lquad}, k1=  ${k1} };
+            QD: QUADRUPOLE = { l = ${Lquad}, k1= -${k1} };
+            UND: UNDULATOR = { lambdau=${lambdau}, nwig=${nwig}, aw=${aw} };
+            FODO: LINE= {UND, D1,QF,D2, UND, D1,QD,D2};
+            LAT: LINE= { ${ncell}*FODO };
+            """
+        ).substitute(
+            Lpad=Lpad,
+            Lquad=Lquad,
+            k1=k1,
+            lambdau=lambdau,
+            nwig=nwig,
+            aw=aw,
+            ncell=ncell,
+            kL=kL,
+        )
+        return lat
+
+    print(make_fodo(lambdau=30e-3, Lcell=9.5))
+
+    def Krof(*, lambdar, lambdau, gamma):
+        """
+        K to make lambdar resonant
+        """
+        Ksq = 2 * (2 * gamma**2 * lambdar / lambdau - 1)
+        if Ksq <= 0:
+            raise ValueError(
+                f"No resonance available, lambdau must be < {2*gamma**2*lambdar*1e3:0.1f}1e-3 m"
+            )
+
+        return sqrt(Ksq)
+
+    print(Krof(lambdar=1e-10, lambdau=25e-3, gamma=11357.82) / sqrt(2))
+
+    @dataclass
+    class FODOModel:
+        # Lengths
+        Lcell: float = 9.5
+        Ltot: float = 125
+        Lquad: float = 0.08
+        Lpad: float = 0.685 / 2
+
+        kL: Optional[float] = None  # Will be picked automatically
+
+        lambdar: float = 1e-10
+        lambdau: float = 15e-3
+        gamma: float = 11357.82
+
+        current: float = 3000
+        delgam: float = 1.0
+        norm_emit_x: float = 0.4e-6
+        norm_emit_y: float = 0.4e-6
+
+        nproc = 0  # Auto-select
+
+        seed: Optional[int] = None  # None will pick a random seed
+
+        def make_lattice(self):
+            """
+            Returns the lattice string,
+            setting aw for resonance
+            """
+
+            aw = Krof(
+                lambdar=self.lambdar, lambdau=self.lambdau, gamma=self.gamma
+            ) / sqrt(2)
+
+            return make_fodo(
+                Lcell=self.Lcell,
+                kL=self.kL,
+                lambdau=self.lambdau,
+                Ltot=self.Ltot,
+                Lpad=self.Lpad,  # Will be adjusted
+                Lquad=self.Lquad,
+                aw=aw,
+            )
+
+        def make_genesis(self):
+            if self.seed is None:
+                seed = np.random.randint(0, 1e10)
+            else:
+                seed = self.seed
+
+            lat = self.make_lattice()
+            latfile = "genesis4.lat"
+
+            with open(latfile, "w") as f:
+                f.write(lat)
+
+            input = MainInput.from_dicts(
+                [
+                    {
+                        "type": "setup",
+                        "rootname": "Benchmark",
+                        "lattice": latfile,
+                        "beamline": "LAT",
+                        "lambda0": self.lambdar,
+                        "gamma0": self.gamma,
+                        "delz": 0.045,
+                        "seed": seed,
+                        "shotnoise": 0,
+                        "beam_global_stat": True,
+                        "field_global_stat": True,
+                    },
+                    {"type": "lattice", "zmatch": self.Lcell},
+                    {
+                        "type": "field",
+                        "power": 5000,
+                        "dgrid": 0.0002,
+                        "ngrid": 255,
+                        "waist_size": 3e-05,
+                    },
+                    {
+                        "type": "beam",
+                        "current": self.current,
+                        "delgam": self.delgam,
+                        "ex": self.norm_emit_x,
+                        "ey": self.norm_emit_y,
+                    },
+                    {"type": "track", "zstop": self.Ltot},
+                ]
+            )
+            G = Genesis4(input, verbose=True)
+            return G
+
+        def run(self):
+            G = self.make_genesis()
+            G.nproc = self.nproc
+            G.run()
+            return G
+
+    fodo_model = FODOModel(Ltot=20)
+
+    G = fodo_model.run()
+
+    G.plot("power", yscale="log", y2=["beam_xsize", "beam_ysize"], ylim2=(0, 50e-6))
+
+    def run2(kL):
+        G = FODOModel(kL=kL).run()
+        return G
+
+    G2 = run2(0.136)  # = 1.7 * .08
+
+    G2.plot("power", yscale="log", y2=["beam_xsize", "beam_ysize"], ylim2=(0, 200e-6))
+
+    kLlist = np.linspace(0.1, 0.4, 10)
+    Glist = [run2(kL) for kL in kLlist]
+
+    fig, ax = plt.subplots()
+    for k, g in zip(kLlist, Glist):
+        x = g.stat("zplot")
+        y = g.stat("power")
+        ax.plot(x, y / 1e6, label=f"{k:0.3f}")
+    ax.set_xlabel(r"$z$ (m)")
+    ax.set_ylabel("power (MW)")
+    plt.legend(title=r"$k_1L$ (1/m)")
+
+    fig, ax = plt.subplots()
+    y = np.array([g.stat("power")[-1] for g in Glist])
+    ixbest = y.argmax()
+    _Gbest = Glist[ixbest]
+    kbest = kLlist[ixbest]
+    ybest = y[ixbest]
+    ax.plot(kLlist, y / 1e6)
+    ax.scatter(kbest, ybest / 1e6, marker="*", label=rf"$k_1L$= {kbest:0.1f} 1/m")
+    ax.set_ylabel("end power (MW)")
+    ax.set_xlabel(r"$k_1L$ (1/m)")
+    plt.legend()
+
+    fig, ax = plt.subplots()
+    for k, g in zip(kLlist, Glist):
+        x = g.stat("zplot")
+        y = g.stat("beam_xsize")
+        if k == kbest:
+            color = "black"
+        else:
+            color = None
+        ax.plot(x, y * 1e6, label=f"{k:0.3f}", color=color)
+    ax.set_xlabel(r"$z$ (m)")
+    ax.set_ylabel("Beam xsize (µm)")
+    ax.set_ylim(0, None)
+    plt.legend(title=r"$k_1L$ (1/m)")
+
+    def run3(lambdau):
+        p = {}
+        p["lambdau"] = lambdau
+        G = FODOModel(**p).make_genesis()
+        G.run()
+        return G
+
+    G2 = run3(10e-3)
+    G2.plot("power", yscale="log", y2=["beam_xsize", "beam_ysize"], ylim2=(0, None))
+
+    lambdaulist = np.linspace(10e-3, 25e-3, 10)
+    Glist = [run3(lambdau) for lambdau in lambdaulist]
+
+    fig, ax = plt.subplots()
+    for k, g in zip(lambdaulist, Glist):
+        x = g.stat("zplot")
+        y = g.stat("power")
+        ax.plot(x, y / 1e6, label=f"{k*1e3:0.1f}")
+    ax.set_yscale("log")
+    ax.set_xlabel(r"$z$ (m)")
+    ax.set_ylabel("power (MW)")
+    plt.legend(title=r"$\lambda_u$ (mm)")
+
+
+def test_genesis4_example(_shorten_zstop, tmp_path: pathlib.Path) -> None:
     G = Genesis4(
         genesis4_examples / "data/basic4/cu_hxr.in",
         genesis4_examples / "data/basic4/hxr.lat",
@@ -308,7 +579,7 @@ def test_genesis4_example(tmp_path: pathlib.Path) -> None:
     )
     G.input.main.by_namelist[Track]
     for track in G.input.main.by_namelist[Track]:
-        track.zstop = 92 * ZSTOP_SHORTEN_FACTOR
+        track.zstop = 92
     G.input.main.by_namelist[Track]
     G.input.main.by_namelist[Track][0]
     # Add writing a field file
@@ -440,7 +711,7 @@ def test_genesis4_example(tmp_path: pathlib.Path) -> None:
     G2.plot()
 
 
-def test_parsing():
+def test_parsing(_shorten_zstop):
     FILE = genesis4_examples / "data/basic4/cu_hxr.in"
     input = MainInput.from_file(FILE)
     input.namelists
@@ -472,7 +743,7 @@ def test_parsing():
     )
 
 
-def test_genesis4_particles(tmp_path: pathlib.Path):
+def test_genesis4_particles(_shorten_zstop, tmp_path: pathlib.Path):
     from genesis.version4.input import (
         Genesis4Input,
         Line,
@@ -489,7 +760,6 @@ def test_genesis4_particles(tmp_path: pathlib.Path):
     )
     import numpy as np
     from scipy.constants import c
-    from math import sqrt, pi
     import matplotlib.pyplot as plt
 
     D1 = Drift(L=1)
