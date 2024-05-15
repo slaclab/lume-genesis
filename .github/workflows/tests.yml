@@ -34,8 +34,3 @@ jobs:
           echo -e '## Test results\n\n```' >> "$GITHUB_STEP_SUMMARY"
           pytest -v 2>&1 | tee -a "$GITHUB_STEP_SUMMARY"
           echo '```' >> "$GITHUB_STEP_SUMMARY"
-      - name: Check version 4 coverage
-        shell: bash -l {0}
-        run: |
-          echo -e '\n\n## Genesis 4 coverage\n\n```' >> "$GITHUB_STEP_SUMMARY"
-          coverage report --include="genesis/version4/" | tee -a "$GITHUB_STEP_SUMMARY"
