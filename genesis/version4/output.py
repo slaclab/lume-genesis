@@ -27,6 +27,7 @@ from .types import (
     AnyPath,
     FieldFileParamDict,
     OutputBeamDict,
+    OutputDataType,
     OutputFieldDict,
     OutputGlobalDict,
     OutputLatticeDict,
@@ -162,10 +163,9 @@ LoadableH5File = Union[
     _ParticleGroupH5File,
     _FieldH5File,
 ]
-DataType = Union[float, int, str, bool, PydanticNDArray]
 
 
-def _split_data(data: Dict[str, DataType], prefix: str) -> Dict[str, Any]:
+def _split_data(data: Dict[str, OutputDataType], prefix: str) -> Dict[str, Any]:
     res = {}
 
     def add_item(key: str, value: Any, parent: Dict[str, Any]) -> None:
@@ -200,7 +200,7 @@ class Genesis4Output(Mapping, pydantic.BaseModel, arbitrary_types_allowed=True):
         Dictionary of aliased data keys.
     """
 
-    data: Dict[str, DataType] = pydantic.Field(default_factory=dict)
+    data: Dict[str, OutputDataType] = pydantic.Field(default_factory=dict)
     field: Dict[str, FieldFile] = pydantic.Field(
         default_factory=dict,
         exclude=True,

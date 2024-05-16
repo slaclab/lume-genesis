@@ -151,14 +151,8 @@ def extract_data_and_unit(h5):
 
             if isinstance(dat, bytes):
                 data[key] = dat.decode("utf-8")
-            elif isinstance(dat, np.integer):
-                data[key] = int(dat)
-            elif isinstance(dat, np.floating):
-                data[key] = float(dat)
-            elif isinstance(dat, np.bool_):
-                data[key] = bool(dat)
-            elif isinstance(dat, np.unicode_):
-                data[key] = str(dat)
+            elif isinstance(dat, np.generic):
+                data[key] = dat.item()
             elif isinstance(dat, np.ndarray):
                 if dat.dtype is np.str_:
                     data[key] = str(dat)

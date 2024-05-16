@@ -287,6 +287,26 @@ PydanticPmdUnit = Annotated[pmd_unit, _PydanticPmdUnit]
 PydanticNDArray = Annotated[ArrayType, _PydanticNDArray]
 
 
+def _get_discriminator_value(value):
+    if isinstance(value, np.ndarray):
+        return "array"
+    if isinstance(value, np.generic):
+        value = value.item()
+    return type(value).__name__
+
+
+OutputDataType = Annotated[
+    Union[
+        Annotated[float, pydantic.Tag("float")],
+        Annotated[int, pydantic.Tag("int")],
+        Annotated[str, pydantic.Tag("str")],
+        Annotated[bool, pydantic.Tag("bool")],
+        Annotated[PydanticNDArray, pydantic.Tag("array")],
+    ],
+    pydantic.Discriminator(_get_discriminator_value),
+]
+
+
 class OutputLatticeDict(TypedDict):
     aw: PydanticNDArray
     ax: PydanticNDArray
