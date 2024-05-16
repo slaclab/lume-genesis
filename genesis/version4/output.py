@@ -33,7 +33,7 @@ from .types import (
     OutputLatticeDict,
     OutputMetaDict,
     OutputMetaVersionDict,
-    PydanticNDArray,
+    NDArray,
     PydanticPmdUnit,
 )
 from .particles import load_particle_group
@@ -57,7 +57,7 @@ logger = logging.getLogger(__name__)
 
 class FieldFile(pydantic.BaseModel):
     label: str
-    dfl: PydanticNDArray
+    dfl: NDArray
     param: FieldFileParamDict
 
     def write_openpmd_wavefront(

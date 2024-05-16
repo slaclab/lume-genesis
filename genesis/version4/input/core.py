@@ -35,7 +35,7 @@ from ..types import (
     BeamlineElement,
     NameList,
     ParticleData,
-    PydanticNDArray,
+    NDArray,
     Reference,
     ValueType,
     union_types,
@@ -388,8 +388,8 @@ class ProfileArray(NameList):
 
     type: Literal["ProfileArray"] = "ProfileArray"
     label: str
-    xdata: PydanticNDArray
-    ydata: PydanticNDArray
+    xdata: NDArray
+    ydata: NDArray
     isTime: bool = False
     reverse: bool = False
     autoassign: bool = False

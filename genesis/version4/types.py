@@ -118,8 +118,7 @@ class _PydanticNDArray(pydantic.BaseModel):
         if info.context and isinstance(info.context, dict) and "hdf5" in info.context:
             h5: h5py.Group = info.context["hdf5"]
             if isinstance(value, dict) and "path" in value:
-                ref = H5Reference.model_validate(value)
-                return ref.load(h5)
+                return H5Reference.model_validate(value).load(h5)
         if isinstance(value, np.ndarray):
             return value
         if isinstance(value, Sequence):
@@ -204,26 +203,26 @@ class ParticleData(TypedDict):
     """
 
     # `x`, `y`, `z` are positions in units of [m]
-    x: PydanticNDArray
-    y: PydanticNDArray
-    z: PydanticNDArray
+    x: NDArray
+    y: NDArray
+    z: NDArray
 
     # `px`, `py`, `pz` are momenta in units of [eV/c]
-    px: PydanticNDArray
-    py: PydanticNDArray
-    pz: PydanticNDArray
+    px: NDArray
+    py: NDArray
+    pz: NDArray
 
     # `t` is time in [s]
-    t: PydanticNDArray
-    status: PydanticNDArray
+    t: NDArray
+    status: NDArray
 
     # `weight` is the macro-charge weight in [C], used for all statistical
     # calculations.
-    weight: PydanticNDArray
+    weight: NDArray
 
     # `species` is a proper species name: `'electron'`, etc.
     species: str
-    id: NotRequired[PydanticNDArray]
+    id: NotRequired[NDArray]
 
 
 class BeamlineElement(pydantic.BaseModel, abc.ABC):
@@ -273,22 +272,34 @@ class BeamlineElement(pydantic.BaseModel, abc.ABC):
 
 
 class H5Reference(pydantic.BaseModel):
+    """
+    HDF5 path reference.
+
+    Used in archiving of Genesis 4 input/output.  The _PydanticNDArray
+    validator dereferences this path and seamlessly inserts an ndarray in its
+    place.
+    """
+
     path: str
 
     def load(self, h5: h5py.Group) -> np.ndarray:
         return np.asarray(h5[self.path])
 
 
-# ArrayType = Union[np.ndarray, Sequence[float], H5Reference]
-ArrayType = np.ndarray
 AnyPath = Union[pathlib.Path, str]
 ValueType = Union[int, float, bool, str, Reference]
 PydanticPmdUnit = Annotated[pmd_unit, _PydanticPmdUnit]
-PydanticNDArray = Annotated[ArrayType, _PydanticNDArray]
+NDArray = Annotated[np.ndarray, _PydanticNDArray]
 
 
-def _get_discriminator_value(value):
+def _get_output_discriminator_value(value):
+    # Note: this is a bit of a hack to instruct pydantic which type should
+    # be used in the union. As someone new to custom types in Pydantic v2,
+    # I'm sure there's a better way to do this - and am open to suggestions!
     if isinstance(value, np.ndarray):
+        return "array"
+    if isinstance(value, dict) and "path" in value:
+        # H5Reference which is restored by NDArray during validation
         return "array"
     if isinstance(value, np.generic):
         value = value.item()
@@ -301,68 +312,68 @@ OutputDataType = Annotated[
         Annotated[int, pydantic.Tag("int")],
         Annotated[str, pydantic.Tag("str")],
         Annotated[bool, pydantic.Tag("bool")],
-        Annotated[PydanticNDArray, pydantic.Tag("array")],
+        Annotated[NDArray, pydantic.Tag("array")],
     ],
-    pydantic.Discriminator(_get_discriminator_value),
+    pydantic.Discriminator(_get_output_discriminator_value),
 ]
 
 
 class OutputLatticeDict(TypedDict):
-    aw: PydanticNDArray
-    ax: PydanticNDArray
-    ay: PydanticNDArray
-    chic_angle: PydanticNDArray
-    chic_lb: PydanticNDArray
-    chic_ld: PydanticNDArray
-    chic_lt: PydanticNDArray
-    cx: PydanticNDArray
-    cy: PydanticNDArray
-    dz: PydanticNDArray
-    gradx: PydanticNDArray
-    grady: PydanticNDArray
-    ku: PydanticNDArray
-    kx: PydanticNDArray
-    ky: PydanticNDArray
-    phaseshift: PydanticNDArray
-    qf: PydanticNDArray
-    qx: PydanticNDArray
-    qy: PydanticNDArray
-    slippage: PydanticNDArray
-    z: PydanticNDArray
-    zplot: PydanticNDArray
+    aw: NDArray
+    ax: NDArray
+    ay: NDArray
+    chic_angle: NDArray
+    chic_lb: NDArray
+    chic_ld: NDArray
+    chic_lt: NDArray
+    cx: NDArray
+    cy: NDArray
+    dz: NDArray
+    gradx: NDArray
+    grady: NDArray
+    ku: NDArray
+    kx: NDArray
+    ky: NDArray
+    phaseshift: NDArray
+    qf: NDArray
+    qx: NDArray
+    qy: NDArray
+    slippage: NDArray
+    z: NDArray
+    zplot: NDArray
 
 
 class OutputBeamDict(TypedDict):
-    LSCfield: PydanticNDArray
-    alphax: PydanticNDArray
-    alphay: PydanticNDArray
-    betax: PydanticNDArray
-    betay: PydanticNDArray
-    bunching: PydanticNDArray
-    bunchingphase: PydanticNDArray
-    current: PydanticNDArray
-    efield: PydanticNDArray
-    emax: PydanticNDArray
-    emin: PydanticNDArray
-    emitx: PydanticNDArray
-    emity: PydanticNDArray
-    energy: PydanticNDArray
-    energyspread: PydanticNDArray
-    pxmax: PydanticNDArray
-    pxmin: PydanticNDArray
-    pxposition: PydanticNDArray
-    pymax: PydanticNDArray
-    pymin: PydanticNDArray
-    pyposition: PydanticNDArray
-    wakefield: PydanticNDArray
-    xmax: PydanticNDArray
-    xmin: PydanticNDArray
-    xposition: PydanticNDArray
-    xsize: PydanticNDArray
-    ymax: PydanticNDArray
-    ymin: PydanticNDArray
-    yposition: PydanticNDArray
-    ysize: PydanticNDArray
+    LSCfield: NDArray
+    alphax: NDArray
+    alphay: NDArray
+    betax: NDArray
+    betay: NDArray
+    bunching: NDArray
+    bunchingphase: NDArray
+    current: NDArray
+    efield: NDArray
+    emax: NDArray
+    emin: NDArray
+    emitx: NDArray
+    emity: NDArray
+    energy: NDArray
+    energyspread: NDArray
+    pxmax: NDArray
+    pxmin: NDArray
+    pxposition: NDArray
+    pymax: NDArray
+    pymin: NDArray
+    pyposition: NDArray
+    wakefield: NDArray
+    xmax: NDArray
+    xmin: NDArray
+    xposition: NDArray
+    xsize: NDArray
+    ymax: NDArray
+    ymin: NDArray
+    yposition: NDArray
+    ysize: NDArray
 
 
 class OutputMetaDumpsDict(TypedDict):
@@ -391,11 +402,11 @@ class OutputMetaDict(TypedDict):
 
 
 class OutputGlobalDict(TypedDict):
-    frequency: PydanticNDArray
+    frequency: NDArray
     gamma0: float
     lambdaref: float
     one4one: float
-    s: PydanticNDArray
+    s: NDArray
     sample: float
     scan: float
     slen: float
@@ -406,20 +417,20 @@ OutputFieldDict = TypedDict(
     "OutputFieldDict",
     {
         "dgrid": float,
-        "intensity-farfield": PydanticNDArray,
-        "intensity-nearfield": PydanticNDArray,
+        "intensity-farfield": NDArray,
+        "intensity-nearfield": NDArray,
         "ngrid": float,
-        "phase-farfield": PydanticNDArray,
-        "phase-nearfield": PydanticNDArray,
-        "power": PydanticNDArray,
-        "xdivergence": PydanticNDArray,
-        "xpointing": PydanticNDArray,
-        "xposition": PydanticNDArray,
-        "xsize": PydanticNDArray,
-        "ydivergence": PydanticNDArray,
-        "ypointing": PydanticNDArray,
-        "yposition": PydanticNDArray,
-        "ysize": PydanticNDArray,
+        "phase-farfield": NDArray,
+        "phase-nearfield": NDArray,
+        "power": NDArray,
+        "xdivergence": NDArray,
+        "xpointing": NDArray,
+        "xposition": NDArray,
+        "xsize": NDArray,
+        "ydivergence": NDArray,
+        "ypointing": NDArray,
+        "yposition": NDArray,
+        "ysize": NDArray,
     },
 )
 

@@ -64,7 +64,7 @@ class {{ name | to_class_name }}(types.{{ base_class }}):
     {%- set ref_suffix = "" %}
     {%- endif %}
     {%- if "vector" in param.options %}
-    {{ param.python_name }}: types.PydanticNDArray{{ ref_suffix }}{{ field_value(param) }}
+    {{ param.python_name }}: types.NDArray{{ ref_suffix }}{{ field_value(param) }}
     {%- else %}
     {{ param.python_name }}: {{ type_ }}{{ ref_suffix}}{{ field_value(param) }}
     {%- endif %}

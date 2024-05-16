@@ -5,7 +5,7 @@ import numpy as np
 from pmd_beamphysics.units import pmd_unit
 from pydantic import TypeAdapter
 from ...version4.types import (
-    PydanticNDArray,
+    NDArray,
     PydanticPmdUnit,
     Reference,
 )
@@ -56,7 +56,7 @@ def test_pmd_unit(unit: pmd_unit) -> None:
 )
 def test_nd_array(arr: np.ndarray) -> None:
     print("Array:", arr)
-    adapter = TypeAdapter(PydanticNDArray)
+    adapter = TypeAdapter(NDArray)
     dumped = adapter.dump_json(arr)
     print("Dumped:", repr(dumped))
     deserialized = adapter.validate_json(dumped, strict=True)
@@ -73,7 +73,7 @@ def test_nd_array(arr: np.ndarray) -> None:
 )
 def test_sequence_as_ndarray(arr: Sequence[float]) -> None:
     print("Array:", arr)
-    adapter = TypeAdapter(PydanticNDArray)
+    adapter = TypeAdapter(NDArray)
     deserialized = adapter.validate_python(arr, strict=True)
     print("Deserialized:", repr(deserialized))
     np.testing.assert_allclose(arr, deserialized)

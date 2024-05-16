@@ -2162,7 +2162,7 @@ class SequenceList(types.NameList):
     label: str = pydantic.Field(
         description=r"label for the sequence.",
     )
-    val: types.PydanticNDArray = pydantic.Field(
+    val: types.NDArray = pydantic.Field(
         default_factory=list,
         description=r"list of values.",
     )
