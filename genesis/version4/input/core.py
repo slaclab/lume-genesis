@@ -32,6 +32,7 @@ from pmd_beamphysics.units import c_light
 from ... import tools
 from ..types import (
     AnyPath,
+    BaseModel,
     BeamlineElement,
     NameList,
     ParticleData,
@@ -80,7 +81,7 @@ LineItem = Union[str, "DuplicatedLineItem", "PositionedLineItem", AnyBeamlineEle
 T_NameList = TypeVar("T_NameList", bound=NameList)
 
 
-class DuplicatedLineItem(pydantic.BaseModel):
+class DuplicatedLineItem(BaseModel):
     """
     A Genesis 4 lattice Line item which is at a certain position.
 
@@ -112,7 +113,7 @@ class DuplicatedLineItem(pydantic.BaseModel):
         return f"{self.count}*{self.label}"
 
 
-class PositionedLineItem(pydantic.BaseModel):
+class PositionedLineItem(BaseModel):
     """
     A Genesis 4 lattice Line item which is at a certain position.
 
@@ -234,7 +235,7 @@ class Line(BeamlineElement):
             )
 
 
-class Lattice(pydantic.BaseModel):
+class Lattice(BaseModel):
     """
     A Genesis 4 beamline Lattice configuration.
 
@@ -571,7 +572,7 @@ class InitialParticles(NameList, arbitrary_types_allowed=True):
         return self.import_distribution.to_genesis()
 
 
-class MainInput(pydantic.BaseModel):
+class MainInput(BaseModel):
     """
     A Genesis 4 main input configuration file.
 
@@ -842,7 +843,7 @@ def _split_file(namelist: AnyNameList, attr: str, file: str) -> Optional[str]:
     raise NotImplementedError(attr)
 
 
-class Genesis4Input(pydantic.BaseModel):
+class Genesis4Input(BaseModel):
     """
     All Genesis 4-related command input.
 

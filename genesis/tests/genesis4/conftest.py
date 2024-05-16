@@ -1,29 +1,64 @@
+from contextlib import contextmanager
 import copy
+import sys
+from typing import Sequence
+
 import h5py
-import matplotlib.pyplot as plt
 import matplotlib.animation
+import matplotlib.pyplot as plt
 import numpy as np
+import prettytable
+from pydantic import BaseModel
 import pytest
 
-from ..conftest import test_artifacts, test_root
+from ... import tools
+from ...tools import DisplayOptions
 from ...version4 import Genesis4, Genesis4Input
-from ...version4.types import Reference
 from ...version4.input import (
-    MainInput,
-    Setup,
-    Time,
-    Field,
+    AlterSetup,
     Beam,
-    ProfileArray,
-    Track,
-    Lattice,
-    Quadrupole,
-    Undulator,
-    Line,
+    Chicane,
     Corrector,
     Drift,
-    Chicane,
+    Efield,
+    Field,
+    ImportBeam,
+    ImportDistribution,
+    ImportField,
+    ImportTransformation,
+    InitialParticles,
+    Lattice,
+    Line,
+    MainInput,
+    Marker,
+    PhaseShifter,
+    ProfileArray,
+    ProfileConst,
+    ProfileFile,
+    ProfileGauss,
+    ProfilePolynom,
+    ProfileStep,
+    Quadrupole,
+    SequenceConst,
+    SequencePolynom,
+    SequencePower,
+    SequenceRandom,
+    Setup,
+    Sponrad,
+    Time,
+    Track,
+    Undulator,
+    Wake,
+    Write,
 )
+from ...version4.types import Reference
+from ..conftest import test_artifacts, test_root
+
+if sys.version_info >= (3, 12):
+    from typing import Literal
+else:
+    # Pydantic specifically requires this for Python < 3.12
+    from typing_extensions import Literal
 
 
 run_basic = test_root / "genesis4" / "run_basic"
@@ -361,3 +396,85 @@ def _plot_show_to_savefig(
     anim = matplotlib.animation.FuncAnimation
     orig_anim_save = anim.save
     monkeypatch.setattr(anim, "save", anim_save)
+
+
+def get_elements() -> Sequence[BaseModel]:
+    return [
+        Chicane(),
+        Corrector(),
+        Drift(),
+        Marker(),
+        PhaseShifter(),
+        Quadrupole(),
+        Undulator(),
+        AlterSetup(),
+        Beam(),
+        Efield(),
+        Field(),
+        ImportBeam(),
+        ImportDistribution(),
+        ImportField(),
+        ImportTransformation(),
+        ProfileConst(label="label"),
+        ProfileFile(label="label"),
+        ProfileGauss(label="label"),
+        ProfilePolynom(label="label"),
+        ProfileStep(label="label"),
+        SequenceConst(label="label"),
+        SequencePolynom(label="label"),
+        SequencePower(label="label"),
+        SequenceRandom(label="label"),
+        Setup(),
+        Sponrad(),
+        Time(),
+        Track(),
+        Wake(),
+        Write(),
+        # InitialParticles(filename='...'),
+        Lattice(),
+        Line(),
+        ProfileArray(label="label", xdata=[0.0], ydata=[0.0]),
+        InitialParticles(
+            data={
+                "x": np.asarray([0.0]),
+                "y": np.asarray([0.0]),
+                "z": np.asarray([0.0]),
+                "px": np.asarray([0.0]),
+                "py": np.asarray([0.0]),
+                "pz": np.asarray([0.0]),
+                "t": np.asarray([0.0]),
+                "status": np.asarray([0.0]),
+                "weight": np.asarray([0.0]),
+                "species": "species",
+            }
+        ),
+    ]
+
+
+@pytest.fixture(
+    params=[elem for elem in get_elements()],
+    ids=[type(elem).__name__ for elem in get_elements()],
+)
+def element(request: pytest.FixtureRequest):
+    return request.param
+
+
+@contextmanager
+def display_options_ctx(
+    jupyter_render_mode: Literal["html", "markdown", "genesis"] = "html",
+    console_render_mode: Literal["markdown", "genesis"] = "markdown",
+    echo_genesis_output: bool = True,
+    include_description: bool = True,
+    filter_tab_completion: bool = True,
+    ascii_table_type: int = prettytable.MARKDOWN,
+):
+    tools.global_display_options = DisplayOptions(
+        jupyter_render_mode=jupyter_render_mode,
+        console_render_mode=console_render_mode,
+        echo_genesis_output=echo_genesis_output,
+        include_description=include_description,
+        filter_tab_completion=filter_tab_completion,
+        ascii_table_type=ascii_table_type,
+    )
+    yield
+    tools.global_display_options = DisplayOptions()

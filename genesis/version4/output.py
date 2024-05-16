@@ -25,6 +25,7 @@ from . import parsers, readers
 from .plot import plot_stats_with_layout
 from .types import (
     AnyPath,
+    BaseModel,
     FieldFileParamDict,
     OutputBeamDict,
     OutputDataType,
@@ -55,7 +56,7 @@ if typing.TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
-class FieldFile(pydantic.BaseModel):
+class FieldFile(BaseModel):
     label: str
     dfl: NDArray
     param: FieldFileParamDict
@@ -84,7 +85,7 @@ class FieldFile(pydantic.BaseModel):
             raise ValueError(type(dest))
 
 
-class RunInfo(pydantic.BaseModel):
+class RunInfo(BaseModel):
     """
     Genesis 4 run information.
 
@@ -134,7 +135,7 @@ class RunInfo(pydantic.BaseModel):
         return not self.error
 
 
-class HDF5ReferenceFile(pydantic.BaseModel):
+class HDF5ReferenceFile(BaseModel):
     """An externally-referenced HDF5 file.."""
 
     key: str
@@ -182,7 +183,7 @@ def _split_data(data: Dict[str, OutputDataType], prefix: str) -> Dict[str, Any]:
     return res
 
 
-class Genesis4Output(Mapping, pydantic.BaseModel, arbitrary_types_allowed=True):
+class Genesis4Output(Mapping, BaseModel, arbitrary_types_allowed=True):
     """
     Genesis 4 command output.
 

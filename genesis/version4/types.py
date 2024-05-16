@@ -2,12 +2,12 @@ from __future__ import annotations
 
 import abc
 import pathlib
+import pydantic
 import sys
-from typing import Any, Dict, Sequence, Tuple, Type, Union
+from typing import Any, Dict, Iterable, Sequence, Tuple, Type, Union
 
 import h5py
 import numpy as np
-import pydantic
 import pydantic_core
 from pmd_beamphysics.units import pmd_unit
 
@@ -33,7 +33,19 @@ else:
     from typing_extensions import TypedDict
 
 
-class _PydanticPmdUnit(pydantic.BaseModel):
+class BaseModel(pydantic.BaseModel):
+    def __dir__(self) -> Iterable[str]:
+        full = super().__dir__()
+        if not tools.global_display_options.filter_tab_completion:
+            return full
+
+        base_model = set(dir(pydantic.BaseModel))
+        return [
+            attr for attr in full if not attr.startswith("_") and attr not in base_model
+        ]
+
+
+class _PydanticPmdUnit(BaseModel):
     unitSI: float
     unitSymbol: str
     unitDimension: Tuple[int, ...]
@@ -77,7 +89,7 @@ class _PydanticPmdUnit(pydantic.BaseModel):
         raise ValueError(f"No conversion from {value!r} to pmd_unit")
 
 
-class _PydanticNDArray(pydantic.BaseModel):
+class _PydanticNDArray(BaseModel):
     @classmethod
     def __get_pydantic_core_schema__(
         cls,
@@ -146,7 +158,7 @@ class Reference(str):
         )
 
 
-class NameList(pydantic.BaseModel, abc.ABC):
+class NameList(BaseModel, abc.ABC):
     """Base class for name lists used in Genesis 4 main input files."""
 
     @property
@@ -225,7 +237,7 @@ class ParticleData(TypedDict):
     id: NotRequired[NDArray]
 
 
-class BeamlineElement(pydantic.BaseModel, abc.ABC):
+class BeamlineElement(BaseModel, abc.ABC):
     """Base class for beamline elements used in Genesis 4 lattice files."""
 
     label: str
@@ -271,7 +283,7 @@ class BeamlineElement(pydantic.BaseModel, abc.ABC):
         )
 
 
-class H5Reference(pydantic.BaseModel):
+class H5Reference(BaseModel):
     """
     HDF5 path reference.
 

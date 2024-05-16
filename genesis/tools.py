@@ -36,6 +36,7 @@ class DisplayOptions(pydantic.BaseModel):
     console_render_mode: Literal["markdown", "genesis"] = "markdown"
     echo_genesis_output: bool = True
     include_description: bool = True
+    filter_tab_completion: bool = True
     ascii_table_type: int = prettytable.MARKDOWN
 
 
