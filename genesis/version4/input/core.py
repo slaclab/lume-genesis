@@ -54,6 +54,8 @@ from ._main import (
     SequenceFilelist,
     Setup,
 )
+from . import _main as auto_main
+from . import _lattice as auto_lattice
 from ..particles import load_particle_group
 
 
@@ -79,6 +81,7 @@ AnyBeamlineElement = Union[
 ]
 LineItem = Union[str, "DuplicatedLineItem", "PositionedLineItem", AnyBeamlineElement]
 T_NameList = TypeVar("T_NameList", bound=NameList)
+T_BeamlineElement = TypeVar("T_BeamlineElement", bound=BeamlineElement)
 
 
 class DuplicatedLineItem(BaseModel):
@@ -235,6 +238,13 @@ class Line(BeamlineElement):
             )
 
 
+def _make_element_property(typ: Type[AnyBeamlineElement]):
+    def getter(self: Lattice):
+        return self.by_element.get(typ, [])
+
+    return property(getter, doc=f"Get all {typ.__name__} BeamlineElement instances")
+
+
 class Lattice(BaseModel):
     """
     A Genesis 4 beamline Lattice configuration.
@@ -279,6 +289,24 @@ class Lattice(BaseModel):
                         label,
                     )
                 element.label = label
+
+    @property
+    def by_element(self) -> Dict[Type[T_BeamlineElement], List[T_BeamlineElement]]:
+        """Get beamline elements organized by their class."""
+        by_element = {}
+        for element in self.elements.values():
+            by_element.setdefault(type(element), [])
+            by_element[type(element)].append(element)
+        return by_element
+
+    undulators = _make_element_property(auto_lattice.Undulator)
+    drifts = _make_element_property(auto_lattice.Drift)
+    quadrupoles = _make_element_property(auto_lattice.Quadrupole)
+    correctors = _make_element_property(auto_lattice.Corrector)
+    chicanes = _make_element_property(auto_lattice.Chicane)
+    phase_shifters = _make_element_property(auto_lattice.PhaseShifter)
+    markers = _make_element_property(auto_lattice.Marker)
+    lines = _make_element_property(Line)
 
     def model_dump(self, **kwargs) -> Dict[str, Dict]:
         """Serialize this lattice to a list of dictionaries."""
@@ -572,6 +600,13 @@ class InitialParticles(NameList, arbitrary_types_allowed=True):
         return self.import_distribution.to_genesis()
 
 
+def _make_namelist_property(typ: Type[NameList]):
+    def getter(self):
+        return self.by_namelist.get(typ, [])
+
+    return property(getter, doc=f"Get all {typ.__name__} namelist instances")
+
+
 class MainInput(BaseModel):
     """
     A Genesis 4 main input configuration file.
@@ -608,6 +643,37 @@ class MainInput(BaseModel):
         if len(setups) > 1:
             raise ValueError("Multiple setup namelists were defined in the input.")
         return setups[0]
+
+    alter_setups = _make_namelist_property(auto_main.AlterSetup)
+    lattices = _make_namelist_property(auto_main.Lattice)
+    times = _make_namelist_property(auto_main.Time)
+    profile_consts = _make_namelist_property(auto_main.ProfileConst)
+    profile_gauss = _make_namelist_property(auto_main.ProfileGauss)
+    profile_steps = _make_namelist_property(auto_main.ProfileStep)
+    profile_polynoms = _make_namelist_property(auto_main.ProfilePolynom)
+    profile_files = _make_namelist_property(auto_main.ProfileFile)
+    sequence_consts = _make_namelist_property(auto_main.SequenceConst)
+    sequence_polynoms = _make_namelist_property(auto_main.SequencePolynom)
+    sequence_powers = _make_namelist_property(auto_main.SequencePower)
+    sequence_randoms = _make_namelist_property(auto_main.SequenceRandom)
+    beams = _make_namelist_property(auto_main.Beam)
+    fields = _make_namelist_property(auto_main.Field)
+    import_distributions = _make_namelist_property(auto_main.ImportDistribution)
+    import_beams = _make_namelist_property(auto_main.ImportBeam)
+    import_fields = _make_namelist_property(auto_main.ImportField)
+    import_transformations = _make_namelist_property(auto_main.ImportTransformation)
+    efields = _make_namelist_property(auto_main.Efield)
+    sponrads = _make_namelist_property(auto_main.Sponrad)
+    wakes = _make_namelist_property(auto_main.Wake)
+    writes = _make_namelist_property(auto_main.Write)
+    tracks = _make_namelist_property(auto_main.Track)
+    alter_fields = _make_namelist_property(auto_main.AlterField)
+    profile_file_multis = _make_namelist_property(auto_main.ProfileFileMulti)
+    sequence_lists = _make_namelist_property(auto_main.SequenceList)
+    sequence_filelists = _make_namelist_property(auto_main.SequenceFilelist)
+
+    initial_particles = _make_namelist_property(InitialParticles)
+    profile_arrays = _make_namelist_property(ProfileArray)
 
     def to_dicts(
         self, exclude_defaults: bool = True, by_alias: bool = True, **kwargs

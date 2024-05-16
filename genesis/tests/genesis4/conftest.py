@@ -8,24 +8,19 @@ import matplotlib.animation
 import matplotlib.pyplot as plt
 import numpy as np
 import prettytable
-from pydantic import BaseModel
 import pytest
 
 from ... import tools
 from ...tools import DisplayOptions
 from ...version4 import Genesis4, Genesis4Input
+from ...version4.input.core import AnyBeamlineElement, AnyNameList
+from ...version4.input import _main as auto_main
 from ...version4.input import (
-    AlterSetup,
     Beam,
     Chicane,
     Corrector,
     Drift,
-    Efield,
     Field,
-    ImportBeam,
-    ImportDistribution,
-    ImportField,
-    ImportTransformation,
     InitialParticles,
     Lattice,
     Line,
@@ -33,23 +28,11 @@ from ...version4.input import (
     Marker,
     PhaseShifter,
     ProfileArray,
-    ProfileConst,
-    ProfileFile,
-    ProfileGauss,
-    ProfilePolynom,
-    ProfileStep,
     Quadrupole,
-    SequenceConst,
-    SequencePolynom,
-    SequencePower,
-    SequenceRandom,
     Setup,
-    Sponrad,
     Time,
     Track,
     Undulator,
-    Wake,
-    Write,
 )
 from ...version4.types import Reference
 from ..conftest import test_artifacts, test_root
@@ -398,41 +381,33 @@ def _plot_show_to_savefig(
     monkeypatch.setattr(anim, "save", anim_save)
 
 
-def get_elements() -> Sequence[BaseModel]:
+def get_namelists() -> Sequence[AnyNameList]:
     return [
-        Chicane(),
-        Corrector(),
-        Drift(),
-        Marker(),
-        PhaseShifter(),
-        Quadrupole(),
-        Undulator(),
-        AlterSetup(),
-        Beam(),
-        Efield(),
-        Field(),
-        ImportBeam(),
-        ImportDistribution(),
-        ImportField(),
-        ImportTransformation(),
-        ProfileConst(label="label"),
-        ProfileFile(label="label"),
-        ProfileGauss(label="label"),
-        ProfilePolynom(label="label"),
-        ProfileStep(label="label"),
-        SequenceConst(label="label"),
-        SequencePolynom(label="label"),
-        SequencePower(label="label"),
-        SequenceRandom(label="label"),
-        Setup(),
-        Sponrad(),
-        Time(),
-        Track(),
-        Wake(),
-        Write(),
+        auto_main.AlterSetup(),
+        auto_main.Beam(),
+        auto_main.Efield(),
+        auto_main.Field(),
+        auto_main.ImportBeam(),
+        auto_main.ImportDistribution(),
+        auto_main.ImportField(),
+        auto_main.ImportTransformation(),
+        auto_main.ProfileConst(label="label"),
+        auto_main.ProfileFile(label="label"),
+        auto_main.ProfileGauss(label="label"),
+        auto_main.ProfilePolynom(label="label"),
+        auto_main.ProfileStep(label="label"),
+        auto_main.SequenceConst(label="label"),
+        auto_main.SequencePolynom(label="label"),
+        auto_main.SequencePower(label="label"),
+        auto_main.SequenceRandom(label="label"),
+        auto_main.Setup(),
+        auto_main.Sponrad(),
+        auto_main.Time(),
+        auto_main.Track(),
+        auto_main.Wake(),
+        auto_main.Write(),
         # InitialParticles(filename='...'),
-        Lattice(),
-        Line(),
+        auto_main.Lattice(),
         ProfileArray(label="label", xdata=[0.0], ydata=[0.0]),
         InitialParticles(
             data={
@@ -451,11 +426,43 @@ def get_elements() -> Sequence[BaseModel]:
     ]
 
 
+def get_beamline_elements() -> Sequence[AnyBeamlineElement]:
+    return [
+        Chicane(),
+        Corrector(),
+        Drift(),
+        Marker(),
+        PhaseShifter(),
+        Quadrupole(),
+        Undulator(),
+        Line(),
+    ]
+
+
 @pytest.fixture(
-    params=[elem for elem in get_elements()],
-    ids=[type(elem).__name__ for elem in get_elements()],
+    params=[elem for elem in get_beamline_elements()],
+    ids=[type(elem).__name__ for elem in get_beamline_elements()],
 )
 def element(request: pytest.FixtureRequest):
+    return request.param
+
+
+@pytest.fixture(
+    params=[elem for elem in get_namelists()],
+    ids=[type(elem).__name__ for elem in get_namelists()],
+)
+def namelist(request: pytest.FixtureRequest):
+    return request.param
+
+
+@pytest.fixture(
+    params=[elem for elem in list(get_namelists()) + list(get_beamline_elements())],
+    ids=[
+        type(elem).__name__
+        for elem in list(get_namelists()) + list(get_beamline_elements())
+    ],
+)
+def element_or_namelist(request: pytest.FixtureRequest):
     return request.param
 
 
