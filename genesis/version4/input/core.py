@@ -239,13 +239,6 @@ class Line(BeamlineElement):
             )
 
 
-def _make_element_property(typ: Type[AnyBeamlineElement]):
-    def getter(self: Lattice):
-        return self.by_element.get(typ, [])
-
-    return property(getter, doc=f"Get all {typ.__name__} BeamlineElement instances")
-
-
 class Lattice(BaseModel):
     """
     A Genesis 4 beamline Lattice configuration.
@@ -299,14 +292,37 @@ class Lattice(BaseModel):
             by_element[type(element)].append(element)
         return by_element
 
-    undulators = _make_element_property(auto_lattice.Undulator)
-    drifts = _make_element_property(auto_lattice.Drift)
-    quadrupoles = _make_element_property(auto_lattice.Quadrupole)
-    correctors = _make_element_property(auto_lattice.Corrector)
-    chicanes = _make_element_property(auto_lattice.Chicane)
-    phase_shifters = _make_element_property(auto_lattice.PhaseShifter)
-    markers = _make_element_property(auto_lattice.Marker)
-    lines = _make_element_property(Line)
+    @property
+    def undulators(self) -> List[auto_lattice.Undulator]:
+        return self.by_element.get(auto_lattice.Undulator, [])
+
+    @property
+    def drifts(self) -> List[auto_lattice.Drift]:
+        return self.by_element.get(auto_lattice.Drift, [])
+
+    @property
+    def quadrupoles(self) -> List[auto_lattice.Quadrupole]:
+        return self.by_element.get(auto_lattice.Quadrupole, [])
+
+    @property
+    def correctors(self) -> List[auto_lattice.Corrector]:
+        return self.by_element.get(auto_lattice.Corrector, [])
+
+    @property
+    def chicanes(self) -> List[auto_lattice.Chicane]:
+        return self.by_element.get(auto_lattice.Chicane, [])
+
+    @property
+    def phase_shifters(self) -> List[auto_lattice.PhaseShifter]:
+        return self.by_element.get(auto_lattice.PhaseShifter, [])
+
+    @property
+    def markers(self) -> List[auto_lattice.Marker]:
+        return self.by_element.get(auto_lattice.Marker, [])
+
+    @property
+    def lines(self) -> List[Line]:
+        return self.by_element.get(Line, [])
 
     def model_dump(self, **kwargs) -> Dict[str, Dict]:
         """Serialize this lattice to a list of dictionaries."""
@@ -600,13 +616,6 @@ class InitialParticles(NameList, arbitrary_types_allowed=True):
         return self.import_distribution.to_genesis()
 
 
-def _make_namelist_property(typ: Type[NameList]):
-    def getter(self):
-        return self.by_namelist.get(typ, [])
-
-    return property(getter, doc=f"Get all {typ.__name__} namelist instances")
-
-
 class MainInput(BaseModel):
     """
     A Genesis 4 main input configuration file.
@@ -657,37 +666,6 @@ class MainInput(BaseModel):
         if len(setups) > 1:
             raise ValueError("Multiple setup namelists were defined in the input.")
         return setups[0]
-
-    alter_setups = _make_namelist_property(auto_main.AlterSetup)
-    lattices = _make_namelist_property(auto_main.Lattice)
-    times = _make_namelist_property(auto_main.Time)
-    profile_consts = _make_namelist_property(auto_main.ProfileConst)
-    profile_gauss = _make_namelist_property(auto_main.ProfileGauss)
-    profile_steps = _make_namelist_property(auto_main.ProfileStep)
-    profile_polynoms = _make_namelist_property(auto_main.ProfilePolynom)
-    profile_files = _make_namelist_property(auto_main.ProfileFile)
-    sequence_consts = _make_namelist_property(auto_main.SequenceConst)
-    sequence_polynoms = _make_namelist_property(auto_main.SequencePolynom)
-    sequence_powers = _make_namelist_property(auto_main.SequencePower)
-    sequence_randoms = _make_namelist_property(auto_main.SequenceRandom)
-    beams = _make_namelist_property(auto_main.Beam)
-    fields = _make_namelist_property(auto_main.Field)
-    import_distributions = _make_namelist_property(auto_main.ImportDistribution)
-    import_beams = _make_namelist_property(auto_main.ImportBeam)
-    import_fields = _make_namelist_property(auto_main.ImportField)
-    import_transformations = _make_namelist_property(auto_main.ImportTransformation)
-    efields = _make_namelist_property(auto_main.Efield)
-    sponrads = _make_namelist_property(auto_main.Sponrad)
-    wakes = _make_namelist_property(auto_main.Wake)
-    writes = _make_namelist_property(auto_main.Write)
-    tracks = _make_namelist_property(auto_main.Track)
-    alter_fields = _make_namelist_property(auto_main.AlterField)
-    profile_file_multis = _make_namelist_property(auto_main.ProfileFileMulti)
-    sequence_lists = _make_namelist_property(auto_main.SequenceList)
-    sequence_filelists = _make_namelist_property(auto_main.SequenceFilelist)
-
-    initial_particles = _make_namelist_property(InitialParticles)
-    profile_arrays = _make_namelist_property(ProfileArray)
 
     def to_dicts(
         self, exclude_defaults: bool = True, by_alias: bool = True, **kwargs
@@ -877,6 +855,305 @@ class MainInput(BaseModel):
                 if not file:
                     continue
                 yield namelist, file
+
+    def set_particles(
+        self, particle_group: ParticleGroup, update_slen: bool = True
+    ) -> InitialParticles:
+        """
+        Set initial paticles using an OpenPMD-beamphysics ParticleGroup.
+
+        `main_input.initial_particles = ParticleGroup()` is a shortcut
+        for this method.
+
+        Parameters
+        ----------
+        particle_group : ParticleGroup
+        update_slen : bool, default=True
+            Update slen
+        """
+        for particle in self.by_namelist.get(InitialParticles, []):
+            logger.warning("Replacing previous InitialParticles instance")
+            self.namelists.pop(particle)
+
+        initial_particles = InitialParticles(particles=particle_group)
+        self._insert_initial_particles(initial_particles, update_slen=update_slen)
+        return initial_particles
+
+    def _insert_initial_particles(
+        self,
+        initial_particles: InitialParticles,
+        update_slen: bool,
+    ) -> int:
+        if update_slen:
+            for time_ in self.times:
+                was = time_.slen
+                time_.slen = initial_particles.slen
+                logger.warning(
+                    "Updating time namelist slen: %f (was %f)",
+                    time_.slen,
+                    was,
+                )
+
+        if self.tracks:
+            insert_pos = self.namelists.index(self.tracks[0])
+        elif self.writes:
+            insert_pos = self.namelists.index(self.writes[0])
+        elif self.times:
+            insert_pos = self.namelists.index(self.times[0]) + 1
+        else:
+            logger.warning(
+                "Unable to determine a spot to insert the InitialParticles; "
+                "placing it at the end"
+            )
+            insert_pos = len(self.namelists)
+
+        self.namelists.insert(insert_pos, initial_particles)
+        return insert_pos
+
+    @property
+    def initial_particles(self) -> InitialParticles:
+        return self._get_only_one(InitialParticles)
+
+    @initial_particles.setter
+    def initial_particles(self, value: Union[ParticleGroup, InitialParticles]) -> None:
+        if isinstance(value, ParticleGroup):
+            self.set_particles(value)
+        else:
+            self._insert_initial_particles(value, update_slen=True)
+
+    @property
+    def alter_setups(self) -> List[auto_main.AlterSetup]:
+        return self.by_namelist.get(auto_main.AlterSetup, [])
+
+    @property
+    def lattices(self) -> List[auto_main.Lattice]:
+        return self.by_namelist.get(auto_main.Lattice, [])
+
+    @property
+    def times(self) -> List[auto_main.Time]:
+        return self.by_namelist.get(auto_main.Time, [])
+
+    @property
+    def profile_consts(self) -> List[auto_main.ProfileConst]:
+        return self.by_namelist.get(auto_main.ProfileConst, [])
+
+    @property
+    def profile_gausses(self) -> List[auto_main.ProfileGauss]:
+        return self.by_namelist.get(auto_main.ProfileGauss, [])
+
+    @property
+    def profile_steps(self) -> List[auto_main.ProfileStep]:
+        return self.by_namelist.get(auto_main.ProfileStep, [])
+
+    @property
+    def profile_polynoms(self) -> List[auto_main.ProfilePolynom]:
+        return self.by_namelist.get(auto_main.ProfilePolynom, [])
+
+    @property
+    def profile_files(self) -> List[auto_main.ProfileFile]:
+        return self.by_namelist.get(auto_main.ProfileFile, [])
+
+    @property
+    def sequence_consts(self) -> List[auto_main.SequenceConst]:
+        return self.by_namelist.get(auto_main.SequenceConst, [])
+
+    @property
+    def sequence_polynoms(self) -> List[auto_main.SequencePolynom]:
+        return self.by_namelist.get(auto_main.SequencePolynom, [])
+
+    @property
+    def sequence_powers(self) -> List[auto_main.SequencePower]:
+        return self.by_namelist.get(auto_main.SequencePower, [])
+
+    @property
+    def sequence_randoms(self) -> List[auto_main.SequenceRandom]:
+        return self.by_namelist.get(auto_main.SequenceRandom, [])
+
+    @property
+    def beams(self) -> List[auto_main.Beam]:
+        return self.by_namelist.get(auto_main.Beam, [])
+
+    @property
+    def fields(self) -> List[auto_main.Field]:
+        return self.by_namelist.get(auto_main.Field, [])
+
+    @property
+    def import_distributions(self) -> List[auto_main.ImportDistribution]:
+        return self.by_namelist.get(auto_main.ImportDistribution, [])
+
+    @property
+    def import_beams(self) -> List[auto_main.ImportBeam]:
+        return self.by_namelist.get(auto_main.ImportBeam, [])
+
+    @property
+    def import_fields(self) -> List[auto_main.ImportField]:
+        return self.by_namelist.get(auto_main.ImportField, [])
+
+    @property
+    def import_transformations(self) -> List[auto_main.ImportTransformation]:
+        return self.by_namelist.get(auto_main.ImportTransformation, [])
+
+    @property
+    def efields(self) -> List[auto_main.Efield]:
+        return self.by_namelist.get(auto_main.Efield, [])
+
+    @property
+    def sponrads(self) -> List[auto_main.Sponrad]:
+        return self.by_namelist.get(auto_main.Sponrad, [])
+
+    @property
+    def wakes(self) -> List[auto_main.Wake]:
+        return self.by_namelist.get(auto_main.Wake, [])
+
+    @property
+    def writes(self) -> List[auto_main.Write]:
+        return self.by_namelist.get(auto_main.Write, [])
+
+    @property
+    def tracks(self) -> List[auto_main.Track]:
+        return self.by_namelist.get(auto_main.Track, [])
+
+    @property
+    def alter_fields(self) -> List[auto_main.AlterField]:
+        return self.by_namelist.get(auto_main.AlterField, [])
+
+    @property
+    def profile_file_multis(self) -> List[auto_main.ProfileFileMulti]:
+        return self.by_namelist.get(auto_main.ProfileFileMulti, [])
+
+    @property
+    def sequence_lists(self) -> List[auto_main.SequenceList]:
+        return self.by_namelist.get(auto_main.SequenceList, [])
+
+    @property
+    def sequence_filelists(self) -> List[auto_main.SequenceFilelist]:
+        return self.by_namelist.get(auto_main.SequenceFilelist, [])
+
+    @property
+    def profile_arrays(self) -> List[ProfileArray]:
+        return self.by_namelist.get(ProfileArray, [])
+
+    def _get_only_one(self, cls: Type[T_NameList]) -> T_NameList:
+        items = self.by_namelist.get(cls, [])
+        if len(items) == 0:
+            raise ValueError(f"{cls.__name__} is not defined in the input.")
+        if len(items) > 1:
+            raise ValueError(
+                f"Multiple {cls.__name__} namelists were defined in the input."
+            )
+        return items[0]
+
+    @property
+    def alter_setup(self) -> auto_main.AlterSetup:
+        return self._get_only_one(auto_main.AlterSetup)
+
+    @property
+    def lattice(self) -> auto_main.Lattice:
+        return self._get_only_one(auto_main.Lattice)
+
+    @property
+    def time(self) -> auto_main.Time:
+        return self._get_only_one(auto_main.Time)
+
+    @property
+    def profile_const(self) -> auto_main.ProfileConst:
+        return self._get_only_one(auto_main.ProfileConst)
+
+    @property
+    def profile_gauss(self) -> auto_main.ProfileGauss:
+        return self._get_only_one(auto_main.ProfileGauss)
+
+    @property
+    def profile_step(self) -> auto_main.ProfileStep:
+        return self._get_only_one(auto_main.ProfileStep)
+
+    @property
+    def profile_polynom(self) -> auto_main.ProfilePolynom:
+        return self._get_only_one(auto_main.ProfilePolynom)
+
+    @property
+    def profile_file(self) -> auto_main.ProfileFile:
+        return self._get_only_one(auto_main.ProfileFile)
+
+    @property
+    def sequence_const(self) -> auto_main.SequenceConst:
+        return self._get_only_one(auto_main.SequenceConst)
+
+    @property
+    def sequence_polynom(self) -> auto_main.SequencePolynom:
+        return self._get_only_one(auto_main.SequencePolynom)
+
+    @property
+    def sequence_power(self) -> auto_main.SequencePower:
+        return self._get_only_one(auto_main.SequencePower)
+
+    @property
+    def sequence_random(self) -> auto_main.SequenceRandom:
+        return self._get_only_one(auto_main.SequenceRandom)
+
+    @property
+    def beam(self) -> auto_main.Beam:
+        return self._get_only_one(auto_main.Beam)
+
+    @property
+    def field(self) -> auto_main.Field:
+        return self._get_only_one(auto_main.Field)
+
+    @property
+    def import_distribution(self) -> auto_main.ImportDistribution:
+        return self._get_only_one(auto_main.ImportDistribution)
+
+    @property
+    def import_beam(self) -> auto_main.ImportBeam:
+        return self._get_only_one(auto_main.ImportBeam)
+
+    @property
+    def import_field(self) -> auto_main.ImportField:
+        return self._get_only_one(auto_main.ImportField)
+
+    @property
+    def import_transformation(self) -> auto_main.ImportTransformation:
+        return self._get_only_one(auto_main.ImportTransformation)
+
+    @property
+    def efield(self) -> auto_main.Efield:
+        return self._get_only_one(auto_main.Efield)
+
+    @property
+    def sponrad(self) -> auto_main.Sponrad:
+        return self._get_only_one(auto_main.Sponrad)
+
+    @property
+    def wake(self) -> auto_main.Wake:
+        return self._get_only_one(auto_main.Wake)
+
+    @property
+    def write(self) -> auto_main.Write:
+        return self._get_only_one(auto_main.Write)
+
+    @property
+    def track(self) -> auto_main.Track:
+        return self._get_only_one(auto_main.Track)
+
+    @property
+    def alter_field(self) -> auto_main.AlterField:
+        return self._get_only_one(auto_main.AlterField)
+
+    @property
+    def profile_file_multi(self) -> auto_main.ProfileFileMulti:
+        return self._get_only_one(auto_main.ProfileFileMulti)
+
+    @property
+    def sequence_list(self) -> auto_main.SequenceList:
+        return self._get_only_one(auto_main.SequenceList)
+
+    @property
+    def sequence_filelist(self) -> auto_main.SequenceFilelist:
+        return self._get_only_one(auto_main.SequenceFilelist)
+
+    @property
+    def profile_array(self) -> ProfileArray:
+        return self._get_only_one(ProfileArray)
 
 
 def _symlink_or_copy(symlink: pathlib.Path, file: pathlib.Path):
