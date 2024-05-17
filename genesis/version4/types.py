@@ -78,6 +78,9 @@ class BaseModel(pydantic.BaseModel):
     def __str__(self) -> str:
         return self.to_string(tools.global_display_options.console_render_mode)
 
+    def __repr__(self) -> str:
+        return self._pretty_repr_()
+
     def __dir__(self) -> Iterable[str]:
         full = super().__dir__()
         if not tools.global_display_options.filter_tab_completion:
@@ -344,124 +347,9 @@ OutputDataType = Annotated[
 ]
 
 
-class OutputLatticeDict(TypedDict):
-    aw: NDArray
-    ax: NDArray
-    ay: NDArray
-    chic_angle: NDArray
-    chic_lb: NDArray
-    chic_ld: NDArray
-    chic_lt: NDArray
-    cx: NDArray
-    cy: NDArray
-    dz: NDArray
-    gradx: NDArray
-    grady: NDArray
-    ku: NDArray
-    kx: NDArray
-    ky: NDArray
-    phaseshift: NDArray
-    qf: NDArray
-    qx: NDArray
-    qy: NDArray
-    slippage: NDArray
-    z: NDArray
-    zplot: NDArray
+class FieldFileParams(BaseModel, extra="allow"):
+    __pydantic_extra__: Dict[str, Union[int, float, str, bool]]
 
-
-class OutputBeamDict(TypedDict):
-    LSCfield: NDArray
-    alphax: NDArray
-    alphay: NDArray
-    betax: NDArray
-    betay: NDArray
-    bunching: NDArray
-    bunchingphase: NDArray
-    current: NDArray
-    efield: NDArray
-    emax: NDArray
-    emin: NDArray
-    emitx: NDArray
-    emity: NDArray
-    energy: NDArray
-    energyspread: NDArray
-    pxmax: NDArray
-    pxmin: NDArray
-    pxposition: NDArray
-    pymax: NDArray
-    pymin: NDArray
-    pyposition: NDArray
-    wakefield: NDArray
-    xmax: NDArray
-    xmin: NDArray
-    xposition: NDArray
-    xsize: NDArray
-    ymax: NDArray
-    ymin: NDArray
-    yposition: NDArray
-    ysize: NDArray
-
-
-class OutputMetaDumpsDict(TypedDict):
-    ndumps: int
-
-
-class OutputMetaVersionDict(TypedDict):
-    Beta: float
-    Build_Info: str
-    Major: float
-    Minor: float
-    Revision: float
-
-
-class OutputMetaDict(TypedDict):
-    Beamdumps: OutputMetaDumpsDict
-    Fielddumps: OutputMetaDumpsDict
-    HOST: str
-    InputFile: str
-    LatticeFile: str
-    TimeStamp: str
-    User: str
-    Version: OutputMetaVersionDict
-    cwd: str
-    mpisize: float
-
-
-class OutputGlobalDict(TypedDict):
-    frequency: NDArray
-    gamma0: float
-    lambdaref: float
-    one4one: float
-    s: NDArray
-    sample: float
-    scan: float
-    slen: float
-    time: float
-
-
-OutputFieldDict = TypedDict(
-    "OutputFieldDict",
-    {
-        "dgrid": float,
-        "intensity-farfield": NDArray,
-        "intensity-nearfield": NDArray,
-        "ngrid": float,
-        "phase-farfield": NDArray,
-        "phase-nearfield": NDArray,
-        "power": NDArray,
-        "xdivergence": NDArray,
-        "xpointing": NDArray,
-        "xposition": NDArray,
-        "xsize": NDArray,
-        "ydivergence": NDArray,
-        "ypointing": NDArray,
-        "yposition": NDArray,
-        "ysize": NDArray,
-    },
-)
-
-
-class FieldFileParamDict(TypedDict):
     #  number of gridpoints in one transverse dimension equal to nx and ny above
     gridpoints: int
     # gridpoint spacing (meter)

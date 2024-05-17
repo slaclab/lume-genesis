@@ -1,4 +1,6 @@
 import os
+import pydantic.alias_generators
+import re
 import warnings
 from typing import Any, Dict
 
@@ -135,49 +137,61 @@ def extract_data_and_unit(h5):
     unit: dict of str
     """
 
-    data = {}
-    unit = {}
+    def convert_dataset(node: h5py.Dataset):
+        # node is a dataset
+        dat = node[:]
+        if dat.shape == (1,):
+            dat = dat[0]
 
-    def visitor_func(_name, node):
-        if isinstance(node, h5py.Group):
-            return
+        if isinstance(dat, bytes):
+            return dat.decode("utf-8")
+        elif isinstance(dat, np.generic):
+            return dat.item()
+        elif isinstance(dat, np.ndarray):
+            if dat.dtype is np.str_:
+                return str(dat)
+            return dat
+        return dat
 
-        if isinstance(node, h5py.Dataset):
-            # node is a dataset
-            key = node.name.strip("/")
-            dat = node[:]
-            if dat.shape == (1,):
-                dat = dat[0]
+    def convert_group(node: h5py.Group):
+        data = {}
+        units = {}
+        for key, item in node.items():
+            key = output_key_to_python_identifier(key)
+            if isinstance(item, h5py.Group):
+                data[key], group_units = convert_group(item)
+                if group_units:
+                    units[key] = group_units
+            elif isinstance(item, h5py.Dataset):
+                data[key] = convert_dataset(item)
 
-            if isinstance(dat, bytes):
-                data[key] = dat.decode("utf-8")
-            elif isinstance(dat, np.generic):
-                data[key] = dat.item()
-            elif isinstance(dat, np.ndarray):
-                if dat.dtype is np.str_:
-                    data[key] = str(dat)
-                else:
-                    data[key] = dat
-            else:
-                data[key] = dat
+            if "unit" in item.attrs and key not in units:
+                node_units = item.attrs["unit"].decode("utf-8")
+                node_units = try_pmd_unit(node_units)
+                if node_units:
+                    units[key] = node_units
 
-            if "unit" in node.attrs:
-                u = node.attrs["unit"].decode("utf-8")
-                u = try_pmd_unit(u)
-                if u:
-                    unit[key] = u
+        return data, units
 
     # Add in extra
+    full_units = {}
     for k, v in EXTRA_UNITS.items():
-        unit[k] = try_pmd_unit(v)
+        full_units[k] = try_pmd_unit(v)
 
-    h5.visititems(visitor_func)
-
-    return data, unit
+    full_data, units = convert_group(h5)
+    full_units.update(**units)
+    return full_data, full_units
 
 
 def output_key_to_python_identifier(key: str) -> str:
-    return key.replace("/", "_").lower()
+    key = re.sub("[^a-zA-Z_0-9]", "_", key)
+    key = pydantic.alias_generators.to_snake(key)
+    return {
+        "ls_cfield": "lsc_field",
+        "ss_cfield": "ssc_field",
+        "one_4one": "one4one",
+        "gamma_0": "gamma0",
+    }.get(key, key)
 
 
 def extract_aliases(output_dict: Dict[str, Any]) -> Dict[str, str]:

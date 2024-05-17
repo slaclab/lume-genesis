@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from functools import cached_property
 import logging
 import pathlib
 import typing
@@ -10,6 +11,8 @@ from typing import (
     List,
     Optional,
     Sequence,
+    Type,
+    TypeVar,
     Union,
 )
 
@@ -26,14 +29,8 @@ from .plot import plot_stats_with_layout
 from .types import (
     AnyPath,
     BaseModel,
-    FieldFileParamDict,
-    OutputBeamDict,
+    FieldFileParams,
     OutputDataType,
-    OutputFieldDict,
-    OutputGlobalDict,
-    OutputLatticeDict,
-    OutputMetaDict,
-    OutputMetaVersionDict,
     NDArray,
     PydanticPmdUnit,
 )
@@ -59,7 +56,7 @@ logger = logging.getLogger(__name__)
 class FieldFile(BaseModel):
     label: str
     dfl: NDArray
-    param: FieldFileParamDict
+    param: FieldFileParams
 
     def write_openpmd_wavefront(
         self,
@@ -78,9 +75,11 @@ class FieldFile(BaseModel):
         from .writers import write_openpmd_wavefront_h5, write_openpmd_wavefront
 
         if isinstance(dest, (str, pathlib.Path)):
-            write_openpmd_wavefront(str(dest), self.dfl, self.param, verbose=verbose)
+            write_openpmd_wavefront(
+                str(dest), self.dfl, self.param.model_dump(), verbose=verbose
+            )
         elif isinstance(dest, h5py.Group):
-            write_openpmd_wavefront_h5(dest, self.dfl, self.param)
+            write_openpmd_wavefront_h5(dest, self.dfl, self.param.model_dump())
         else:
             raise ValueError(type(dest))
 
@@ -160,27 +159,308 @@ class _ParticleGroupH5File(HDF5ReferenceFile):
             return load_particle_group(h5, **kwargs)
 
 
+def _empty_ndarray() -> np.ndarray:
+    return np.zeros(0)
+
+
+class OutputLattice(BaseModel, extra="allow"):
+    units: Dict[str, PydanticPmdUnit] = pydantic.Field(default_factory=dict)
+    aw: NDArray = pydantic.Field(default_factory=_empty_ndarray)
+    ax: NDArray = pydantic.Field(default_factory=_empty_ndarray)
+    ay: NDArray = pydantic.Field(default_factory=_empty_ndarray)
+    chic_angle: NDArray = pydantic.Field(default_factory=_empty_ndarray)
+    chic_lb: NDArray = pydantic.Field(default_factory=_empty_ndarray)
+    chic_ld: NDArray = pydantic.Field(default_factory=_empty_ndarray)
+    chic_lt: NDArray = pydantic.Field(default_factory=_empty_ndarray)
+    cx: NDArray = pydantic.Field(default_factory=_empty_ndarray)
+    cy: NDArray = pydantic.Field(default_factory=_empty_ndarray)
+    dz: NDArray = pydantic.Field(default_factory=_empty_ndarray)
+    gradx: NDArray = pydantic.Field(default_factory=_empty_ndarray)
+    grady: NDArray = pydantic.Field(default_factory=_empty_ndarray)
+    ku: NDArray = pydantic.Field(default_factory=_empty_ndarray)
+    kx: NDArray = pydantic.Field(default_factory=_empty_ndarray)
+    ky: NDArray = pydantic.Field(default_factory=_empty_ndarray)
+    phaseshift: NDArray = pydantic.Field(default_factory=_empty_ndarray)
+    qf: NDArray = pydantic.Field(default_factory=_empty_ndarray)
+    qx: NDArray = pydantic.Field(default_factory=_empty_ndarray)
+    qy: NDArray = pydantic.Field(default_factory=_empty_ndarray)
+    slippage: NDArray = pydantic.Field(default_factory=_empty_ndarray)
+    z: NDArray = pydantic.Field(default_factory=_empty_ndarray)
+    zplot: NDArray = pydantic.Field(default_factory=_empty_ndarray)
+    extra: Dict[str, OutputDataType] = pydantic.Field(default_factory=dict)
+
+
+class OutputBeamStat(BaseModel):
+    sigma_x: NDArray
+    sigma_y: NDArray
+    sigma_energy: NDArray
+
+    xsize: NDArray
+    ysize: NDArray
+    bunching: NDArray
+    lsc_field: NDArray
+    ssc_field: NDArray
+    alphax: NDArray
+    alphay: NDArray
+    betax: NDArray
+    betay: NDArray
+    bunching: NDArray
+    bunchingphase: NDArray
+    current: NDArray
+    efield: NDArray
+    emax: NDArray
+    emin: NDArray
+    emitx: NDArray
+    emity: NDArray
+    energy: NDArray
+    energyspread: NDArray
+    pxmax: NDArray
+    pxmin: NDArray
+    pxposition: NDArray
+    pymax: NDArray
+    pymin: NDArray
+    pyposition: NDArray
+    wakefield: NDArray
+    xmax: NDArray
+    xmin: NDArray
+    xposition: NDArray
+    xsize: NDArray
+    ymax: NDArray
+    ymin: NDArray
+    yposition: NDArray
+    ysize: NDArray
+    extra: Dict[str, OutputDataType]
+    # TODO: px, py, emitx, emity
+
+    @staticmethod
+    def calculate_projected_variance(
+        current: np.ndarray,
+        size: np.ndarray,
+        position: np.ndarray,
+    ) -> np.ndarray:
+        x2 = np.nan_to_num(size**2)  # <x^2>_islice
+        x1 = np.nan_to_num(position)  # <x>_islice
+        sigma_x2 = projected_variance_from_slice_data(x2, x1, current)
+        return np.sqrt(sigma_x2)
+
+    @staticmethod
+    def calculate_size(
+        current: np.ndarray,
+        position: np.ndarray,
+        size: np.ndarray,
+    ) -> np.ndarray:
+        # Properly calculated the projected value
+        x = np.nan_to_num(position)  # <x>_islice
+        x2 = np.nan_to_num(size**2)  # <x^2>_islice
+        norm = np.sum(current, axis=1)
+        # Total projected sigma_x
+        sigma_x2 = (
+            np.sum((x2 + x**2) * current, axis=1) / norm
+            - (np.sum(x * current, axis=1) / norm) ** 2
+        )
+        return np.sqrt(sigma_x2)
+
+    @staticmethod
+    def calculate_bunching(
+        current: np.ndarray,
+        bunching: np.ndarray,
+        bunchingphase: np.ndarray,
+    ) -> np.ndarray:
+        dat = np.nan_to_num(bunching)  # Convert any nan to zero for averaging.
+        phase = np.nan_to_num(bunchingphase)
+        return np.abs(np.sum(np.exp(1j * phase) * dat * current, axis=1)) / np.sum(
+            current, axis=1
+        )
+
+    @staticmethod
+    def calculate_simple_stat(
+        current: np.ndarray,
+        dat: np.ndarray,
+    ) -> np.ndarray:
+        dat = np.nan_to_num(dat)  # Convert any nan to zero for averaging.
+        return np.sum(dat * current, axis=1) / np.sum(current, axis=1)
+
+    @classmethod
+    def from_output_beam(cls, beam: OutputBeam) -> OutputBeamStat:
+        current = np.nan_to_num(beam.current)
+
+        simple_stats = {
+            attr: cls.calculate_simple_stat(current, getattr(beam, attr))
+            for attr in set(OutputBeam.model_fields)
+            - {"xsize", "ysize", "bunching", "extra", "stat", "units"}
+        }
+        extra = {
+            key: cls.calculate_simple_stat(current, value)
+            for key, value in beam.extra.items()
+        }
+        return OutputBeamStat(
+            sigma_x=cls.calculate_projected_variance(
+                current=current,
+                size=beam.xsize,
+                position=beam.xposition,
+            ),
+            sigma_y=cls.calculate_projected_variance(
+                current=current,
+                size=beam.ysize,
+                position=beam.yposition,
+            ),
+            sigma_energy=cls.calculate_projected_variance(
+                current=current,
+                size=beam.energyspread,
+                position=beam.energy,
+            ),
+            xsize=cls.calculate_size(
+                current=current,
+                position=beam.xposition,
+                size=beam.xsize,
+            ),
+            ysize=cls.calculate_size(
+                current=current,
+                position=beam.yposition,
+                size=beam.ysize,
+            ),
+            bunching=cls.calculate_bunching(
+                current=current,
+                bunching=beam.bunching,
+                bunchingphase=beam.bunchingphase,
+            ),
+            extra=extra,
+            **simple_stats,
+        )
+
+
+class OutputBeam(BaseModel):
+    units: Dict[str, PydanticPmdUnit] = pydantic.Field(default_factory=dict)
+    lsc_field: NDArray = pydantic.Field(default_factory=_empty_ndarray)
+    ssc_field: NDArray = pydantic.Field(default_factory=_empty_ndarray)
+    alphax: NDArray = pydantic.Field(default_factory=_empty_ndarray)
+    alphay: NDArray = pydantic.Field(default_factory=_empty_ndarray)
+    betax: NDArray = pydantic.Field(default_factory=_empty_ndarray)
+    betay: NDArray = pydantic.Field(default_factory=_empty_ndarray)
+    bunching: NDArray = pydantic.Field(default_factory=_empty_ndarray)
+    bunchingphase: NDArray = pydantic.Field(default_factory=_empty_ndarray)
+    current: NDArray = pydantic.Field(default_factory=_empty_ndarray)
+    efield: NDArray = pydantic.Field(default_factory=_empty_ndarray)
+    emax: NDArray = pydantic.Field(default_factory=_empty_ndarray)
+    emin: NDArray = pydantic.Field(default_factory=_empty_ndarray)
+    emitx: NDArray = pydantic.Field(default_factory=_empty_ndarray)
+    emity: NDArray = pydantic.Field(default_factory=_empty_ndarray)
+    energy: NDArray = pydantic.Field(default_factory=_empty_ndarray)
+    energyspread: NDArray = pydantic.Field(default_factory=_empty_ndarray)
+    pxmax: NDArray = pydantic.Field(default_factory=_empty_ndarray)
+    pxmin: NDArray = pydantic.Field(default_factory=_empty_ndarray)
+    pxposition: NDArray = pydantic.Field(default_factory=_empty_ndarray)
+    pymax: NDArray = pydantic.Field(default_factory=_empty_ndarray)
+    pymin: NDArray = pydantic.Field(default_factory=_empty_ndarray)
+    pyposition: NDArray = pydantic.Field(default_factory=_empty_ndarray)
+    wakefield: NDArray = pydantic.Field(default_factory=_empty_ndarray)
+    xmax: NDArray = pydantic.Field(default_factory=_empty_ndarray)
+    xmin: NDArray = pydantic.Field(default_factory=_empty_ndarray)
+    xposition: NDArray = pydantic.Field(default_factory=_empty_ndarray)
+    xsize: NDArray = pydantic.Field(default_factory=_empty_ndarray)
+    ymax: NDArray = pydantic.Field(default_factory=_empty_ndarray)
+    ymin: NDArray = pydantic.Field(default_factory=_empty_ndarray)
+    yposition: NDArray = pydantic.Field(default_factory=_empty_ndarray)
+    ysize: NDArray = pydantic.Field(default_factory=_empty_ndarray)
+    extra: Dict[str, OutputDataType] = pydantic.Field(default_factory=dict)
+
+    @pydantic.computed_field
+    @cached_property
+    def stat(self) -> OutputBeamStat:
+        return OutputBeamStat.from_output_beam(self)
+
+
+class OutputMetaDumps(BaseModel):
+    units: Dict[str, PydanticPmdUnit] = pydantic.Field(default_factory=dict)
+    ndumps: int = 0
+    extra: Dict[str, OutputDataType] = pydantic.Field(default_factory=dict)
+
+
+class OutputMetaVersion(BaseModel, extra="allow"):
+    units: Dict[str, PydanticPmdUnit] = pydantic.Field(default_factory=dict)
+    beta: float = 0.0
+    build_info: str = ""
+    major: float = 0.0
+    minor: float = 0.0
+    revision: float = 0.0
+    extra: Dict[str, OutputDataType] = pydantic.Field(default_factory=dict)
+
+
+class OutputMeta(BaseModel, extra="allow"):
+    units: Dict[str, PydanticPmdUnit] = pydantic.Field(default_factory=dict)
+    beamdumps: OutputMetaDumps = pydantic.Field(default_factory=OutputMetaDumps)
+    fielddumps: OutputMetaDumps = pydantic.Field(default_factory=OutputMetaDumps)
+    host: str = ""
+    input_file: str = ""
+    lattice_file: str = ""
+    time_stamp: str = ""
+    user: str = ""
+    version: OutputMetaVersion = pydantic.Field(default_factory=OutputMetaVersion)
+    cwd: str = ""
+    mpisize: float = 0.0
+    extra: Dict[str, OutputDataType] = pydantic.Field(default_factory=dict)
+
+
+class OutputGlobal(BaseModel, extra="allow"):
+    units: Dict[str, PydanticPmdUnit] = pydantic.Field(default_factory=dict)
+    frequency: NDArray = pydantic.Field(default_factory=_empty_ndarray)
+    gamma0: float = 0.0
+    lambdaref: float = 0.0
+    one4one: float = 0.0
+    s: NDArray = pydantic.Field(default_factory=_empty_ndarray)
+    sample: float = 0.0
+    scan: float = 0.0
+    slen: float = 0.0
+    time: float = 0.0
+    extra: Dict[str, OutputDataType] = pydantic.Field(default_factory=dict)
+
+
+class OutputFieldStat(BaseModel):
+    xposition: NDArray
+    xsize: NDArray
+    yposition: NDArray
+    ysize: NDArray
+
+    @classmethod
+    def from_output_field(cls, field: OutputField) -> OutputFieldStat:
+        return OutputFieldStat(
+            xposition=np.mean(field.xposition, axis=1),
+            yposition=np.mean(field.yposition, axis=1),
+            xsize=np.mean(field.xsize, axis=1),
+            ysize=np.mean(field.ysize, axis=1),
+        )
+
+
+class OutputField(BaseModel, extra="allow"):
+    units: Dict[str, PydanticPmdUnit] = pydantic.Field(default_factory=dict)
+    dgrid: float = 0.0
+    intensity_farfield: NDArray = pydantic.Field(default_factory=_empty_ndarray)
+    intensity_nearfield: NDArray = pydantic.Field(default_factory=_empty_ndarray)
+    ngrid: float = 0.0
+    phase_farfield: NDArray = pydantic.Field(default_factory=_empty_ndarray)
+    phase_nearfield: NDArray = pydantic.Field(default_factory=_empty_ndarray)
+    power: NDArray = pydantic.Field(default_factory=_empty_ndarray)
+    xdivergence: NDArray = pydantic.Field(default_factory=_empty_ndarray)
+    xpointing: NDArray = pydantic.Field(default_factory=_empty_ndarray)
+    xposition: NDArray = pydantic.Field(default_factory=_empty_ndarray)
+    xsize: NDArray = pydantic.Field(default_factory=_empty_ndarray)
+    ydivergence: NDArray = pydantic.Field(default_factory=_empty_ndarray)
+    ypointing: NDArray = pydantic.Field(default_factory=_empty_ndarray)
+    yposition: NDArray = pydantic.Field(default_factory=_empty_ndarray)
+    ysize: NDArray = pydantic.Field(default_factory=_empty_ndarray)
+    extra: Dict[str, OutputDataType] = pydantic.Field(default_factory=dict)
+
+    @pydantic.computed_field
+    @property
+    def peak_power(self) -> float:
+        return np.max(self.power, axis=1)
+
+
 LoadableH5File = Union[
     _ParticleGroupH5File,
     _FieldH5File,
 ]
-
-
-def _split_data(data: Dict[str, OutputDataType], prefix: str) -> Dict[str, Any]:
-    res = {}
-
-    def add_item(key: str, value: Any, parent: Dict[str, Any]) -> None:
-        if "/" not in key:
-            parent[key] = value
-        else:
-            first, rest = key.split("/", 1)
-            add_item(key=rest, value=value, parent=parent.setdefault(first, {}))
-
-    for key, value in data.items():
-        if key.startswith(prefix):
-            key = key[len(prefix) :].lstrip("/")
-            add_item(key, value, res)
-    return res
+_T = TypeVar("_T", bound=BaseModel)
 
 
 class Genesis4Output(Mapping, BaseModel, arbitrary_types_allowed=True):
@@ -201,7 +481,13 @@ class Genesis4Output(Mapping, BaseModel, arbitrary_types_allowed=True):
         Dictionary of aliased data keys.
     """
 
-    data: Dict[str, OutputDataType] = pydantic.Field(default_factory=dict)
+    beam: OutputBeam = pydantic.Field(default_factory=OutputBeam)
+    field_info: OutputField = pydantic.Field(default_factory=OutputField)
+    lattice: OutputLattice = pydantic.Field(default_factory=OutputLattice)
+    global_: OutputGlobal = pydantic.Field(default_factory=OutputGlobal)
+    meta: OutputMeta = pydantic.Field(default_factory=OutputMeta)
+    version: OutputMetaVersion = pydantic.Field(default_factory=OutputMetaVersion)
+    extra: Dict[str, OutputDataType] = pydantic.Field(default_factory=dict)
     field: Dict[str, FieldFile] = pydantic.Field(
         default_factory=dict,
         exclude=True,
@@ -216,47 +502,18 @@ class Genesis4Output(Mapping, BaseModel, arbitrary_types_allowed=True):
     field_files: Dict[str, LoadableH5File] = pydantic.Field(default_factory=dict)
     particle_files: Dict[str, LoadableH5File] = pydantic.Field(default_factory=dict)
 
-    def __repr__(self):
-        return f"{self.__class__.__name__}(run={self.run})"
-
-    def to_string(self, mode: Literal["html", "markdown"]) -> str:
-        if mode == "html":
-            return tools.html_table_repr(self, [])
-        if mode == "markdown":
-            return str(tools.ascii_table_repr(self, []))
-        raise NotImplementedError(f"Render mode {mode} unsupported")
-
+    @pydantic.computed_field
     @property
-    def beam(self) -> OutputBeamDict:
-        """Beam-related output information dictionary."""
-        return typing.cast(OutputBeamDict, _split_data(self.data, "Beam/"))
+    def field_energy(self) -> np.ndarray:
+        dat = self.field_info.power
 
-    @property
-    def field_info(self) -> OutputFieldDict:
-        """Field-related output information dictionary."""
-        return typing.cast(OutputFieldDict, _split_data(self.data, "Field/"))
+        # Integrate to get J
+        nslice = dat.shape[1]
+        slen = self.global_.slen
+        ds = slen / nslice
+        return np.sum(dat, axis=1) * ds / c_light
 
-    @property
-    def lattice(self) -> OutputLatticeDict:
-        """Lattice-related output information dictionary."""
-        return typing.cast(OutputLatticeDict, _split_data(self.data, "Lattice/"))
-
-    @property
-    def global_(self) -> OutputGlobalDict:
-        """Global settings-related output information dictionary."""
-        return typing.cast(OutputGlobalDict, _split_data(self.data, "Global/"))
-
-    @property
-    def meta(self) -> OutputMetaDict:
-        """Run meta information information dictionary."""
-        return typing.cast(OutputMetaDict, _split_data(self.data, "Meta/"))
-
-    @property
-    def version(self) -> OutputMetaVersionDict:
-        """Version-related information dictionary."""
-        return typing.cast(
-            OutputMetaVersionDict, _split_data(self.data, "Meta/Version/")
-        )
+    pulse_energy = field_energy
 
     @property
     def fields(self) -> Dict[str, FieldFile]:
@@ -365,8 +622,30 @@ class Genesis4Output(Mapping, BaseModel, arbitrary_types_allowed=True):
             if alias_to in units:
                 units[alias_from] = units[alias_to]
 
+        def instantiate(cls: Type[_T], data_key: str) -> _T:
+            dct = data.pop(data_key)
+            extra = {key: dct.pop(key) for key in set(dct) - set(cls.model_fields)}
+            return cls(
+                **dct,
+                extra=extra,
+                units=units.pop(data_key, {}),
+            )
+
+        beam = instantiate(OutputBeam, "beam")
+        field_info = instantiate(OutputField, "field")
+        lattice = instantiate(OutputLattice, "lattice")
+        global_ = instantiate(OutputGlobal, "global")
+        meta = instantiate(OutputMeta, "meta")
+        version = meta.version
+        extra = data
+
         output = cls(
-            data=data,
+            beam=beam,
+            field_info=field_info,
+            lattice=lattice,
+            global_=global_,
+            version=version,
+            extra=extra,
             unit_info=units,
             alias=alias,
             field_files={field.key: field for field in fields},
@@ -459,107 +738,6 @@ class Genesis4Output(Mapping, BaseModel, arbitrary_types_allowed=True):
     def units(self, key: str) -> Optional[pmd_unit]:
         """pmd_unit of a given key"""
         return self.unit_info.get(key, None)
-
-    def stat(self, key):
-        """
-        Calculate a statistic of the beam or field
-        along z.
-        """
-
-        # Derived stats
-        if key.startswith("beam_sigma_"):
-            comp = key[11:]
-            if comp not in ("x", "px", "y", "py", "energy"):
-                raise NotImplementedError(f"Unsupported component for f{key}: '{comp}'")
-
-            current = np.nan_to_num(self.beam["current"])
-
-            if comp in ("x", "y"):
-                k2 = f"{comp}size"
-                k1 = f"{comp}position"
-            elif comp in ("energy"):
-                k2 = "energyspread"
-                k1 = "energy"
-            else:
-                # TODO: emittance from alpha, beta, etc.
-                raise NotImplementedError(f"TODO: {key}")
-            x2 = np.nan_to_num(self.beam[k2] ** 2)  # <x^2>_islice
-            x1 = np.nan_to_num(self.beam[k1])  # <x>_islice
-            sigma_X2 = projected_variance_from_slice_data(x2, x1, current)
-
-            return np.sqrt(sigma_X2)
-
-        # Original stats
-        key = self.alias.get(key, key)
-
-        # Peak power
-        if "power" in key.lower():
-            if "field/" in key.lower():
-                dat = self.data[key]
-            else:
-                dat = self.field_info["power"]
-            return np.max(dat, axis=1)
-
-        if key.startswith("Lattice"):
-            return self.get_array(key)
-
-        if key.startswith("Beam"):
-            dat = self.get_array(key)
-            skey = key.split("/")[1]
-
-            # Average over the beam taking to account the weighting (current)
-            current = np.nan_to_num(self.beam["current"])
-
-            if skey in ("xsize", "ysize"):
-                # TODO: emitx, emity
-                # Properly calculated the projected value
-                plane = skey[0]
-                x = np.nan_to_num(self.beam[f"{plane}position"])  # <x>_islice
-                x2 = np.nan_to_num(self.beam[f"{plane}size"] ** 2)  # <x^2>_islice
-                norm = np.sum(current, axis=1)
-                # Total projected sigma_x
-                sigma_x2 = (
-                    np.sum((x2 + x**2) * current, axis=1) / norm
-                    - (np.sum(x * current, axis=1) / norm) ** 2
-                )
-
-                output = np.sqrt(sigma_x2)
-            elif skey == "bunching":
-                # The bunching calc needs to take the phase into account.
-                dat = np.nan_to_num(dat)  # Convert any nan to zero for averaging.
-                phase = np.nan_to_num(self.beam["bunchingphase"])
-                output = np.abs(
-                    np.sum(np.exp(1j * phase) * dat * current, axis=1)
-                ) / np.sum(current, axis=1)
-
-            else:
-                # Simple stat
-                dat = np.nan_to_num(dat)  # Convert any nan to zero for averaging.
-                output = np.sum(dat * current, axis=1) / np.sum(current, axis=1)
-
-            return output
-
-        elif key.lower() in ["field_energy", "pulse_energy"]:
-            dat = self.field_info["power"]
-
-            # Integrate to get J
-            nslice = dat.shape[1]
-            slen = self.global_["slen"]
-            ds = slen / nslice
-            return np.sum(dat, axis=1) * ds / c_light
-
-        elif key.startswith("Field"):
-            dat = self.get_array(key)
-            skey = key.split("/")[1]
-            if skey in [
-                "xposition",
-                "xsize",
-                "yposition",
-                "ysize",
-            ]:
-                return np.mean(dat, axis=1)
-
-        raise ValueError(f"Cannot compute stat for: '{key}'")
 
     def get_array(self, key: str) -> np.ndarray:
         """
@@ -729,11 +907,15 @@ class Genesis4Output(Mapping, BaseModel, arbitrary_types_allowed=True):
 
     def __iter__(self) -> Generator[str, None, None]:
         """Support for Mapping -> easy access to data."""
-        yield from iter(self.data)
+        # yield from iter(self.data)
+        # TODO
+        yield from []
 
     def __len__(self) -> int:
         """Support for Mapping -> easy access to data."""
-        return len(self.data)
+        # return len(self.data)
+        # TODO
+        return 0
 
 
 def get_description_for_value(key: str, value) -> str:
@@ -763,12 +945,12 @@ def projected_variance_from_slice_data(x2, x1, current):
 
     Parameters
     ----------
-     x2: numpy.ndarray
-         2D <x^2 - <x> >_islice array
-     x: numpy.ndarray
-         2D <x>_islice
-     current: numpy.ndarray
-         1D current array
+    x2: numpy.ndarray
+        2D <x^2 - <x> >_islice array
+    x: numpy.ndarray
+        2D <x>_islice
+    current: numpy.ndarray
+        1D current array
 
     Returns
     -------
@@ -805,5 +987,5 @@ def load_field_file(file: Union[AnyPath, h5py.File]) -> FieldFile:
     return FieldFile(
         label=label,
         dfl=dfl,
-        param=typing.cast(FieldFileParamDict, param),
+        param=FieldFileParams(**param),
     )

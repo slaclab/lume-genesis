@@ -33,7 +33,7 @@ logger = logging.getLogger(__name__)
 
 
 class DisplayOptions(pydantic.BaseModel):
-    jupyter_render_mode: Literal["html", "markdown", "genesis", "repr"] = "html"
+    jupyter_render_mode: Literal["html", "markdown", "genesis", "repr"] = "repr"
     console_render_mode: Literal["markdown", "genesis", "repr"] = "repr"
     echo_genesis_output: bool = True
     include_description: bool = True
@@ -398,7 +398,7 @@ def table_output(
     annotations : dict of str to str, optional
         Optional override of annotations found on the object.
     """
-    if is_jupyter() and display_options.jupyter_render_mode == "html":
+    if is_jupyter() and display_options.jupyter_render_mode != "markdown":
 
         class _InfoObj:
             def _repr_html_(_self) -> str:
@@ -691,24 +691,30 @@ def pretty_repr(
     newline_threshold: int = 80,
     seen: Optional[list] = None,
 ) -> str:
-    basic_repr = repr(obj)
     if isinstance(obj, pydantic.BaseModel):
         values = {attr: getattr(obj, attr, None) for attr in obj.model_fields}
         defaults = {attr: field.default for attr, field in obj.model_fields.items()}
         attr_prefix = "{attr}="
+        if hasattr(obj, "_pretty_repr_"):
+            # Always make the pretty repr
+            basic_repr = " " * newline_threshold
+        else:
+            basic_repr = repr(obj)
     elif isinstance(obj, (list, tuple)):
         values = {idx: val for idx, val in enumerate(obj)}
         defaults = {idx: None for idx in range(len(obj))}
         attr_prefix = ""
+        basic_repr = repr(obj)
     elif isinstance(obj, dict):
         values = obj
         defaults = {attr: None for attr in obj}
         attr_prefix = "'{attr}': "
+        basic_repr = repr(obj)
     elif isinstance(obj, pathlib.Path):
         path = str(obj).replace("'", r"\'")
         return f"pathlib.Path('{path}')"
     else:
-        return basic_repr
+        return repr(obj)
 
     if len(basic_repr) < newline_threshold:
         return basic_repr

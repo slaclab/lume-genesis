@@ -5,16 +5,16 @@ import pydantic
 import pytest
 
 from ...version4 import Genesis4
-from ...version4.output import Genesis4Output
-from ...version4.parsers import extract_aliases
-from ...version4.types import (
-    OutputLatticeDict,
-    OutputBeamDict,
-    OutputGlobalDict,
-    OutputMetaVersionDict,
-    OutputMetaDict,
-    OutputFieldDict,
+from ...version4.output import (
+    Genesis4Output,
+    OutputLattice,
+    OutputBeam,
+    OutputGlobal,
+    OutputMetaVersion,
+    OutputMeta,
+    OutputField,
 )
+from ...version4.parsers import extract_aliases
 from ..conftest import test_root
 
 
@@ -66,31 +66,31 @@ def output(
 
 
 @pytest.mark.parametrize(
-    "attr, typeddict",
+    "attr, model_cls",
     [
-        ("beam", OutputBeamDict),
-        ("field_info", OutputFieldDict),
-        ("lattice", OutputLatticeDict),
-        ("global_", OutputGlobalDict),
-        ("meta", OutputMetaDict),
-        ("version", OutputMetaVersionDict),
+        ("beam", OutputBeam),
+        ("field_info", OutputField),
+        ("lattice", OutputLattice),
+        ("global_", OutputGlobal),
+        ("meta", OutputMeta),
+        ("version", OutputMetaVersion),
     ],
 )
 def test_typed_dictionaries(
     output: Genesis4Output,
     attr: str,
-    typeddict: type,
+    model_cls: pydantic.BaseModel,
 ) -> None:
-    typeddict.__pydantic_config__ = pydantic.ConfigDict(strict=True, extra="forbid")
+    # typeddict.__pydantic_config__ = pydantic.ConfigDict(strict=True, extra="forbid")
 
-    dct = getattr(output, attr)
-    new_keys = set(dct) - set(typeddict.__annotations__)
-    assert (
-        not new_keys
-    ), f"Found extra keys {new_keys}; upstream Genesis changes perhaps"
+    model = getattr(output, attr)
+    assert not model.model_extra
 
-    adapter = pydantic.TypeAdapter(typeddict)
-    adapter.validate_python(dct)
+
+def test_repr(
+    output: Genesis4Output,
+) -> None:
+    print(repr(output))
 
 
 def test_stat_smoke(
@@ -111,25 +111,13 @@ def test_stat_smoke(
                 raise
 
 
-@pytest.mark.parametrize(
-    "key",
-    [
-        "beam_sigma_x",
-        "beam_sigma_y",
-        "beam_sigma_energy",
-        pytest.param(
-            "beam_sigma_px", marks=pytest.mark.xfail(reason="Not yet implemented")
-        ),
-        pytest.param(
-            "beam_sigma_py", marks=pytest.mark.xfail(reason="Not yet implemented")
-        ),
-    ],
-)
 def test_stat_beamsigma_smoke(
     output: Genesis4Output,
     key: str,
 ) -> None:
-    output.stat(key)
+    assert output.beam.stat.x.shape
+    assert output.beam.stat.y.shape
+    assert output.beam.stat.energy.shape
 
 
 def test_plot_smoke(
