@@ -36,6 +36,8 @@ from ._main import (
     Write,
 )
 from .core import (
+    AnyBeamlineElement,
+    AnyNameList,
     DuplicatedLineItem,
     Genesis4Input,
     InitialParticles,
@@ -48,6 +50,9 @@ from .core import (
 )
 
 __all__ = [
+    # Types
+    "AnyBeamlineElement",
+    "AnyNameList",
     # Lattice:
     "Chicane",
     "Corrector",

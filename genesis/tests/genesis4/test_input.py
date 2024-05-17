@@ -1,9 +1,7 @@
 import pydantic
 import pydantic.alias_generators
 
-from ...version4 import MainInput
-from ...version4.input import Lattice, Setup
-from ...version4.input.core import AnyBeamlineElement, AnyNameList
+from ...version4 import MainInput, Lattice, Setup, AnyBeamlineElement, AnyNameList
 
 
 def test_namelist_output():
