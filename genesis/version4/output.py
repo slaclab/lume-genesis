@@ -233,18 +233,7 @@ class OutputBeamStat(BaseModel):
     # TODO: px, py, emitx, emity
 
     @staticmethod
-    def calculate_projected_variance(
-        current: np.ndarray,
-        size: np.ndarray,
-        position: np.ndarray,
-    ) -> np.ndarray:
-        x2 = np.nan_to_num(size**2)  # <x^2>_islice
-        x1 = np.nan_to_num(position)  # <x>_islice
-        sigma_x2 = projected_variance_from_slice_data(x2, x1, current)
-        return np.sqrt(sigma_x2)
-
-    @staticmethod
-    def calculate_size(
+    def calculate_projected_sigma(
         current: np.ndarray,
         position: np.ndarray,
         size: np.ndarray,
@@ -294,27 +283,27 @@ class OutputBeamStat(BaseModel):
             for key, value in beam.extra.items()
         }
         return OutputBeamStat(
-            sigma_x=cls.calculate_projected_variance(
+            sigma_x=cls.calculate_projected_sigma(
                 current=current,
                 size=beam.xsize,
                 position=beam.xposition,
             ),
-            sigma_y=cls.calculate_projected_variance(
+            sigma_y=cls.calculate_projected_sigma(
                 current=current,
                 size=beam.ysize,
                 position=beam.yposition,
             ),
-            sigma_energy=cls.calculate_projected_variance(
+            sigma_energy=cls.calculate_projected_sigma(
                 current=current,
                 size=beam.energyspread,
                 position=beam.energy,
             ),
-            xsize=cls.calculate_size(
+            xsize=cls.calculate_projected_sigma(
                 current=current,
                 position=beam.xposition,
                 size=beam.xsize,
             ),
-            ysize=cls.calculate_size(
+            ysize=cls.calculate_projected_sigma(
                 current=current,
                 position=beam.yposition,
                 size=beam.ysize,
