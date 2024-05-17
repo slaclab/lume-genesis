@@ -11,6 +11,7 @@ import pathlib
 import string
 import subprocess
 import sys
+import textwrap
 import traceback
 import uuid
 from numbers import Number
@@ -32,8 +33,8 @@ logger = logging.getLogger(__name__)
 
 
 class DisplayOptions(pydantic.BaseModel):
-    jupyter_render_mode: Literal["html", "markdown", "genesis"] = "html"
-    console_render_mode: Literal["markdown", "genesis"] = "markdown"
+    jupyter_render_mode: Literal["html", "markdown", "genesis", "repr"] = "html"
+    console_render_mode: Literal["markdown", "genesis", "repr"] = "repr"
     echo_genesis_output: bool = True
     include_description: bool = True
     filter_tab_completion: bool = True
@@ -345,7 +346,7 @@ def _truncated_string(value, max_length: int) -> str:
     value = str(value)
     if len(value) < max_length + 3:
         return value
-    value = value[max_length:]
+    value = value[:max_length]
     return f"{value}..."
 
 
@@ -534,7 +535,9 @@ def html_table_repr(
                 table_value = "(recursed)"
             else:
                 table_value = html_table_repr(
-                    value, seen, display_options=display_options
+                    value,
+                    seen,
+                    display_options=display_options,
                 )
         else:
             table_value = html.escape(_truncated_string(value, max_length=100))
@@ -679,3 +682,96 @@ def read_if_path(
     # the user wants.
     with open(path) as fp:
         return path.absolute(), fp.read()
+
+
+def pretty_repr(
+    obj,
+    skip_defaults: bool = True,
+    indent: int = 2,
+    newline_threshold: int = 80,
+    seen: Optional[list] = None,
+) -> str:
+    basic_repr = repr(obj)
+    if isinstance(obj, pydantic.BaseModel):
+        values = {attr: getattr(obj, attr, None) for attr in obj.model_fields}
+        defaults = {attr: field.default for attr, field in obj.model_fields.items()}
+        attr_prefix = "{attr}="
+    elif isinstance(obj, (list, tuple)):
+        values = {idx: val for idx, val in enumerate(obj)}
+        defaults = {idx: None for idx in range(len(obj))}
+        attr_prefix = ""
+    elif isinstance(obj, dict):
+        values = obj
+        defaults = {attr: None for attr in obj}
+        attr_prefix = "'{attr}': "
+    elif isinstance(obj, pathlib.Path):
+        path = str(obj).replace("'", r"\'")
+        return f"pathlib.Path('{path}')"
+    else:
+        return basic_repr
+
+    if len(basic_repr) < newline_threshold:
+        return basic_repr
+
+    if seen is None:
+        seen = []
+
+    if obj in seen:
+        return "(duplicated)"
+
+    seen.append(obj)
+
+    lines = []
+    for attr, value in values.items():
+        if skip_defaults:
+            default = defaults[attr]
+            try:
+                if isinstance(value, np.ndarray):
+                    is_default = np.allclose(value, default or [])
+                else:
+                    is_default = default == value
+            except Exception:
+                is_default = False
+
+            if is_default:
+                continue
+
+        if isinstance(value, (pydantic.BaseModel, dict, list, tuple, pathlib.Path)):
+            field_repr = pretty_repr(
+                value,
+                skip_defaults=skip_defaults,
+                newline_threshold=newline_threshold - indent,
+                seen=seen,
+            )
+        else:
+            field_repr = repr(value)
+
+        if field_repr.count("\n") > 0:
+            field_repr = textwrap.indent(field_repr, prefix=" " * indent).lstrip()
+
+        line_prefix = attr_prefix.format(indent=indent, attr=attr)
+        lines.extend(f"{indent * ' '}{line_prefix}{field_repr},".splitlines())
+
+    if isinstance(obj, dict):
+        prefix = ""
+        open_bracket, close_bracket = "{}"
+    elif isinstance(obj, list):
+        prefix = ""
+        open_bracket, close_bracket = "[]"
+    elif isinstance(obj, tuple):
+        prefix = ""
+        open_bracket, close_bracket = "()"
+    else:
+        prefix = obj.__class__.__name__
+        open_bracket, close_bracket = "()"
+
+    if len(lines) == 0:
+        return f"{prefix}{open_bracket}{close_bracket}"
+    if len(lines) == 1:
+        line = lines[0].lstrip().rstrip(",")
+        return f"{prefix}{open_bracket}{line}{close_bracket}"
+    else:
+        lines.insert(0, f"{prefix}{open_bracket}")
+        lines.append(f"{close_bracket}")
+
+    return "\n".join(_truncated_string(line, max_length=150) for line in lines)

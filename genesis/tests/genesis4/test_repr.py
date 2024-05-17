@@ -1,8 +1,10 @@
-from typing import Union
+import textwrap
+from typing import Generator, Union
 
 import numpy as np
 import pytest
 
+from ... import tools
 from ...tools import DisplayOptions
 from ...version4.input import (
     AlterSetup,
@@ -48,6 +50,7 @@ from ...version4.types import BeamlineElement, NameList
         ("html", True),
         ("markdown", True),
         ("genesis", True),
+        ("repr", True),
         ("html", False),
         ("markdown", False),
         ("genesis", False),
@@ -56,18 +59,24 @@ from ...version4.types import BeamlineElement, NameList
         "html-with-desc",
         "markdown-with-desc",
         "genesis-with-desc",
+        "repr_pretty",
         "html-no-desc",
         "markdown-no-desc",
         "genesis-no-desc",
     ],
 )
-def display_options(request: pytest.FixtureRequest) -> DisplayOptions:
+def display_options(
+    request: pytest.FixtureRequest,
+) -> Generator[DisplayOptions, None, None]:
     mode, desc = request.param
-    return DisplayOptions(
+    opts = DisplayOptions(
         jupyter_render_mode=mode,
         console_render_mode=mode if mode != "html" else "genesis",
         include_description=desc,
     )
+    tools.global_display_options = opts
+    yield opts
+    tools.global_display_options = DisplayOptions()
 
 
 @pytest.mark.parametrize(
@@ -134,5 +143,125 @@ def test_render(
     print("Render options", display_options)
     print("Using __str__:")
     print(str(obj))
+    assert "<pre" not in str(obj)
     print("Using _repr_html_:")
     print(obj._repr_html_())
+    assert "<" in obj._repr_html_()
+
+
+@pytest.mark.parametrize(
+    "value, expected",
+    [
+        ("abcdef", "abcdef"),
+        ("abcdefghijkl", "abcdef..."),
+    ],
+)
+def test_truncate_string(
+    value: str,
+    expected: str,
+) -> None:
+    assert tools._truncated_string(value, 6) == expected
+
+
+@pytest.mark.parametrize(
+    "value, expected",
+    [
+        pytest.param({}, "{}", id="empty-dict"),
+        pytest.param(
+            {"a": 3},
+            """{'a': 3}""",
+            id="simple-dict",
+        ),
+        pytest.param(
+            {"a": 3, "b": {"c": "d"}},
+            """\
+            {
+              'a': 3,
+              'b': {'c': 'd'},
+            }
+            """,
+            id="simple-dict2",
+        ),
+        pytest.param(
+            {"a": 3, "b": {"c": "d", "e": [1, 2, 3, 4]}},
+            """\
+            {
+              'a': 3,
+              'b': {
+                'c': 'd',
+                'e': [
+                  1,
+                  2,
+                  3,
+                  4,
+                ],
+              },
+            }
+            """,
+            id="dict-with-list",
+        ),
+        pytest.param(
+            {"a": 3, "b": {"c": "d", "e": (1, 2, 3, 4)}},
+            """\
+            {
+              'a': 3,
+              'b': {
+                'c': 'd',
+                'e': (
+                  1,
+                  2,
+                  3,
+                  4,
+                ),
+              },
+            }
+            """,
+            id="dict-with-tuple",
+        ),
+    ],
+)
+def test_repr_pretty_dict(
+    value,
+    expected: str,
+) -> None:
+    expected = textwrap.dedent(expected)
+    print("Expected:")
+    print("---------")
+    print(expected)
+    print("---------")
+    repr_ = tools.pretty_repr(value, newline_threshold=0)
+    print("Repr:")
+    print("---------")
+    print(repr_)
+    print("---------")
+    assert repr_.rstrip() == expected.rstrip()
+    assert eval(repr_) == eval(expected)
+
+
+# WIP
+# @pytest.mark.parametrize(
+#     "value, expected",
+#     [
+#         pytest.param(
+#             {},
+#             "{}",
+#             id="empty-dict"
+#         ),
+#     ]
+# )
+# def test_repr_pretty_element(
+#     value,
+#     expected: str,
+# ) -> None:
+#     expected = textwrap.dedent(expected)
+#     print("Expected:")
+#     print("---------")
+#     print(expected)
+#     print("---------")
+#     repr_ = tools.pretty_repr(value, newline_threshold=0)
+#     print("Repr:")
+#     print("---------")
+#     print(repr_)
+#     print("---------")
+#     assert repr_.rstrip() == expected.rstrip()
+#     assert eval(repr_) == eval(expected)

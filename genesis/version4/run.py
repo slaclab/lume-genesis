@@ -115,6 +115,8 @@ def _make_genesis4_input(
     return source_path, Genesis4Input.from_strings(
         input_source,
         lattice_source,
+        input_filename=input_fn,
+        lattice_filename=lattice_fn,
         source_path=source_path,
     )
 

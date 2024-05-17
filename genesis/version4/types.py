@@ -34,6 +34,50 @@ else:
 
 
 class BaseModel(pydantic.BaseModel):
+    """
+    LUME-Genesis customized pydantic BaseModel.
+
+    Alters `dir()` handling and other things for user convenience.
+    """
+
+    def _repr_table_data_(self):
+        return {
+            "obj": self,
+            "descriptions": None,
+            "annotations": None,
+        }
+
+    def to_table(self):
+        return tools.table_output(**self._repr_table_data_())
+
+    def _pretty_repr_(self) -> str:
+        return tools.pretty_repr(self, skip_defaults=True)
+
+    def to_string(self, mode: Literal["html", "markdown", "genesis", "repr"]) -> str:
+        if mode == "html":
+            return tools.html_table_repr(**self._repr_table_data_(), seen=[])
+        if mode == "markdown":
+            return str(tools.ascii_table_repr(**self._repr_table_data_(), seen=[]))
+        if mode == "genesis":
+            to_genesis = getattr(self, "to_genesis", None)
+            if callable(to_genesis):
+                return to_genesis()
+            return self._pretty_repr_()
+        if mode == "repr":
+            return self._pretty_repr_()
+
+        raise NotImplementedError(f"Render mode {mode} unsupported")
+
+    def _repr_html_(self) -> str:
+        render_mode = tools.global_display_options.jupyter_render_mode
+        as_string = self.to_string(render_mode)
+        if render_mode == "html":
+            return as_string
+        return f"<pre>{as_string}</pre>"
+
+    def __str__(self) -> str:
+        return self.to_string(tools.global_display_options.console_render_mode)
+
     def __dir__(self) -> Iterable[str]:
         full = super().__dir__()
         if not tools.global_display_options.filter_tab_completion:
@@ -167,21 +211,6 @@ class NameList(BaseModel, abc.ABC):
         dump = self.model_dump(by_alias=True, exclude_defaults=True)
         return {attr: value for attr, value in dump.items() if attr not in {"type"}}
 
-    def to_string(self, mode: Literal["html", "markdown", "genesis"]) -> str:
-        if mode == "html":
-            return tools.html_table_repr(self, [])
-        if mode == "markdown":
-            return str(tools.ascii_table_repr(self, []))
-        if mode == "genesis":
-            return self.to_genesis()
-        raise NotImplementedError(f"Render mode {mode} unsupported")
-
-    def _repr_html_(self) -> str:
-        return self.to_string(tools.global_display_options.jupyter_render_mode)
-
-    def __str__(self) -> str:
-        return self.to_string(tools.global_display_options.console_render_mode)
-
     def to_genesis(self) -> str:
         """Create a Genesis 4-compatible namelist from this instance."""
         from .input.util import python_to_namelist_value
@@ -241,21 +270,6 @@ class BeamlineElement(BaseModel, abc.ABC):
     """Base class for beamline elements used in Genesis 4 lattice files."""
 
     label: str
-
-    def to_string(self, mode: Literal["html", "markdown", "genesis"]) -> str:
-        if mode == "html":
-            return tools.html_table_repr(self, [])
-        if mode == "markdown":
-            return str(tools.ascii_table_repr(self, []))
-        if mode == "genesis":
-            return self.to_genesis()
-        raise NotImplementedError(f"Render mode {mode} unsupported")
-
-    def _repr_html_(self) -> str:
-        return self.to_string(tools.global_display_options.jupyter_render_mode)
-
-    def __str__(self) -> str:
-        return self.to_string(tools.global_display_options.console_render_mode)
 
     @property
     def genesis_parameters(self) -> Dict[str, ValueType]:
