@@ -1,5 +1,6 @@
 import pydantic
 import pydantic.alias_generators
+import pytest
 
 from ...version4 import MainInput, Lattice, Setup, AnyBeamlineElement, AnyNameList
 
@@ -47,6 +48,22 @@ def test_main_input_helpers(namelist: AnyNameList):
         assert getattr(main, attr) == [namelist]
 
     assert getattr(main, attr_base) == namelist
+
+
+def test_main_input_helpers_plural(namelist: AnyNameList):
+    main = MainInput(namelists=[namelist, namelist])
+
+    attr = pydantic.alias_generators.to_snake(namelist.__class__.__name__)
+
+    if attr in {"setup", "initial_particles"}:
+        ...
+    else:
+        with pytest.raises(ValueError) as ex:
+            getattr(main, attr)
+            assert "Please use" in str(ex.exconly())
+
+        suggested_attr = str(ex.exconly()).split("Please use .")[1].split()[0]
+        assert getattr(main, suggested_attr) == [namelist, namelist]
 
 
 def test_lattice_helpers(element: AnyBeamlineElement):

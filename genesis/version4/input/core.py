@@ -25,6 +25,7 @@ import h5py
 import lark
 import numpy as np
 import pydantic
+import pydantic.alias_generators
 from lume import tools as lume_tools
 from pmd_beamphysics import ParticleGroup
 from pmd_beamphysics.units import c_light
@@ -1038,8 +1039,14 @@ class MainInput(BaseModel):
         if len(items) == 0:
             raise ValueError(f"{cls.__name__} is not defined in the input.")
         if len(items) > 1:
+            plural_fix = {
+                "profile_gauss": "profile_gausses",
+            }
+            plural = pydantic.alias_generators.to_snake(cls.__name__)
+            plural = plural_fix.get(plural, f"{plural}s")
             raise ValueError(
-                f"Multiple {cls.__name__} namelists were defined in the input."
+                f"Multiple {cls.__name__} namelists were defined in the input. "
+                f"Please use .{plural}"
             )
         return items[0]
 
