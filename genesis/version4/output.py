@@ -195,11 +195,6 @@ class OutputBeamStat(BaseModel):
     sigma_y: NDArray
     sigma_energy: NDArray
 
-    xsize: NDArray
-    ysize: NDArray
-    bunching: NDArray
-    lsc_field: NDArray
-    ssc_field: NDArray
     alphax: NDArray
     alphay: NDArray
     betax: NDArray
@@ -214,21 +209,21 @@ class OutputBeamStat(BaseModel):
     emity: NDArray
     energy: NDArray
     energyspread: NDArray
+    lsc_field: NDArray
     pxmax: NDArray
     pxmin: NDArray
     pxposition: NDArray
     pymax: NDArray
     pymin: NDArray
     pyposition: NDArray
+    ssc_field: NDArray
     wakefield: NDArray
     xmax: NDArray
     xmin: NDArray
     xposition: NDArray
-    xsize: NDArray
     ymax: NDArray
     ymin: NDArray
     yposition: NDArray
-    ysize: NDArray
     extra: Dict[str, OutputDataType]
     # TODO: px, py, emitx, emity
 
@@ -297,16 +292,6 @@ class OutputBeamStat(BaseModel):
                 current=current,
                 size=beam.energyspread,
                 position=beam.energy,
-            ),
-            xsize=cls.calculate_projected_sigma(
-                current=current,
-                position=beam.xposition,
-                size=beam.xsize,
-            ),
-            ysize=cls.calculate_projected_sigma(
-                current=current,
-                position=beam.yposition,
-                size=beam.ysize,
             ),
             bunching=cls.calculate_bunching(
                 current=current,
