@@ -758,6 +758,10 @@ def pretty_repr(
         line_prefix = attr_prefix.format(indent=indent, attr=attr)
         lines.extend(f"{indent * ' '}{line_prefix}{field_repr},".splitlines())
 
+    inside = " ".join(line[indent:] for line in lines)
+    if len(inside) < newline_threshold:
+        lines = [inside]
+
     if isinstance(obj, dict):
         prefix = ""
         open_bracket, close_bracket = "{}"
