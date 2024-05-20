@@ -913,6 +913,7 @@ class MainInput(BaseModel):
 
     @property
     def initial_particles(self) -> InitialParticles:
+        """Initial particles, if defined.  Setter is alias for `set_particles`."""
         return self._get_only_one(InitialParticles)
 
     @initial_particles.setter
@@ -924,114 +925,142 @@ class MainInput(BaseModel):
 
     @property
     def alter_setups(self) -> List[auto_main.AlterSetup]:
+        """List of all AlterSetup instances."""
         return self.by_namelist.get(auto_main.AlterSetup, [])
 
     @property
     def lattices(self) -> List[auto_main.Lattice]:
+        """List of all Lattice instances."""
         return self.by_namelist.get(auto_main.Lattice, [])
 
     @property
     def times(self) -> List[auto_main.Time]:
+        """List of all Time instances."""
         return self.by_namelist.get(auto_main.Time, [])
 
     @property
     def profile_consts(self) -> List[auto_main.ProfileConst]:
+        """List of all ProfileConst instances."""
         return self.by_namelist.get(auto_main.ProfileConst, [])
 
     @property
     def profile_gausses(self) -> List[auto_main.ProfileGauss]:
+        """List of all ProfileGauss instances."""
         return self.by_namelist.get(auto_main.ProfileGauss, [])
 
     @property
     def profile_steps(self) -> List[auto_main.ProfileStep]:
+        """List of all ProfileStep instances."""
         return self.by_namelist.get(auto_main.ProfileStep, [])
 
     @property
     def profile_polynoms(self) -> List[auto_main.ProfilePolynom]:
+        """List of all ProfilePolynom instances."""
         return self.by_namelist.get(auto_main.ProfilePolynom, [])
 
     @property
     def profile_files(self) -> List[auto_main.ProfileFile]:
+        """List of all ProfileFile instances."""
         return self.by_namelist.get(auto_main.ProfileFile, [])
 
     @property
     def sequence_consts(self) -> List[auto_main.SequenceConst]:
+        """List of all SequenceConst instances."""
         return self.by_namelist.get(auto_main.SequenceConst, [])
 
     @property
     def sequence_polynoms(self) -> List[auto_main.SequencePolynom]:
+        """List of all SequencePolynom instances."""
         return self.by_namelist.get(auto_main.SequencePolynom, [])
 
     @property
     def sequence_powers(self) -> List[auto_main.SequencePower]:
+        """List of all SequencePower instances."""
         return self.by_namelist.get(auto_main.SequencePower, [])
 
     @property
     def sequence_randoms(self) -> List[auto_main.SequenceRandom]:
+        """List of all SequenceRandom instances."""
         return self.by_namelist.get(auto_main.SequenceRandom, [])
 
     @property
     def beams(self) -> List[auto_main.Beam]:
+        """List of all Beam instances."""
         return self.by_namelist.get(auto_main.Beam, [])
 
     @property
     def fields(self) -> List[auto_main.Field]:
+        """List of all Field instances."""
         return self.by_namelist.get(auto_main.Field, [])
 
     @property
     def import_distributions(self) -> List[auto_main.ImportDistribution]:
+        """List of all ImportDistribution instances."""
         return self.by_namelist.get(auto_main.ImportDistribution, [])
 
     @property
     def import_beams(self) -> List[auto_main.ImportBeam]:
+        """List of all ImportBeam instances."""
         return self.by_namelist.get(auto_main.ImportBeam, [])
 
     @property
     def import_fields(self) -> List[auto_main.ImportField]:
+        """List of all ImportField instances."""
         return self.by_namelist.get(auto_main.ImportField, [])
 
     @property
     def import_transformations(self) -> List[auto_main.ImportTransformation]:
+        """List of all ImportTransformation instances."""
         return self.by_namelist.get(auto_main.ImportTransformation, [])
 
     @property
     def efields(self) -> List[auto_main.Efield]:
+        """List of all Efield instances."""
         return self.by_namelist.get(auto_main.Efield, [])
 
     @property
     def sponrads(self) -> List[auto_main.Sponrad]:
+        """List of all Sponrad instances."""
         return self.by_namelist.get(auto_main.Sponrad, [])
 
     @property
     def wakes(self) -> List[auto_main.Wake]:
+        """List of all Wake instances."""
         return self.by_namelist.get(auto_main.Wake, [])
 
     @property
     def writes(self) -> List[auto_main.Write]:
+        """List of all Write instances."""
         return self.by_namelist.get(auto_main.Write, [])
 
     @property
     def tracks(self) -> List[auto_main.Track]:
+        """List of all Track instances."""
         return self.by_namelist.get(auto_main.Track, [])
 
     @property
     def alter_fields(self) -> List[auto_main.AlterField]:
+        """List of all AlterField instances."""
         return self.by_namelist.get(auto_main.AlterField, [])
 
     @property
     def profile_file_multis(self) -> List[auto_main.ProfileFileMulti]:
+        """List of all ProfileFileMulti instances."""
         return self.by_namelist.get(auto_main.ProfileFileMulti, [])
 
     @property
     def sequence_lists(self) -> List[auto_main.SequenceList]:
+        """List of all SequenceList instances."""
         return self.by_namelist.get(auto_main.SequenceList, [])
 
     @property
     def sequence_filelists(self) -> List[auto_main.SequenceFilelist]:
+        """List of all SequenceFilelist instances."""
         return self.by_namelist.get(auto_main.SequenceFilelist, [])
 
     @property
     def profile_arrays(self) -> List[ProfileArray]:
+        """List of all ProfileArray instances."""
         return self.by_namelist.get(ProfileArray, [])
 
     def _get_only_one(self, cls: Type[T_NameList]) -> T_NameList:
@@ -1052,114 +1081,142 @@ class MainInput(BaseModel):
 
     @property
     def alter_setup(self) -> auto_main.AlterSetup:
+        """Get a single AlterSetup instance. Errors if zero or 2+ exist."""
         return self._get_only_one(auto_main.AlterSetup)
 
     @property
     def lattice(self) -> auto_main.Lattice:
+        """Get a single Lattice instance. Errors if zero or 2+ exist."""
         return self._get_only_one(auto_main.Lattice)
 
     @property
     def time(self) -> auto_main.Time:
+        """Get a single Time instance. Errors if zero or 2+ exist."""
         return self._get_only_one(auto_main.Time)
 
     @property
     def profile_const(self) -> auto_main.ProfileConst:
+        """Get a single ProfileConst instance. Errors if zero or 2+ exist."""
         return self._get_only_one(auto_main.ProfileConst)
 
     @property
     def profile_gauss(self) -> auto_main.ProfileGauss:
+        """Get a single ProfileGauss instance. Errors if zero or 2+ exist."""
         return self._get_only_one(auto_main.ProfileGauss)
 
     @property
     def profile_step(self) -> auto_main.ProfileStep:
+        """Get a single ProfileStep instance. Errors if zero or 2+ exist."""
         return self._get_only_one(auto_main.ProfileStep)
 
     @property
     def profile_polynom(self) -> auto_main.ProfilePolynom:
+        """Get a single ProfilePolynom instance. Errors if zero or 2+ exist."""
         return self._get_only_one(auto_main.ProfilePolynom)
 
     @property
     def profile_file(self) -> auto_main.ProfileFile:
+        """Get a single ProfileFile instance. Errors if zero or 2+ exist."""
         return self._get_only_one(auto_main.ProfileFile)
 
     @property
     def sequence_const(self) -> auto_main.SequenceConst:
+        """Get a single SequenceConst instance. Errors if zero or 2+ exist."""
         return self._get_only_one(auto_main.SequenceConst)
 
     @property
     def sequence_polynom(self) -> auto_main.SequencePolynom:
+        """Get a single SequencePolynom instance. Errors if zero or 2+ exist."""
         return self._get_only_one(auto_main.SequencePolynom)
 
     @property
     def sequence_power(self) -> auto_main.SequencePower:
+        """Get a single SequencePower instance. Errors if zero or 2+ exist."""
         return self._get_only_one(auto_main.SequencePower)
 
     @property
     def sequence_random(self) -> auto_main.SequenceRandom:
+        """Get a single SequenceRandom instance. Errors if zero or 2+ exist."""
         return self._get_only_one(auto_main.SequenceRandom)
 
     @property
     def beam(self) -> auto_main.Beam:
+        """Get a single Beam instance. Errors if zero or 2+ exist."""
         return self._get_only_one(auto_main.Beam)
 
     @property
     def field(self) -> auto_main.Field:
+        """Get a single Field instance. Errors if zero or 2+ exist."""
         return self._get_only_one(auto_main.Field)
 
     @property
     def import_distribution(self) -> auto_main.ImportDistribution:
+        """Get a single ImportDistribution instance. Errors if zero or 2+ exist."""
         return self._get_only_one(auto_main.ImportDistribution)
 
     @property
     def import_beam(self) -> auto_main.ImportBeam:
+        """Get a single ImportBeam instance. Errors if zero or 2+ exist."""
         return self._get_only_one(auto_main.ImportBeam)
 
     @property
     def import_field(self) -> auto_main.ImportField:
+        """Get a single ImportField instance. Errors if zero or 2+ exist."""
         return self._get_only_one(auto_main.ImportField)
 
     @property
     def import_transformation(self) -> auto_main.ImportTransformation:
+        """Get a single ImportTransformation instance. Errors if zero or 2+ exist."""
         return self._get_only_one(auto_main.ImportTransformation)
 
     @property
     def efield(self) -> auto_main.Efield:
+        """Get a single Efield instance. Errors if zero or 2+ exist."""
         return self._get_only_one(auto_main.Efield)
 
     @property
     def sponrad(self) -> auto_main.Sponrad:
+        """Get a single Sponrad instance. Errors if zero or 2+ exist."""
         return self._get_only_one(auto_main.Sponrad)
 
     @property
     def wake(self) -> auto_main.Wake:
+        """Get a single Wake instance. Errors if zero or 2+ exist."""
         return self._get_only_one(auto_main.Wake)
 
     @property
     def write(self) -> auto_main.Write:
+        """Get a single Write instance. Errors if zero or 2+ exist."""
         return self._get_only_one(auto_main.Write)
 
     @property
     def track(self) -> auto_main.Track:
+        """Get a single Track instance. Errors if zero or 2+ exist."""
         return self._get_only_one(auto_main.Track)
 
     @property
     def alter_field(self) -> auto_main.AlterField:
+        """Get a single AlterField instance. Errors if zero or 2+ exist."""
         return self._get_only_one(auto_main.AlterField)
 
     @property
     def profile_file_multi(self) -> auto_main.ProfileFileMulti:
+        """Get a single ProfileFileMulti instance. Errors if zero or 2+ exist."""
         return self._get_only_one(auto_main.ProfileFileMulti)
 
     @property
     def sequence_list(self) -> auto_main.SequenceList:
+        """Get a single SequenceList instance. Errors if zero or 2+ exist."""
         return self._get_only_one(auto_main.SequenceList)
 
     @property
     def sequence_filelist(self) -> auto_main.SequenceFilelist:
+        """Get a single SequenceFilelist instance. Errors if zero or 2+ exist."""
         return self._get_only_one(auto_main.SequenceFilelist)
 
     @property
     def profile_array(self) -> ProfileArray:
+        """Get a single ProfileArray instance. Errors if zero or 2+ exist."""
         return self._get_only_one(ProfileArray)
 
 
