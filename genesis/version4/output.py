@@ -295,6 +295,19 @@ class OutputLattice(BaseModel, extra="allow"):
         ),
     )
 
+    @classmethod
+    def _fix_scalar_data(
+        cls, dct: Dict[str, OutputDataType]
+    ) -> Dict[str, OutputDataType]:
+        res = {}
+        for key, value in dct.items():
+            info = cls.model_fields[key]
+            if info.annotation is np.ndarray and isinstance(value, float):
+                res[key] = np.asarray([value])
+            else:
+                res[key] = value
+        return res
+
 
 class OutputBeamStat(BaseModel):
     """
@@ -809,7 +822,7 @@ class OutputField(BaseModel, extra="allow"):
     def __init__(self, *args, slen=None, **kwargs):
         super().__init__(*args, **kwargs)
 
-        if slen is not None:
+        if slen is not None and len(self.power):
             self.energy = self.calculate_field_energy(slen)
 
     @pydantic.computed_field
@@ -1053,7 +1066,9 @@ class Genesis4Output(Mapping, BaseModel, arbitrary_types_allowed=True):
                 units[alias_from] = units[alias_to]
 
         def instantiate(cls: Type[_T], data_key: str, **kwargs) -> _T:
-            dct = data.pop(data_key)
+            dct = data.pop(data_key, {})
+            if cls is OutputLattice:
+                dct = OutputLattice._fix_scalar_data(dct)
             extra = {key: dct.pop(key) for key in set(dct) - set(cls.model_fields)}
             return cls(
                 **dct,
