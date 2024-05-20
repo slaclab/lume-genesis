@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from functools import cached_property
 import logging
+import operator
 import pathlib
 import typing
 from typing import (
@@ -164,33 +165,144 @@ def _empty_ndarray() -> np.ndarray:
 
 
 class OutputLattice(BaseModel, extra="allow"):
+    """
+    Genesis 4 lattice output information (HDF5 Group ``"/Lattice"``).
+
+    Array indices are per step of the simulation, which relates to the Z
+    position.
+
+    The undulator strength, quadrupole field and other are resolved with the
+    resolution of the requested integration step size, which is given in the
+    dataset `.dz`.
+
+    For the z-position there are two datasets. The regular one `.z` has the same
+    length and describes the lattice quantities from the position ``.z[i]`` to
+    ``.z[i]+.dz[i]`` of the integration step ``i``. The dataset `.zplot` is
+    used for plotting the beam or field parameters along the undulator.
+
+    Note that those are evaluated before the integration started, so that there
+    can be one more entry than the lattice datasets. Also if the output is
+    reduced by the output step option in the tracking command, the length of
+    zplot is shorter because it has to match the length of the beam and field
+    parameters.
+    """
+
     units: Dict[str, PydanticPmdUnit] = pydantic.Field(default_factory=dict)
-    aw: NDArray = pydantic.Field(default_factory=_empty_ndarray)
-    ax: NDArray = pydantic.Field(default_factory=_empty_ndarray)
-    ay: NDArray = pydantic.Field(default_factory=_empty_ndarray)
+    aw: NDArray = pydantic.Field(
+        default_factory=_empty_ndarray,
+        description=r"""
+        The dimensionless rms undulator parameter. For planar undulator this value
+        is smaller by a factor $1 / \sqrt{2}$ than its K-value, while for helical
+        undulator rms and peak values are identical.
+        """.strip(),
+    )
+    ax: NDArray = pydantic.Field(
+        default_factory=_empty_ndarray,
+        description=r"Offset of the undulator module in $x$ in meter.",
+    )
+    ay: NDArray = pydantic.Field(
+        default_factory=_empty_ndarray,
+        description=r"Offset of the undulator module in $y$ in meter.",
+    )
     chic_angle: NDArray = pydantic.Field(default_factory=_empty_ndarray)
-    chic_lb: NDArray = pydantic.Field(default_factory=_empty_ndarray)
-    chic_ld: NDArray = pydantic.Field(default_factory=_empty_ndarray)
+    chic_lb: NDArray = pydantic.Field(
+        default_factory=_empty_ndarray,
+        description=r"Length of an individual dipole in meter.",
+    )
+    chic_ld: NDArray = pydantic.Field(
+        default_factory=_empty_ndarray,
+        description=r"""
+        Drift between the outer and inner dipoles, projected onto the undulator
+        axis. The actual path length is longer by the factor $1/\cos\theta$, where
+        $\theta$ is the bending angle of an individual dipole.
+        """.strip(),
+    )
     chic_lt: NDArray = pydantic.Field(default_factory=_empty_ndarray)
-    cx: NDArray = pydantic.Field(default_factory=_empty_ndarray)
-    cy: NDArray = pydantic.Field(default_factory=_empty_ndarray)
-    dz: NDArray = pydantic.Field(default_factory=_empty_ndarray)
-    gradx: NDArray = pydantic.Field(default_factory=_empty_ndarray)
-    grady: NDArray = pydantic.Field(default_factory=_empty_ndarray)
+    cx: NDArray = pydantic.Field(
+        default_factory=_empty_ndarray,
+        description=r"Kick angle in $x$ in units of $\gamma \beta_x$.",
+    )
+    cy: NDArray = pydantic.Field(
+        default_factory=_empty_ndarray,
+        description=r"Kick angle in $y$ in units of $\gamma \beta_y$.",
+    )
+    dz: NDArray = pydantic.Field(
+        default_factory=_empty_ndarray,
+        description="Step length",
+    )
+    gradx: NDArray = pydantic.Field(
+        default_factory=_empty_ndarray,
+        description=r"""
+        Relative transverse gradient of undulator field in $x$ $\equiv (1/a_w)
+        \partial a_w/\partial x$.
+        """.strip(),
+    )
+    grady: NDArray = pydantic.Field(
+        default_factory=_empty_ndarray,
+        description=r"""
+        Relative transverse gradient of undulator field in $y$ $\equiv (1/a_w)
+        \partial a_w/\partial y$.
+        """.strip(),
+    )
     ku: NDArray = pydantic.Field(default_factory=_empty_ndarray)
-    kx: NDArray = pydantic.Field(default_factory=_empty_ndarray)
-    ky: NDArray = pydantic.Field(default_factory=_empty_ndarray)
-    phaseshift: NDArray = pydantic.Field(default_factory=_empty_ndarray)
-    qf: NDArray = pydantic.Field(default_factory=_empty_ndarray)
-    qx: NDArray = pydantic.Field(default_factory=_empty_ndarray)
-    qy: NDArray = pydantic.Field(default_factory=_empty_ndarray)
-    slippage: NDArray = pydantic.Field(default_factory=_empty_ndarray)
-    z: NDArray = pydantic.Field(default_factory=_empty_ndarray)
-    zplot: NDArray = pydantic.Field(default_factory=_empty_ndarray)
-    extra: Dict[str, OutputDataType] = pydantic.Field(default_factory=dict)
+    kx: NDArray = pydantic.Field(
+        default_factory=_empty_ndarray,
+        description=r"""
+        Roll-off parameter of the quadratic term of the undulator field in x. It
+        is normalized with respect to $k_u^2$.
+        """.strip(),
+    )
+    ky: NDArray = pydantic.Field(
+        default_factory=_empty_ndarray,
+        description=r"Roll-off parameter of the quadratic term of the undulator field in y.",
+    )
+    phaseshift: NDArray = pydantic.Field(
+        default_factory=_empty_ndarray,
+        description="Phase shift in radians.",
+    )
+    qf: NDArray = pydantic.Field(
+        default_factory=_empty_ndarray,
+        description="Quadrupole focusing strength in $1/m^2$",
+    )
+    qx: NDArray = pydantic.Field(
+        default_factory=_empty_ndarray,
+        description="Quadrupole offset in $x$ in meters.",
+    )
+    qy: NDArray = pydantic.Field(
+        default_factory=_empty_ndarray,
+        description="Quadrupole offset in $y$ in meters.",
+    )
+    slippage: NDArray = pydantic.Field(
+        default_factory=_empty_ndarray, description="Lattice slippage."
+    )
+    z: NDArray = pydantic.Field(
+        default_factory=_empty_ndarray,
+        description=(
+            "Step Z position in m.  The same length and describes the lattice "
+            "quantities from the position ``.z[i]`` to ``.z[i]+.dz[i]`` of the "
+            "i-th integration step."
+        ),
+    )
+    zplot: NDArray = pydantic.Field(
+        default_factory=_empty_ndarray,
+        description="For plotting the beam or field parameters along the undulator.",
+    )
+    extra: Dict[str, OutputDataType] = pydantic.Field(
+        default_factory=dict,
+        description=(
+            "Additional Genesis 4 output data.  This is a future-proofing mechanism "
+            "in case Genesis 4 changes and LUME-Genesis is not yet ready for it."
+        ),
+    )
 
 
 class OutputBeamStat(BaseModel):
+    """
+    Output Beam statistics, based on HDF5 ``/Beam``.
+
+    These are calculated for you by LUME-Genesis.
+    """
+
     sigma_x: NDArray
     sigma_y: NDArray
     sigma_energy: NDArray
@@ -224,7 +336,13 @@ class OutputBeamStat(BaseModel):
     ymax: NDArray
     ymin: NDArray
     yposition: NDArray
-    extra: Dict[str, OutputDataType]
+    extra: Dict[str, OutputDataType] = pydantic.Field(
+        default_factory=dict,
+        description=(
+            "Additional Genesis 4 output data.  This is a future-proofing mechanism "
+            "in case Genesis 4 changes and LUME-Genesis is not yet ready for it."
+        ),
+    )
     # TODO: px, py, emitx, emity
 
     @staticmethod
@@ -233,6 +351,22 @@ class OutputBeamStat(BaseModel):
         position: np.ndarray,
         size: np.ndarray,
     ) -> np.ndarray:
+        """
+        Calculate projected sigma.
+
+        Parameters
+        ----------
+        current : np.ndarray
+            1D current array.
+        position : np.ndarray
+            2D <x>_islice
+        size : np.ndarray
+            2D <x^2 - <x> >_islice array.
+
+        Returns
+        -------
+        np.ndarray
+        """
         # Properly calculated the projected value
         x = np.nan_to_num(position)  # <x>_islice
         x2 = np.nan_to_num(size**2)  # <x^2>_islice
@@ -250,6 +384,19 @@ class OutputBeamStat(BaseModel):
         bunching: np.ndarray,
         bunchingphase: np.ndarray,
     ) -> np.ndarray:
+        """
+        Calculate bunching.
+
+        Parameters
+        ----------
+        current : np.ndarray
+        bunching : np.ndarray
+        bunchingphase : np.ndarray
+
+        Returns
+        -------
+        np.ndarray
+        """
         dat = np.nan_to_num(bunching)  # Convert any nan to zero for averaging.
         phase = np.nan_to_num(bunchingphase)
         return np.abs(np.sum(np.exp(1j * phase) * dat * current, axis=1)) / np.sum(
@@ -261,11 +408,24 @@ class OutputBeamStat(BaseModel):
         current: np.ndarray,
         dat: np.ndarray,
     ) -> np.ndarray:
+        """
+        Calculate simple statistics of the given data.
+
+        Parameters
+        ----------
+        current : np.ndarray
+        dat : np.ndarray
+
+        Returns
+        -------
+        np.ndarray
+        """
         dat = np.nan_to_num(dat)  # Convert any nan to zero for averaging.
         return np.sum(dat * current, axis=1) / np.sum(current, axis=1)
 
     @classmethod
     def from_output_beam(cls, beam: OutputBeam) -> OutputBeamStat:
+        """Calculate all statistics given an `OutputBeam` instance."""
         current = np.nan_to_num(beam.current)
 
         simple_stats = {
@@ -304,63 +464,183 @@ class OutputBeamStat(BaseModel):
 
 
 class OutputBeam(BaseModel):
+    """Output beam information. (HDF5 ``/Beam``)"""
+
     units: Dict[str, PydanticPmdUnit] = pydantic.Field(default_factory=dict)
-    lsc_field: NDArray = pydantic.Field(default_factory=_empty_ndarray)
-    ssc_field: NDArray = pydantic.Field(default_factory=_empty_ndarray)
-    alphax: NDArray = pydantic.Field(default_factory=_empty_ndarray)
-    alphay: NDArray = pydantic.Field(default_factory=_empty_ndarray)
-    betax: NDArray = pydantic.Field(default_factory=_empty_ndarray)
-    betay: NDArray = pydantic.Field(default_factory=_empty_ndarray)
-    bunching: NDArray = pydantic.Field(default_factory=_empty_ndarray)
-    bunchingphase: NDArray = pydantic.Field(default_factory=_empty_ndarray)
-    current: NDArray = pydantic.Field(default_factory=_empty_ndarray)
-    efield: NDArray = pydantic.Field(default_factory=_empty_ndarray)
-    emax: NDArray = pydantic.Field(default_factory=_empty_ndarray)
-    emin: NDArray = pydantic.Field(default_factory=_empty_ndarray)
-    emitx: NDArray = pydantic.Field(default_factory=_empty_ndarray)
-    emity: NDArray = pydantic.Field(default_factory=_empty_ndarray)
-    energy: NDArray = pydantic.Field(default_factory=_empty_ndarray)
-    energyspread: NDArray = pydantic.Field(default_factory=_empty_ndarray)
-    pxmax: NDArray = pydantic.Field(default_factory=_empty_ndarray)
-    pxmin: NDArray = pydantic.Field(default_factory=_empty_ndarray)
-    pxposition: NDArray = pydantic.Field(default_factory=_empty_ndarray)
-    pymax: NDArray = pydantic.Field(default_factory=_empty_ndarray)
-    pymin: NDArray = pydantic.Field(default_factory=_empty_ndarray)
-    pyposition: NDArray = pydantic.Field(default_factory=_empty_ndarray)
-    wakefield: NDArray = pydantic.Field(default_factory=_empty_ndarray)
-    xmax: NDArray = pydantic.Field(default_factory=_empty_ndarray)
-    xmin: NDArray = pydantic.Field(default_factory=_empty_ndarray)
-    xposition: NDArray = pydantic.Field(default_factory=_empty_ndarray)
-    xsize: NDArray = pydantic.Field(default_factory=_empty_ndarray)
-    ymax: NDArray = pydantic.Field(default_factory=_empty_ndarray)
-    ymin: NDArray = pydantic.Field(default_factory=_empty_ndarray)
-    yposition: NDArray = pydantic.Field(default_factory=_empty_ndarray)
-    ysize: NDArray = pydantic.Field(default_factory=_empty_ndarray)
-    extra: Dict[str, OutputDataType] = pydantic.Field(default_factory=dict)
+    # The following are evaluated at each integration step.
+    # TODO: can be bunching_n and bunchingphase_n keys up to number of
+    # harmonics
+    bunching: NDArray = pydantic.Field(
+        default_factory=_empty_ndarray,
+        description="Evaluated at each integration step. [unitless]",
+    )
+    bunchingphase: NDArray = pydantic.Field(
+        default_factory=_empty_ndarray,
+        description="Evaluated at each integration step. [rad]",
+    )
+    energy: NDArray = pydantic.Field(
+        default_factory=_empty_ndarray,
+        description="Evaluated at each integration step. [mc^2]",
+    )
+    energyspread: NDArray = pydantic.Field(
+        default_factory=_empty_ndarray,
+        description="Evaluated at each integration step. [mc^2]",
+    )
+
+    xsize: NDArray = pydantic.Field(
+        default_factory=_empty_ndarray, description="Beam horizontal sigma. [m]"
+    )
+    ysize: NDArray = pydantic.Field(
+        default_factory=_empty_ndarray, description="Beam horizontal sigma. [m]"
+    )
+
+    lsc_field: NDArray = pydantic.Field(
+        default_factory=_empty_ndarray, description="Longitudinal space charge [eV/m]"
+    )
+    ssc_field: NDArray = pydantic.Field(
+        default_factory=_empty_ndarray, description="Short-range space charge [eV/m]"
+    )
+    efield: NDArray = pydantic.Field(
+        default_factory=_empty_ndarray,
+        description="Efield, internally eloss+longESC [eV/m]",
+    )
+    wakefield: NDArray = pydantic.Field(
+        default_factory=_empty_ndarray,
+        description="Wakefield, internally the energy loss. [eV/m]",
+    )
+
+    pxmin: NDArray = pydantic.Field(
+        default_factory=_empty_ndarray,
+        description="Particle horizontal minimum momentum [rad]",
+    )
+    pxmax: NDArray = pydantic.Field(
+        default_factory=_empty_ndarray,
+        description="Particle horizontal maximum momentum [rad]",
+    )
+
+    pymin: NDArray = pydantic.Field(
+        default_factory=_empty_ndarray,
+        description="Particle vertical minimum momentum [rad]",
+    )
+    pymax: NDArray = pydantic.Field(
+        default_factory=_empty_ndarray,
+        description="Particle vertical maximum momentum [rad]",
+    )
+
+    pxposition: NDArray = pydantic.Field(
+        default_factory=_empty_ndarray,
+        description="Particle horizontal position in momentum space [rad]",
+    )
+    pyposition: NDArray = pydantic.Field(
+        default_factory=_empty_ndarray,
+        description="Particle vertical position in momentum space [rad]",
+    )
+
+    xmin: NDArray = pydantic.Field(
+        default_factory=_empty_ndarray,
+        description="Particle horizontal minimum position [m]",
+    )
+    xmax: NDArray = pydantic.Field(
+        default_factory=_empty_ndarray,
+        description="Particle horizontal maximum position [m]",
+    )
+
+    ymin: NDArray = pydantic.Field(
+        default_factory=_empty_ndarray,
+        description="Particle vertical minimum position [m]",
+    )
+    ymax: NDArray = pydantic.Field(
+        default_factory=_empty_ndarray,
+        description="Particle vertical maximum position [m]",
+    )
+
+    xposition: NDArray = pydantic.Field(
+        default_factory=_empty_ndarray, description="Partical horizontal position [m]"
+    )
+    yposition: NDArray = pydantic.Field(
+        default_factory=_empty_ndarray, description="Partical vertical position [m]"
+    )
+
+    # The following are evaluated only at the beginning of the simulation.
+    alphax: NDArray = pydantic.Field(
+        default_factory=_empty_ndarray,
+        description="Twiss alpha horizontal. Evaluated only at the beginning. [rad]",
+    )
+    alphay: NDArray = pydantic.Field(
+        default_factory=_empty_ndarray,
+        description="Twiss alpha vertical. Evaluated only at the beginning. [rad]",
+    )
+    betax: NDArray = pydantic.Field(
+        default_factory=_empty_ndarray,
+        description="Twiss beta horizontal. Evaluated only at the beginning. [m]",
+    )
+    betay: NDArray = pydantic.Field(
+        default_factory=_empty_ndarray,
+        description="Twiss beta vertical. Evaluated only at the beginning. [m]",
+    )
+    current: NDArray = pydantic.Field(
+        default_factory=_empty_ndarray,
+        description="Beam current. Evaluated only at the beginning. [A]",
+    )
+    emitx: NDArray = pydantic.Field(
+        default_factory=_empty_ndarray,
+        description="Beam horizontal emittance. Evaluated only at the beginning. [m]",
+    )
+    emity: NDArray = pydantic.Field(
+        default_factory=_empty_ndarray,
+        description="Beam vertical emittance. Evaluated only at the beginning. [m]",
+    )
+
+    extra: Dict[str, OutputDataType] = pydantic.Field(
+        default_factory=dict,
+        description=(
+            "Additional Genesis 4 output data.  This is a future-proofing mechanism "
+            "in case Genesis 4 changes and LUME-Genesis is not yet ready for it."
+        ),
+    )
 
     @pydantic.computed_field
     @cached_property
     def stat(self) -> OutputBeamStat:
+        """Calculate statistics for the beam."""
         return OutputBeamStat.from_output_beam(self)
 
 
 class OutputMetaDumps(BaseModel):
+    """Dump-related output information. (HDF5 ``/Meta/*dumps``)"""
+
     units: Dict[str, PydanticPmdUnit] = pydantic.Field(default_factory=dict)
     ndumps: int = 0
-    extra: Dict[str, OutputDataType] = pydantic.Field(default_factory=dict)
+    extra: Dict[str, OutputDataType] = pydantic.Field(
+        default_factory=dict,
+        description=(
+            "Additional Genesis 4 output data.  This is a future-proofing mechanism "
+            "in case Genesis 4 changes and LUME-Genesis is not yet ready for it."
+        ),
+    )
 
 
 class OutputMetaVersion(BaseModel, extra="allow"):
+    """Version information from Genesis 4 output. (HDF5 ``/Meta/Version``)"""
+
     units: Dict[str, PydanticPmdUnit] = pydantic.Field(default_factory=dict)
     beta: float = 0.0
     build_info: str = ""
     major: float = 0.0
     minor: float = 0.0
     revision: float = 0.0
-    extra: Dict[str, OutputDataType] = pydantic.Field(default_factory=dict)
+    extra: Dict[str, OutputDataType] = pydantic.Field(
+        default_factory=dict,
+        description=(
+            "Additional Genesis 4 output data.  This is a future-proofing mechanism "
+            "in case Genesis 4 changes and LUME-Genesis is not yet ready for it."
+        ),
+    )
 
 
 class OutputMeta(BaseModel, extra="allow"):
+    """Meta information from Genesis 4 output. (HDF5 ``/Meta``)"""
+
     units: Dict[str, PydanticPmdUnit] = pydantic.Field(default_factory=dict)
     beamdumps: OutputMetaDumps = pydantic.Field(default_factory=OutputMetaDumps)
     fielddumps: OutputMetaDumps = pydantic.Field(default_factory=OutputMetaDumps)
@@ -372,27 +652,70 @@ class OutputMeta(BaseModel, extra="allow"):
     version: OutputMetaVersion = pydantic.Field(default_factory=OutputMetaVersion)
     cwd: str = ""
     mpisize: float = 0.0
-    extra: Dict[str, OutputDataType] = pydantic.Field(default_factory=dict)
+    extra: Dict[str, OutputDataType] = pydantic.Field(
+        default_factory=dict,
+        description=(
+            "Additional Genesis 4 output data.  This is a future-proofing mechanism "
+            "in case Genesis 4 changes and LUME-Genesis is not yet ready for it."
+        ),
+    )
 
 
 class OutputGlobal(BaseModel, extra="allow"):
+    """Global information from Genesis 4 output. (HDF5 ``/Global``)"""
+
     units: Dict[str, PydanticPmdUnit] = pydantic.Field(default_factory=dict)
-    frequency: NDArray = pydantic.Field(default_factory=_empty_ndarray)
-    gamma0: float = 0.0
-    lambdaref: float = 0.0
-    one4one: float = 0.0
-    s: NDArray = pydantic.Field(default_factory=_empty_ndarray)
-    sample: float = 0.0
-    scan: float = 0.0
-    slen: float = 0.0
-    time: float = 0.0
-    extra: Dict[str, OutputDataType] = pydantic.Field(default_factory=dict)
+    frequency: NDArray = pydantic.Field(
+        default_factory=_empty_ndarray,
+        description="Frequency [eV]",
+    )
+    gamma0: float = pydantic.Field(
+        default=0.0,
+        description="Reference energy in unites of the electron rest mass.",
+    )
+    lambdaref: float = pydantic.Field(
+        default=0.0,
+        description="Reference wavelength [m]",
+    )
+    one4one: bool = pydantic.Field(
+        default=False,
+        description="Flag to enable or disable simulation to resolve each electron in the simulation.",
+    )
+    s: NDArray = pydantic.Field(
+        default_factory=_empty_ndarray, description="Longitudinal position [m]"
+    )
+    sample: float = pydantic.Field(
+        default=0.0,
+        description=(
+            "Sample rate in units of the reference wavelength from the setup "
+            "namelist, so that the number of slices is given by SLEN / "
+            "LAMBDA0/SAMPLE after SLEN has been adjusted to fit the cluster "
+            "size."
+        ),
+    )
+    scan: bool = False
+    slen: float = pydantic.Field(
+        default=0.0,
+        description="Slice length [m]",
+    )
+    time: bool = False
+
+    extra: Dict[str, OutputDataType] = pydantic.Field(
+        default_factory=dict,
+        description=(
+            "Additional Genesis 4 output data.  This is a future-proofing mechanism "
+            "in case Genesis 4 changes and LUME-Genesis is not yet ready for it."
+        ),
+    )
 
 
 class OutputFieldStat(BaseModel):
+    """Calculated output field statistics. Mean field position and size."""
+
     xposition: NDArray
-    xsize: NDArray
     yposition: NDArray
+
+    xsize: NDArray
     ysize: NDArray
 
     @classmethod
@@ -407,27 +730,93 @@ class OutputFieldStat(BaseModel):
 
 class OutputField(BaseModel, extra="allow"):
     units: Dict[str, PydanticPmdUnit] = pydantic.Field(default_factory=dict)
-    dgrid: float = 0.0
-    intensity_farfield: NDArray = pydantic.Field(default_factory=_empty_ndarray)
-    intensity_nearfield: NDArray = pydantic.Field(default_factory=_empty_ndarray)
-    ngrid: float = 0.0
-    phase_farfield: NDArray = pydantic.Field(default_factory=_empty_ndarray)
-    phase_nearfield: NDArray = pydantic.Field(default_factory=_empty_ndarray)
-    power: NDArray = pydantic.Field(default_factory=_empty_ndarray)
-    xdivergence: NDArray = pydantic.Field(default_factory=_empty_ndarray)
-    xpointing: NDArray = pydantic.Field(default_factory=_empty_ndarray)
-    xposition: NDArray = pydantic.Field(default_factory=_empty_ndarray)
-    xsize: NDArray = pydantic.Field(default_factory=_empty_ndarray)
-    ydivergence: NDArray = pydantic.Field(default_factory=_empty_ndarray)
-    ypointing: NDArray = pydantic.Field(default_factory=_empty_ndarray)
-    yposition: NDArray = pydantic.Field(default_factory=_empty_ndarray)
-    ysize: NDArray = pydantic.Field(default_factory=_empty_ndarray)
-    extra: Dict[str, OutputDataType] = pydantic.Field(default_factory=dict)
+    dgrid: float = pydantic.Field(
+        default=0.0,
+        description=(
+            "Grid extension from the center to one edge. The whole grid is "
+            "twice as large with 0 as the center position."
+        ),
+    )
+    intensity_farfield: NDArray = pydantic.Field(
+        default_factory=_empty_ndarray,
+        description="Field intensity in the far field [arb units]",
+    )
+    intensity_nearfield: NDArray = pydantic.Field(
+        default_factory=_empty_ndarray,
+        description="Field intensity in the near field [arb units]",
+    )
+    ngrid: int = 0
+    phase_farfield: NDArray = pydantic.Field(
+        default_factory=_empty_ndarray, description="Far field phase [rad]"
+    )
+    phase_nearfield: NDArray = pydantic.Field(
+        default_factory=_empty_ndarray, description="Near field phase [rad]"
+    )
+    power: NDArray = pydantic.Field(
+        default_factory=_empty_ndarray,
+        description="Power [W]",
+    )
+    xdivergence: NDArray = pydantic.Field(
+        default_factory=_empty_ndarray, description="Horizontal divergence [rad]"
+    )
+    ydivergence: NDArray = pydantic.Field(
+        default_factory=_empty_ndarray, description="Vertical divergence [rad]"
+    )
+
+    xpointing: NDArray = pydantic.Field(
+        default_factory=_empty_ndarray,
+        description="Horizontal pointing. [rad]",
+    )
+    ypointing: NDArray = pydantic.Field(
+        default_factory=_empty_ndarray,
+        description="Vertical pointing. [rad]",
+    )
+
+    xposition: NDArray = pydantic.Field(
+        default_factory=_empty_ndarray,
+        description="Horizontal position. [m]",
+    )
+    yposition: NDArray = pydantic.Field(
+        default_factory=_empty_ndarray,
+        description="Vertical position. [m]",
+    )
+
+    xsize: NDArray = pydantic.Field(
+        default_factory=_empty_ndarray,
+        description="Horizontal sigma. [m]",
+    )
+    ysize: NDArray = pydantic.Field(
+        default_factory=_empty_ndarray,
+        description="Vertical sigma. [m]",
+    )
+    extra: Dict[str, OutputDataType] = pydantic.Field(
+        default_factory=dict,
+        description=(
+            "Additional Genesis 4 output data.  This is a future-proofing mechanism "
+            "in case Genesis 4 changes and LUME-Genesis is not yet ready for it."
+        ),
+    )
+
+    energy: NDArray = pydantic.Field(default_factory=_empty_ndarray)
 
     @pydantic.computed_field
     @property
     def peak_power(self) -> float:
+        """Peak power [W]."""
         return np.max(self.power, axis=1)
+
+    def calculate_field_energy(self, slen: float) -> np.ndarray:
+        """Calculate field energy, given global ``slen``."""
+        # Integrate to get J
+        nslice = self.power.shape[1]
+        ds = slen / nslice
+        return np.sum(self.power, axis=1) * ds / c_light
+
+    def __init__(self, *args, slen=None, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        if slen is not None:
+            self.energy = self.calculate_field_energy(slen)
 
 
 LoadableH5File = Union[
@@ -455,26 +844,76 @@ class Genesis4Output(Mapping, BaseModel, arbitrary_types_allowed=True):
         Dictionary of aliased data keys.
     """
 
-    beam: OutputBeam = pydantic.Field(default_factory=OutputBeam)
-    field_info: OutputField = pydantic.Field(default_factory=OutputField)
-    lattice: OutputLattice = pydantic.Field(default_factory=OutputLattice)
-    global_: OutputGlobal = pydantic.Field(default_factory=OutputGlobal)
-    meta: OutputMeta = pydantic.Field(default_factory=OutputMeta)
-    version: OutputMetaVersion = pydantic.Field(default_factory=OutputMetaVersion)
-    extra: Dict[str, OutputDataType] = pydantic.Field(default_factory=dict)
-    field: Dict[str, FieldFile] = pydantic.Field(
+    beam: OutputBeam = pydantic.Field(
+        default_factory=OutputBeam,
+        description="Genesis 4 output beam information (/Beam)",
+    )
+    field_harmonics: Dict[int, OutputField] = pydantic.Field(
         default_factory=dict,
-        exclude=True,
+        description="Genesis 4 output field information for harmonic N (/FieldN)",
+    )
+    lattice: OutputLattice = pydantic.Field(
+        default_factory=OutputLattice,
+        description="Genesis 4 output metadata (/Lattice)",
+    )
+    global_: OutputGlobal = pydantic.Field(
+        default_factory=OutputGlobal,
+        description="Genesis 4 output metadata (/Global)",
+    )
+    meta: OutputMeta = pydantic.Field(
+        default_factory=OutputMeta,
+        description="Genesis 4 output metadata (/Meta)",
+    )
+    version: OutputMetaVersion = pydantic.Field(
+        default_factory=OutputMetaVersion,
+        description="Genesis 4 version information (/Meta/Version)",
+    )
+    extra: Dict[str, OutputDataType] = pydantic.Field(
+        default_factory=dict,
+        description=(
+            "Additional Genesis 4 output data which are top-level HDF5 groups. "
+            "This is a future-proofing mechanism in case Genesis 4 changes and "
+            "LUME-Genesis is not yet ready for it."
+        ),
+    )
+    field: Dict[str, FieldFile] = pydantic.Field(
+        default_factory=dict, exclude=True, description="Loaded field data."
     )
     particles: Dict[str, ParticleGroup] = pydantic.Field(
-        default_factory=dict,
-        exclude=True,
+        default_factory=dict, exclude=True, description="Loaded particle data."
     )
-    unit_info: Dict[str, PydanticPmdUnit] = pydantic.Field(default_factory=dict)
-    run: RunInfo = pydantic.Field(default_factory=RunInfo)
-    alias: Dict[str, str] = pydantic.Field(default_factory=dict)
-    field_files: Dict[str, LoadableH5File] = pydantic.Field(default_factory=dict)
-    particle_files: Dict[str, LoadableH5File] = pydantic.Field(default_factory=dict)
+    unit_info: Dict[str, PydanticPmdUnit] = pydantic.Field(
+        default_factory=dict, description="Unit information for keys."
+    )
+    run: RunInfo = pydantic.Field(
+        default_factory=RunInfo,
+        description="Run-related information - output text and timing.",
+    )
+    alias: Dict[str, str] = pydantic.Field(
+        default_factory=dict,
+        description=(
+            "Aliases for string key-based access to data, instead of using "
+            "dotted attribute names."
+        ),
+    )
+    field_files: Dict[str, LoadableH5File] = pydantic.Field(
+        default_factory=dict, description="Loadable field files by name."
+    )
+    particle_files: Dict[str, LoadableH5File] = pydantic.Field(
+        default_factory=dict,
+        description="Loadable particle files by name.",
+    )
+
+    def model_post_init(self, _) -> None:
+        self.update_aliases()
+
+    def update_aliases(self) -> None:
+        self.alias.update(tools.make_dotted_aliases(self))
+
+    @property
+    def field_info(self) -> OutputField:
+        """Genesis 4 output field information (/Field) - 1st harmonic."""
+        return self.field_harmonics[1]
 
     @pydantic.computed_field
     @property
@@ -596,26 +1035,39 @@ class Genesis4Output(Mapping, BaseModel, arbitrary_types_allowed=True):
             if alias_to in units:
                 units[alias_from] = units[alias_to]
 
-        def instantiate(cls: Type[_T], data_key: str) -> _T:
+        def instantiate(cls: Type[_T], data_key: str, **kwargs) -> _T:
             dct = data.pop(data_key)
             extra = {key: dct.pop(key) for key in set(dct) - set(cls.model_fields)}
             return cls(
                 **dct,
                 extra=extra,
                 units=units.pop(data_key, {}),
+                **kwargs,
             )
 
-        beam = instantiate(OutputBeam, "beam")
-        field_info = instantiate(OutputField, "field")
-        lattice = instantiate(OutputLattice, "lattice")
+        def get_harmonics_keys():
+            # The first harmonic is just "Field"
+            yield 1, "field"
+            # Harmonic 2+ are HDF5 "FieldN" -> Python "field_n"
+            harmonic = 2
+            while f"field_{harmonic}" in list(data):
+                yield harmonic, f"field_{harmonic}"
+                harmonic += 1
+
         global_ = instantiate(OutputGlobal, "global")
+        beam = instantiate(OutputBeam, "beam")
+        field_harmonics = {
+            harmonic: instantiate(OutputField, key, slen=global_.slen)
+            for harmonic, key in get_harmonics_keys()
+        }
+        lattice = instantiate(OutputLattice, "lattice")
         meta = instantiate(OutputMeta, "meta")
         version = meta.version
         extra = data
 
         output = cls(
             beam=beam,
-            field_info=field_info,
+            field_harmonics=field_harmonics,
             lattice=lattice,
             global_=global_,
             version=version,
@@ -649,8 +1101,10 @@ class Genesis4Output(Mapping, BaseModel, arbitrary_types_allowed=True):
         """
         lazy = self.field_files[label]
         field = lazy.load()
+        assert isinstance(field, FieldFile)
         self.field[label] = field
         logger.info(f"Loaded field data: '{label}'")
+        self.update_aliases
         return field
 
     def load_particles_by_name(self, label: str, smear: bool = True) -> ParticleGroup:
@@ -668,6 +1122,7 @@ class Genesis4Output(Mapping, BaseModel, arbitrary_types_allowed=True):
         """
         lazy = self.particle_files[label]
         group = lazy.load(smear=smear)
+        assert isinstance(group, ParticleGroup)
         self.particles[label] = group
         logger.info(
             f"Loaded particle data: '{label}' as a ParticleGroup with "
@@ -871,25 +1326,16 @@ class Genesis4Output(Mapping, BaseModel, arbitrary_types_allowed=True):
 
     def __getitem__(self, key: str) -> Any:
         """Support for Mapping -> easy access to data."""
-        if key in self.data:
-            return self.data[key]
-        if key in self.alias:
-            alias = self.alias[key]
-            if alias in self.data:
-                return self.data[alias]
-        raise KeyError(key)
+        alias = self.alias[key]
+        return operator.attrgetter(alias)(self)
 
     def __iter__(self) -> Generator[str, None, None]:
         """Support for Mapping -> easy access to data."""
-        # yield from iter(self.data)
-        # TODO
-        yield from []
+        yield from self.alias
 
     def __len__(self) -> int:
         """Support for Mapping -> easy access to data."""
-        # return len(self.data)
-        # TODO
-        return 0
+        return len(self.alias)
 
 
 def get_description_for_value(key: str, value) -> str:
