@@ -41,10 +41,11 @@ class BaseModel(pydantic.BaseModel):
     """
 
     def _repr_table_data_(self):
+        units = getattr(self, "units", None)
         return {
             "obj": self,
             "descriptions": None,
-            "annotations": None,
+            "annotations": units if isinstance(units, dict) else None,
         }
 
     def to_table(self):

@@ -463,7 +463,11 @@ def _get_table_fields(
     annotations: Optional[Mapping[str, Optional[str]]] = None,
 ):
     if isinstance(obj, pydantic.BaseModel):
-        fields = {attr: getattr(obj, attr, None) for attr in obj.model_fields}
+        fields = {
+            attr: getattr(obj, attr, None)
+            for attr, field_info in obj.model_fields.items()
+            if field_info.repr
+        }
         if annotations is None:
             annotations = {
                 attr: field_info.annotation
@@ -537,8 +541,8 @@ def html_table_repr(
     for attr, value in fields.items():
         if value is None:
             continue
-        annotation = annotations[attr]
-        description = descriptions[attr]
+        annotation = annotations.get(attr, "")
+        description = descriptions.get(attr, "")
 
         if isinstance(value, (pydantic.BaseModel, dict)):
             if id(value) in seen:
@@ -629,8 +633,8 @@ def ascii_table_repr(
     for attr, value in fields.items():
         if value is None:
             continue
-        description = descriptions[attr]
-        annotation = annotations[attr]
+        description = descriptions.get(attr, "")
+        annotation = annotations.get(attr, "")
 
         if isinstance(value, pydantic.BaseModel):
             if id(value) in seen:

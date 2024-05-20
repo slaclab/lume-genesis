@@ -187,7 +187,7 @@ class OutputLattice(BaseModel, extra="allow"):
     parameters.
     """
 
-    units: Dict[str, PydanticPmdUnit] = pydantic.Field(default_factory=dict)
+    units: Dict[str, PydanticPmdUnit] = pydantic.Field(default_factory=dict, repr=False)
     aw: NDArray = pydantic.Field(
         default_factory=_empty_ndarray,
         description=r"""
@@ -477,7 +477,7 @@ class OutputBeamStat(BaseModel):
 class OutputBeam(BaseModel):
     """Output beam information. (HDF5 ``/Beam``)"""
 
-    units: Dict[str, PydanticPmdUnit] = pydantic.Field(default_factory=dict)
+    units: Dict[str, PydanticPmdUnit] = pydantic.Field(default_factory=dict, repr=False)
     # The following are evaluated at each integration step.
     # TODO: can be bunching_n and bunchingphase_n keys up to number of
     # harmonics
@@ -629,7 +629,7 @@ class OutputBeam(BaseModel):
 class OutputMetaDumps(BaseModel):
     """Dump-related output information. (HDF5 ``/Meta/*dumps``)"""
 
-    units: Dict[str, PydanticPmdUnit] = pydantic.Field(default_factory=dict)
+    units: Dict[str, PydanticPmdUnit] = pydantic.Field(default_factory=dict, repr=False)
     ndumps: int = 0
     extra: Dict[str, OutputDataType] = pydantic.Field(
         default_factory=dict,
@@ -643,7 +643,7 @@ class OutputMetaDumps(BaseModel):
 class OutputMetaVersion(BaseModel, extra="allow"):
     """Version information from Genesis 4 output. (HDF5 ``/Meta/Version``)"""
 
-    units: Dict[str, PydanticPmdUnit] = pydantic.Field(default_factory=dict)
+    units: Dict[str, PydanticPmdUnit] = pydantic.Field(default_factory=dict, repr=False)
     beta: float = 0.0
     build_info: str = ""
     major: float = 0.0
@@ -661,7 +661,7 @@ class OutputMetaVersion(BaseModel, extra="allow"):
 class OutputMeta(BaseModel, extra="allow"):
     """Meta information from Genesis 4 output. (HDF5 ``/Meta``)"""
 
-    units: Dict[str, PydanticPmdUnit] = pydantic.Field(default_factory=dict)
+    units: Dict[str, PydanticPmdUnit] = pydantic.Field(default_factory=dict, repr=False)
     beamdumps: OutputMetaDumps = pydantic.Field(default_factory=OutputMetaDumps)
     fielddumps: OutputMetaDumps = pydantic.Field(default_factory=OutputMetaDumps)
     host: str = ""
@@ -684,7 +684,7 @@ class OutputMeta(BaseModel, extra="allow"):
 class OutputGlobal(BaseModel, extra="allow"):
     """Global information from Genesis 4 output. (HDF5 ``/Global``)"""
 
-    units: Dict[str, PydanticPmdUnit] = pydantic.Field(default_factory=dict)
+    units: Dict[str, PydanticPmdUnit] = pydantic.Field(default_factory=dict, repr=False)
     frequency: NDArray = pydantic.Field(
         default_factory=_empty_ndarray,
         description="Frequency [eV]",
@@ -749,7 +749,7 @@ class OutputFieldStat(BaseModel):
 
 
 class OutputField(BaseModel, extra="allow"):
-    units: Dict[str, PydanticPmdUnit] = pydantic.Field(default_factory=dict)
+    units: Dict[str, PydanticPmdUnit] = pydantic.Field(default_factory=dict, repr=False)
     dgrid: float = pydantic.Field(
         default=0.0,
         description=(

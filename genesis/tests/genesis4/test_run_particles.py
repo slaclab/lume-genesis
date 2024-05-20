@@ -225,9 +225,7 @@ def test_profile_array(
     G1.archive(tmp_path / "archive.h5")
     loaded_g1 = Genesis4.from_archive(tmp_path / "archive.h5")
 
-    for key, value in loaded_g1.input.main.by_namelist[InitialParticles][
-        0
-    ].data.items():
+    for key, value in loaded_g1.input.main.initial_particles.data.items():
         if isinstance(value, np.ndarray):
             np.testing.assert_allclose(value, initial_particles.data[key])
         else:
