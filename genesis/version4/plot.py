@@ -113,8 +113,6 @@ def plot_stats_with_layout(
     if len(ykeys) == 1 and not ykeys2:
         include_legend = False
 
-    # assert xkey == 'mean_z', 'TODO: other x keys'
-
     X = output.stat(xkey)
 
     # Only get the data we need

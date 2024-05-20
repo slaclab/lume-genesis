@@ -15,7 +15,7 @@ import textwrap
 import traceback
 import uuid
 from numbers import Number
-from typing import Any, Dict, Mapping, Optional, Tuple, Union, cast
+from typing import Any, Dict, Generator, Mapping, Optional, Sequence, Tuple, Union, cast
 
 import h5py
 import numpy as np
@@ -377,6 +377,7 @@ def table_output(
     display_options: DisplayOptions = global_display_options,
     descriptions: Optional[Mapping[str, Optional[str]]] = None,
     annotations: Optional[Mapping[str, Optional[str]]] = None,
+    headers: Optional[Sequence[str]] = None,
 ):
     """
     Create a table based on user settings for the given object.
@@ -408,6 +409,7 @@ def table_output(
                     descriptions=descriptions,
                     annotations=annotations,
                     display_options=display_options,
+                    headers=headers,
                 )
 
         return _InfoObj()
@@ -418,6 +420,7 @@ def table_output(
         display_options=display_options,
         descriptions=descriptions,
         annotations=annotations,
+        headers=headers,
     )
     print(ascii_table)
 
@@ -487,6 +490,7 @@ def html_table_repr(
     display_options: DisplayOptions = global_display_options,
     descriptions: Optional[Mapping[str, Optional[str]]] = None,
     annotations: Optional[Mapping[str, Optional[str]]] = None,
+    headers: Optional[Sequence[str]] = None,
 ) -> str:
     """
     Pydantic model table HTML representation for Jupyter.
@@ -508,6 +512,11 @@ def html_table_repr(
     str
         HTML table representation.
     """
+    headers = headers or ["Attribute", "Value", "Type", "Description"]
+    assert len(headers) == 4
+
+    include_description = display_options.include_description and headers[-1]
+
     # For the "copy to clipboard" functionality below:
     ascii_table = str(
         ascii_table_repr(
@@ -515,10 +524,11 @@ def html_table_repr(
             descriptions=descriptions,
             annotations=annotations,
             seen=list(seen),
+            headers=headers,
         )
     )
 
-    seen.append(obj)
+    seen.append(id(obj))
     rows = []
     fields, descriptions, annotations = _get_table_fields(
         obj, descriptions, annotations
@@ -531,13 +541,14 @@ def html_table_repr(
         description = descriptions[attr]
 
         if isinstance(value, (pydantic.BaseModel, dict)):
-            if value in seen:
+            if id(value) in seen:
                 table_value = "(recursed)"
             else:
                 table_value = html_table_repr(
                     value,
                     seen,
                     display_options=display_options,
+                    headers=headers,
                 )
         else:
             table_value = html.escape(_truncated_string(value, max_length=100))
@@ -564,10 +575,10 @@ def html_table_repr(
             copy_to_clipboard,
             "<table>",
             " <tr>",
-            "  <th>Attribute</th>",
-            "  <th>Value</th>",
-            "  <th>Type</th>",
-            "  <th>Description</th>" if display_options.include_description else "",
+            f"  <th>{headers[0]}</th>",
+            f"  <th>{headers[1]}</th>",
+            f"  <th>{headers[2]}</th>",
+            f"  <th>{headers[3]}</th>" if include_description else "",
             " </tr>",
             "</th>",
             "<tbody>",
@@ -584,6 +595,7 @@ def ascii_table_repr(
     display_options: DisplayOptions = global_display_options,
     descriptions: Optional[Mapping[str, Optional[str]]] = None,
     annotations: Optional[Mapping[str, Optional[str]]] = None,
+    headers: Optional[Sequence[str]] = None,
 ) -> prettytable.PrettyTable:
     """
     Pydantic model table ASCII representation for the terminal.
@@ -605,7 +617,10 @@ def ascii_table_repr(
     str
         HTML table representation.
     """
-    seen.append(obj)
+    headers = headers or ["Attribute", "Value", "Type", "Description"]
+    assert len(headers) == 4
+
+    seen.append(id(obj))
     rows = []
     fields, descriptions, annotations = _get_table_fields(
         obj, descriptions, annotations
@@ -618,7 +633,7 @@ def ascii_table_repr(
         annotation = annotations[attr]
 
         if isinstance(value, pydantic.BaseModel):
-            if value in seen:
+            if id(value) in seen:
                 table_value = "(recursed)"
             else:
                 table_value = str(
@@ -636,14 +651,13 @@ def ascii_table_repr(
             )
         )
 
-    fields = ["Attribute", "Value", "Type"]
-    if display_options.include_description:
-        fields.append("Description")
-    else:
+    headers = list(headers)
+    if not display_options.include_description or not headers[-1]:
+        headers = headers[:3]
         # Chop off the description for each row
         rows = [row[:-1] for row in rows]
 
-    table = prettytable.PrettyTable(field_names=fields)
+    table = prettytable.PrettyTable(field_names=headers)
     table.add_rows(rows)
     table.set_style(display_options.ascii_table_type)
     return table
@@ -690,6 +704,7 @@ def pretty_repr(
     indent: int = 2,
     newline_threshold: int = 80,
     seen: Optional[list] = None,
+    sort_keys: bool = True,
 ) -> str:
     if isinstance(obj, pydantic.BaseModel):
         values = {attr: getattr(obj, attr, None) for attr in obj.model_fields}
@@ -706,7 +721,10 @@ def pretty_repr(
         attr_prefix = ""
         basic_repr = repr(obj)
     elif isinstance(obj, dict):
-        values = obj
+        if sort_keys:
+            values = {key: obj[key] for key in sorted(obj)}
+        else:
+            values = obj
         defaults = {attr: None for attr in obj}
         attr_prefix = "'{attr}': "
         basic_repr = repr(obj)
@@ -722,10 +740,10 @@ def pretty_repr(
     if seen is None:
         seen = []
 
-    if obj in seen:
+    if id(obj) in seen:
         return "(duplicated)"
 
-    seen.append(obj)
+    seen.append(id(obj))
 
     lines = []
     for attr, value in values.items():
@@ -749,6 +767,10 @@ def pretty_repr(
                 newline_threshold=newline_threshold - indent,
                 seen=seen,
             )
+        elif isinstance(value, np.ndarray):
+            field_repr = repr(value)
+            if len(field_repr) > 40:
+                field_repr = f"array(shape={value.shape}, dtype={value.dtype})"
         else:
             field_repr = repr(value)
 
@@ -785,3 +807,45 @@ def pretty_repr(
         lines.append(f"{close_bracket}")
 
     return "\n".join(_truncated_string(line, max_length=150) for line in lines)
+
+
+def get_attrs_of_type(
+    inst: pydantic.BaseModel, include_types: Tuple[type, ...]
+) -> Generator[str, None, None]:
+    for attr in inst.model_fields:
+        value = getattr(inst, attr, None)
+        if isinstance(value, include_types):
+            yield attr
+        elif isinstance(value, pydantic.BaseModel):
+            for sub_attr in get_attrs_of_type(value, include_types=include_types):
+                yield f"{attr}.{sub_attr}"
+
+
+def make_dotted_aliases(
+    inst: pydantic.BaseModel,
+    include_types: Tuple[type, ...] = (np.ndarray,),
+    existing_aliases: Optional[Dict[str, str]] = None,
+    attr_prefix: str = "",
+    alias_prefix: str = "",
+) -> Dict[str, str]:
+    attrs = list(get_attrs_of_type(inst, include_types=include_types))
+    aliases = {
+        alias_prefix + attr.replace(".", "_"): attr_prefix + attr for attr in attrs
+    }
+
+    by_last_part = {}
+    for attr in list(attrs) + list(existing_aliases or {}):
+        last_part = attr.rsplit(".", 1)[-1]
+        by_last_part.setdefault(last_part, []).append(attr)
+
+    for last_part, attrs in by_last_part.items():
+        if len(attrs) > 1:
+            continue
+        (attr,) = attrs
+        if attr != last_part:
+            aliases[last_part] = attr
+
+    def clean(alias):
+        return alias.replace("__", "_")
+
+    return {clean(alias): attr for alias, attr in aliases.items()}

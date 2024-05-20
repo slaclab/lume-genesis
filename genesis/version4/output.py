@@ -315,8 +315,6 @@ class OutputBeamStat(BaseModel):
     bunchingphase: NDArray
     current: NDArray
     efield: NDArray
-    emax: NDArray
-    emin: NDArray
     emitx: NDArray
     emity: NDArray
     energy: NDArray
@@ -507,6 +505,15 @@ class OutputBeam(BaseModel):
     wakefield: NDArray = pydantic.Field(
         default_factory=_empty_ndarray,
         description="Wakefield, internally the energy loss. [eV/m]",
+    )
+
+    emin: NDArray = pydantic.Field(
+        default_factory=_empty_ndarray,
+        description="Particle energy minimum. [mc^2]",
+    )
+    emax: NDArray = pydantic.Field(
+        default_factory=_empty_ndarray,
+        description="Particle energy maximum. [mc^2]",
     )
 
     pxmin: NDArray = pydantic.Field(
@@ -799,6 +806,12 @@ class OutputField(BaseModel, extra="allow"):
 
     energy: NDArray = pydantic.Field(default_factory=_empty_ndarray)
 
+    def __init__(self, *args, slen=None, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        if slen is not None:
+            self.energy = self.calculate_field_energy(slen)
+
     @pydantic.computed_field
     @property
     def peak_power(self) -> float:
@@ -812,11 +825,11 @@ class OutputField(BaseModel, extra="allow"):
         ds = slen / nslice
         return np.sum(self.power, axis=1) * ds / c_light
 
-    def __init__(self, *args, slen=None, **kwargs):
-        super().__init__(*args, **kwargs)
-
-        if slen is not None:
-            self.energy = self.calculate_field_energy(slen)
+    @pydantic.computed_field
+    @cached_property
+    def stat(self) -> OutputFieldStat:
+        """Calculate statistics for the field."""
+        return OutputFieldStat.from_output_field(self)
 
 
 LoadableH5File = Union[
@@ -824,6 +837,13 @@ LoadableH5File = Union[
     _FieldH5File,
 ]
 _T = TypeVar("_T", bound=BaseModel)
+
+
+class _ArrayInfo(BaseModel, arbitrary_types_allowed=True):
+    parent: BaseModel
+    array_attr: str
+    units: Optional[PydanticPmdUnit]
+    field: pydantic.fields.FieldInfo
 
 
 class Genesis4Output(Mapping, BaseModel, arbitrary_types_allowed=True):
@@ -910,23 +930,20 @@ class Genesis4Output(Mapping, BaseModel, arbitrary_types_allowed=True):
     def update_aliases(self) -> None:
         self.alias.update(tools.make_dotted_aliases(self))
 
+        if self.field_info is not None:
+            self.alias.update(
+                tools.make_dotted_aliases(
+                    self.field_info,
+                    existing_aliases=self.alias,
+                    attr_prefix="field_info.",
+                    alias_prefix="field_",
+                )
+            )
+
     @property
-    def field_info(self) -> OutputField:
-        """Genesis 4 output field information (/Field) - 1st harmonic."""
-        return self.field_harmonics[1]
-
-    @pydantic.computed_field
-    @property
-    def field_energy(self) -> np.ndarray:
-        dat = self.field_info.power
-
-        # Integrate to get J
-        nslice = dat.shape[1]
-        slen = self.global_.slen
-        ds = slen / nslice
-        return np.sum(dat, axis=1) * ds / c_light
-
-    pulse_energy = field_energy
+    def field_info(self) -> Optional[OutputField]:
+        """Genesis 4 output field information (``/Field``) - 1st harmonic."""
+        return self.field_harmonics.get(1, None)
 
     @property
     def fields(self) -> Dict[str, FieldFile]:
@@ -1166,22 +1183,20 @@ class Genesis4Output(Mapping, BaseModel, arbitrary_types_allowed=True):
 
     def units(self, key: str) -> Optional[pmd_unit]:
         """pmd_unit of a given key"""
-        return self.unit_info.get(key, None)
+        # return self.unit_info.get(key, None)
+        return self._get_array_info(key).units
 
     def get_array(self, key: str) -> np.ndarray:
         """
-        Gets an array, considering aliases
+        Gets an array by its string alias.
+
+        For alias information, see `.alias`.
+
+        Returns
+        -------
+        np.ndarray
         """
-        if key in self.data:
-            value = self.data[key]
-            assert isinstance(value, np.ndarray)
-            return value
-        key = self.alias.get(key, key)
-        if key in self.data:
-            value = self.data[key]
-            assert isinstance(value, np.ndarray)
-            return value
-        raise ValueError(f"Unknown key: {key}")
+        return self[key]
 
     def archive(self, h5: h5py.Group, key: str = "output") -> None:
         """
@@ -1305,29 +1320,51 @@ class Genesis4Output(Mapping, BaseModel, arbitrary_types_allowed=True):
             **kwargs,
         )
 
-    def info(self):
-        info = {
-            key: get_description_for_value(key, self.data[key])
-            for key in sorted(self.data)
-        }
-        annotations = {key: str(self.unit_info.get(key, "")) for key in info}
-        return tools.table_output(
-            info,
-            annotations=annotations,
+    def _get_array_info(self, key: str) -> _ArrayInfo:
+        dotted_attr = self.alias[key]
+        parent_attr, array_attr = dotted_attr.rsplit(".", 1)
+        parent = operator.attrgetter(parent_attr)(self)
+        return _ArrayInfo(
+            parent=parent,
+            array_attr=array_attr,
+            units=parent.units.get(array_attr, None),
+            field=parent.model_fields[array_attr],
         )
 
-    def get_description_for_key(self, key: str) -> str:
-        """
-        Returns a line describing an output
-        """
-        value = self[key]
-        units = self.unit_info.get(key, "")
-        return get_description_for_value(key, value, units)
+    def info(self):
+        array_info = {key: self._get_array_info(key) for key in sorted(self.keys())}
+        annotations = {
+            key: array_info.field.description for key, array_info in array_info.items()
+        }
+        table = {
+            key: str(array_info.units or "") for key, array_info in array_info.items()
+        }
+        return tools.table_output(
+            table,
+            annotations=annotations,
+            headers=["Key", "Units", "Description", ""],
+        )
+
+    def stat(self, key: str) -> np.ndarray:
+        if key == "field_energy":
+            if self.field_info is None:
+                raise ValueError("Field information unavailable")
+            return self.field_info.energy
+        info = self._get_array_info(key)
+        if isinstance(info.parent, (OutputField, OutputBeam)):
+            stat = getattr(info.parent.stat, info.array_attr, None)
+            if stat is not None:
+                return stat
+        if isinstance(info.parent, OutputLattice):
+            # TODO: this is bringing forward the old functionality but
+            # doesn't seem quite right
+            return getattr(info.parent, info.array_attr)
+        raise ValueError(f"No stats for {key}")
 
     def __getitem__(self, key: str) -> Any:
         """Support for Mapping -> easy access to data."""
-        alias = self.alias[key]
-        return operator.attrgetter(alias)(self)
+        dotted_attr = self.alias[key]
+        return operator.attrgetter(dotted_attr)(self)
 
     def __iter__(self) -> Generator[str, None, None]:
         """Support for Mapping -> easy access to data."""

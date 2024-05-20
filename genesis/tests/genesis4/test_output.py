@@ -81,10 +81,14 @@ def test_typed_dictionaries(
     attr: str,
     model_cls: pydantic.BaseModel,
 ) -> None:
-    # typeddict.__pydantic_config__ = pydantic.ConfigDict(strict=True, extra="forbid")
-
     model = getattr(output, attr)
     assert not model.model_extra
+
+    for fld in model.model_fields:
+        value = getattr(model, fld)
+        if isinstance(value, np.ndarray):
+            assert len(value)
+    assert not model.extra
 
 
 def test_repr(
@@ -93,31 +97,12 @@ def test_repr(
     print(repr(output))
 
 
-def test_stat_smoke(
-    output: Genesis4Output,
-) -> None:
-    """Smoke test calling 'stat' on all keys"""
-    for key in output.data:
-        value = output[key]
-        if not isinstance(value, np.ndarray):
-            print(f"Skipping non-array key: {key}")
-            continue
-
-        try:
-            print(key, output.stat(key))
-        except ValueError as ex:
-            print("Failed:", key, ex)
-            if "Cannot compute stat" not in str(ex):
-                raise
-
-
 def test_stat_beamsigma_smoke(
     output: Genesis4Output,
-    key: str,
 ) -> None:
-    assert output.beam.stat.x.shape
-    assert output.beam.stat.y.shape
-    assert output.beam.stat.energy.shape
+    assert output.beam.stat.sigma_x.shape
+    assert output.beam.stat.sigma_y.shape
+    assert output.beam.stat.sigma_energy.shape
 
 
 def test_plot_smoke(
