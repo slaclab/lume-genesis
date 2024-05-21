@@ -728,8 +728,8 @@ def pretty_repr(
         if sort_keys:
             values = {key: obj[key] for key in sorted(obj)}
         else:
-            values = obj
-        defaults = {attr: None for attr in obj}
+            values = dict(obj)
+        defaults = {key: None for key in obj}
         attr_prefix = "'{attr}': "
         basic_repr = repr(obj)
     elif isinstance(obj, pathlib.Path):
@@ -755,7 +755,7 @@ def pretty_repr(
             default = defaults[attr]
             try:
                 if isinstance(value, np.ndarray):
-                    is_default = np.allclose(value, default or [])
+                    is_default = False  # np.allclose(value, default or [])
                 else:
                     is_default = default == value
             except Exception:
@@ -773,8 +773,9 @@ def pretty_repr(
             )
         elif isinstance(value, np.ndarray):
             field_repr = repr(value)
-            if len(field_repr) > 40:
-                field_repr = f"array(shape={value.shape}, dtype={value.dtype})"
+            short_repr = f"array(shape={value.shape}, dtype={value.dtype})"
+            if len(field_repr) > len(short_repr):
+                field_repr = short_repr
         else:
             field_repr = repr(value)
 
@@ -816,7 +817,7 @@ def pretty_repr(
 def get_attrs_of_type(
     inst: pydantic.BaseModel, include_types: Tuple[type, ...]
 ) -> Generator[str, None, None]:
-    for attr in inst.model_fields:
+    for attr in list(inst.model_fields) + list(inst.model_computed_fields):
         value = getattr(inst, attr, None)
         if isinstance(value, include_types):
             yield attr
@@ -831,6 +832,7 @@ def make_dotted_aliases(
     existing_aliases: Optional[Dict[str, str]] = None,
     attr_prefix: str = "",
     alias_prefix: str = "",
+    ignore_parts: Tuple[str, ...] = ("stat",),
 ) -> Dict[str, str]:
     attrs = list(get_attrs_of_type(inst, include_types=include_types))
     aliases = {
@@ -838,16 +840,20 @@ def make_dotted_aliases(
     }
 
     by_last_part = {}
-    for attr in list(attrs) + list(existing_aliases or {}):
-        last_part = attr.rsplit(".", 1)[-1]
-        by_last_part.setdefault(last_part, []).append(attr)
+    existing_alias_attrs = (existing_aliases or {}).values()
+    for attr in list(attrs) + list(existing_alias_attrs):
+        parts = attr.rsplit(".")
+        if any(p in parts for p in ignore_parts):
+            continue
+        by_last_part.setdefault(parts[-1], []).append(attr)
 
     for last_part, attrs in by_last_part.items():
         if len(attrs) > 1:
             continue
         (attr,) = attrs
-        if attr != last_part:
-            aliases[last_part] = attr
+        full_attr = attr_prefix + attr
+        if full_attr != last_part:
+            aliases[last_part] = full_attr
 
     def clean(alias):
         return alias.replace("__", "_")

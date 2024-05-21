@@ -67,34 +67,28 @@ def test_example1(_shorten_zstop) -> None:
     output = G.run(raise_on_error=True)
     G.plot(["beam_xsize", "beam_ysize", "field_xsize", "field_ysize"])
 
-    z = output.lattice["z"]
-    aw = output.lattice["aw"]
-    qf = output.lattice["qf"]
-
     fig, ax1 = plt.subplots()
     color = "tab:red"
     ax1.set_xlabel(r"$z$ (m)")
     ax1.set_ylabel(r"$a_w$", color=color)
     ax1.tick_params(axis="y", labelcolor=color)
-    ax1.step(z, aw, color=color, where="post")
+    ax1.step(output.lattice.z, output.lattice.aw, color=color, where="post")
 
     ax2 = ax1.twinx()
     color = "tab:blue"
     ax2.set_ylabel(r"$k_1$ (m$^{-2}$)", color=color)
     ax2.tick_params(axis="y", labelcolor=color)
-    ax2.step(z, qf, color=color, where="post")
+    ax2.step(output.lattice.z, output.lattice.qf, color=color, where="post")
     plt.show()
 
     # plot the beam sizes
-    z = output.lattice["zplot"]
-    bx = output.beam["xsize"]
-    by = output.beam["ysize"]
-    fx = output.field_info["xsize"]
-    fy = output.field_info["ysize"]
-    plt.plot(z, bx * 1e6, label=r"Beam: $\sigma_x$")
-    plt.plot(z, by * 1e6, label=r"Beam: $\sigma_y$")
-    plt.plot(z, fx * 1e6, label=r"Field: $\sigma_x$")
-    plt.plot(z, fy * 1e6, label=r"Field: $\sigma_y$")
+    zplot = output.lattice.zplot
+    field_info = output.field_info
+    assert field_info is not None
+    plt.plot(zplot, output.beam.xsize * 1e6, label=r"Beam: $\sigma_x$")
+    plt.plot(zplot, output.beam.ysize * 1e6, label=r"Beam: $\sigma_y$")
+    plt.plot(zplot, field_info.xsize * 1e6, label=r"Field: $\sigma_x$")
+    plt.plot(zplot, field_info.ysize * 1e6, label=r"Field: $\sigma_y$")
     plt.legend()
     plt.xlabel(r"$z$ (m)")
     plt.ylabel(r"$\sigma_{x,y}$ ($\mu$m)")
@@ -102,9 +96,9 @@ def test_example1(_shorten_zstop) -> None:
     plt.show()
 
     # plot power and bunching
-    z = output.lattice["zplot"]
-    b = output.beam["bunching"]
-    p = output.field_info["power"]
+    z = output.lattice.zplot
+    b = output.beam.bunching
+    p = output.field_info.power
 
     fig, ax1 = plt.subplots()
     color = "tab:red"
@@ -134,8 +128,8 @@ def test_example2() -> None:
         return field.dfl[:, :, slc]
 
     def getWF(field: FieldFile, slice=0):
-        ng = field.param["gridpoints"]
-        dg = field.param["gridsize"]
+        ng = field.param.gridpoints
+        dg = field.param.gridsize
         # inten = np.reshape(fre * fre + fim * fim, (ng, ng))
         inten = np.abs(get_slice(field, slice) ** 2)
         return inten, dg * (ng - 1) * 0.5 * 1e3
@@ -170,10 +164,10 @@ def test_example2() -> None:
     plt.show()
 
     # get range for phase space plots
-    emin = np.min(output.beam["emin"]) * 0.511e-3
-    emax = np.max(output.beam["emax"]) * 0.511e-3
-    xmin = np.min(output.beam["xmin"]) * 1e6
-    xmax = np.max(output.beam["xmax"]) * 1e6
+    emin = np.min(output.beam.emin) * 0.511e-3
+    emax = np.max(output.beam.emax) * 0.511e-3
+    xmin = np.min(output.beam.xmin) * 1e6
+    xmax = np.max(output.beam.xmax) * 1e6
 
     # plot final phase space
     t, g = getPS(output.particles["Example2.700"])
@@ -644,7 +638,7 @@ def test_genesis4_example(_shorten_zstop, tmp_path: pathlib.Path) -> None:
 
     def plot_slice(i=0):
         dat = np.angle(dfl[:, :, i])
-        dx = param["gridsize"] * 1e6
+        dx = param.gridsize * 1e6
         plt.xlabel("x (µm)")
         plt.xlabel("y (µm)")
         plt.title(f"Phase for slize {i}")
@@ -670,9 +664,9 @@ def test_genesis4_example(_shorten_zstop, tmp_path: pathlib.Path) -> None:
     P.drift_to_t()
     P.slice_plot(bunching_key, n_slice=1000)
     # Genesis4 data
-    final_bunching = G.output.beam["bunching"][-1, :]
-    _current = G.output.beam["current"][-1, :]
-    s = G.output.global_["s"]
+    final_bunching = G.output.beam.bunching[-1, :]
+    _current = G.output.beam.current[-1, :]
+    s = G.output.global_.s
     # ParticleGroup data
     ss = P.slice_statistics(bunching_key, n_slice=len(s))
     ss.keys()
@@ -693,7 +687,7 @@ def test_genesis4_example(_shorten_zstop, tmp_path: pathlib.Path) -> None:
     # Check the total charge in pC:
     print(P["charge"] / 1e-12)  # pC
     # Each item in the output dict has a corresponding units
-    G.output.units("Beam/betax")
+    G.output.units("beam_betax")
     # # Plotting
     #
     # Convenient plotting of the data in `.output` is provided by `.plot`. The default is to plot the power. Depending on the key these statistics are averaged or integrated over the slices. Some keys like `power` are converted to `peak_power`, while `field_energy` is the integral over `field_power`.
@@ -704,9 +698,9 @@ def test_genesis4_example(_shorten_zstop, tmp_path: pathlib.Path) -> None:
         "field_energy", yscale="log", y2=["beam_xsize", "beam_ysize"], ylim2=(0, 100e-6)
     )
     # By default, these plots average over slices. In the case of beam sizes, simply averaging these does not take into account the effect of misaligned slices. To plot this, LUME-Genesis provides additional `beam_sigma_x`, `beam_sima_y`, `beam_sigma_energy` keys that properly project these quantities. The difference is noticable in the energy spread calculation:
-    G.plot(["beam_sigma_energy", "Beam/energyspread"], ylim=(0, 100))
+    G.plot(["beam_sigma_energy", "beam_energyspread"], ylim=(0, 100))
     G.plot(["field_xsize", "field_ysize"])
-    plt.imshow(G.output.field_info["power"], aspect="auto")
+    plt.imshow(G.output.field_info.power, aspect="auto")
     G.archive("archived.h5")
     Grestored = Genesis4.from_archive("archived.h5")
     assert Grestored.output is not None

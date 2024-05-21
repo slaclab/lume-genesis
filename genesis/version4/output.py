@@ -10,6 +10,7 @@ from typing import (
     Dict,
     Generator,
     List,
+    NamedTuple,
     Optional,
     Sequence,
     Type,
@@ -22,7 +23,7 @@ import matplotlib.figure
 import numpy as np
 import pydantic
 from pmd_beamphysics import ParticleGroup
-from pmd_beamphysics.units import c_light, pmd_unit
+from pmd_beamphysics.units import c_light, pmd_unit, unit
 
 from .. import tools
 from . import parsers, readers
@@ -295,19 +296,6 @@ class OutputLattice(BaseModel, extra="allow"):
         ),
     )
 
-    @classmethod
-    def _fix_scalar_data(
-        cls, dct: Dict[str, OutputDataType]
-    ) -> Dict[str, OutputDataType]:
-        res = {}
-        for key, value in dct.items():
-            info = cls.model_fields[key]
-            if info.annotation is np.ndarray and isinstance(value, float):
-                res[key] = np.asarray([value])
-            else:
-                res[key] = value
-        return res
-
 
 class OutputBeamStat(BaseModel):
     """
@@ -316,6 +304,7 @@ class OutputBeamStat(BaseModel):
     These are calculated for you by LUME-Genesis.
     """
 
+    units: Dict[str, PydanticPmdUnit] = pydantic.Field(default_factory=dict, repr=False)
     sigma_x: NDArray
     sigma_y: NDArray
     sigma_energy: NDArray
@@ -341,12 +330,16 @@ class OutputBeamStat(BaseModel):
     pyposition: NDArray
     ssc_field: NDArray
     wakefield: NDArray
-    xmax: NDArray
+
     xmin: NDArray
+    xmax: NDArray
     xposition: NDArray
-    ymax: NDArray
+    # xsize: NDArray
+
     ymin: NDArray
+    ymax: NDArray
     yposition: NDArray
+    # ysize: NDArray
     extra: Dict[str, OutputDataType] = pydantic.Field(
         default_factory=dict,
         description=(
@@ -439,16 +432,32 @@ class OutputBeamStat(BaseModel):
         """Calculate all statistics given an `OutputBeam` instance."""
         current = np.nan_to_num(beam.current)
 
+        skip_attrs = {
+            # xsize, ysize don't make sense to keep per cmayes
+            "xsize",
+            "ysize",
+            # Calculated below:
+            "bunching",
+        }
+        for attr in set(OutputBeam.model_fields):
+            value = getattr(beam, attr)
+            if not isinstance(value, np.ndarray):
+                skip_attrs.add(attr)
+
         simple_stats = {
             attr: cls.calculate_simple_stat(current, getattr(beam, attr))
-            for attr in set(OutputBeam.model_fields)
-            - {"xsize", "ysize", "bunching", "extra", "stat", "units"}
+            for attr in set(OutputBeam.model_fields) - skip_attrs
         }
         extra = {
             key: cls.calculate_simple_stat(current, value)
             for key, value in beam.extra.items()
         }
+        units = dict(beam.units)
+        units["sigma_x"] = pmd_unit("m")
+        units["sigma_y"] = pmd_unit("m")
+        units["sigma_energy"] = unit("mec2")
         return OutputBeamStat(
+            units=units,
             sigma_x=cls.calculate_projected_sigma(
                 current=current,
                 size=beam.xsize,
@@ -474,10 +483,45 @@ class OutputBeamStat(BaseModel):
         )
 
 
+class OutputBeamGlobal(BaseModel):
+    """Output beam global information. (HDF5 ``/Beam/Global``)"""
+
+    units: Dict[str, PydanticPmdUnit] = pydantic.Field(default_factory=dict, repr=False)
+    energy: NDArray = pydantic.Field(
+        default_factory=_empty_ndarray,
+        description="",
+    )
+    energyspread: NDArray = pydantic.Field(
+        default_factory=_empty_ndarray,
+        description="",
+    )
+    xposition: NDArray = pydantic.Field(
+        default_factory=_empty_ndarray,
+        description="",
+    )
+    yposition: NDArray = pydantic.Field(
+        default_factory=_empty_ndarray,
+        description="",
+    )
+    xsize: NDArray = pydantic.Field(
+        default_factory=_empty_ndarray,
+        description="",
+    )
+    ysize: NDArray = pydantic.Field(
+        default_factory=_empty_ndarray,
+        description="",
+    )
+
+
 class OutputBeam(BaseModel):
     """Output beam information. (HDF5 ``/Beam``)"""
 
     units: Dict[str, PydanticPmdUnit] = pydantic.Field(default_factory=dict, repr=False)
+    global_: Optional[OutputBeamGlobal] = pydantic.Field(
+        default=None,
+        description="",
+    )
+
     # The following are evaluated at each integration step.
     # TODO: can be bunching_n and bunchingphase_n keys up to number of
     # harmonics
@@ -621,8 +665,10 @@ class OutputBeam(BaseModel):
 
     @pydantic.computed_field
     @cached_property
-    def stat(self) -> OutputBeamStat:
+    def stat(self) -> Optional[OutputBeamStat]:
         """Calculate statistics for the beam."""
+        if not len(self.energy):
+            return None
         return OutputBeamStat.from_output_beam(self)
 
 
@@ -732,6 +778,7 @@ class OutputGlobal(BaseModel, extra="allow"):
 class OutputFieldStat(BaseModel):
     """Calculated output field statistics. Mean field position and size."""
 
+    units: Dict[str, PydanticPmdUnit] = pydantic.Field(default_factory=dict, repr=False)
     xposition: NDArray
     yposition: NDArray
 
@@ -748,8 +795,66 @@ class OutputFieldStat(BaseModel):
         )
 
 
+class OutputFieldGlobal(BaseModel, extra="allow"):
+    """Field-global information from Genesis 4 output. (HDF5 ``/Field/Global``)"""
+
+    units: Dict[str, PydanticPmdUnit] = pydantic.Field(default_factory=dict, repr=False)
+    energy: NDArray = pydantic.Field(default_factory=_empty_ndarray)
+    intensity_farfield: NDArray = pydantic.Field(
+        default_factory=_empty_ndarray,
+        description="Field intensity in the far field [arb units]",
+    )
+    intensity_nearfield: NDArray = pydantic.Field(
+        default_factory=_empty_ndarray,
+        description="Field intensity in the near field [arb units]",
+    )
+    xdivergence: NDArray = pydantic.Field(
+        default_factory=_empty_ndarray, description="Horizontal divergence [rad]"
+    )
+    ydivergence: NDArray = pydantic.Field(
+        default_factory=_empty_ndarray, description="Vertical divergence [rad]"
+    )
+    xpointing: NDArray = pydantic.Field(
+        default_factory=_empty_ndarray,
+        description="Horizontal pointing. [rad]",
+    )
+    ypointing: NDArray = pydantic.Field(
+        default_factory=_empty_ndarray,
+        description="Vertical pointing. [rad]",
+    )
+
+    xposition: NDArray = pydantic.Field(
+        default_factory=_empty_ndarray,
+        description="Horizontal position. [m]",
+    )
+    yposition: NDArray = pydantic.Field(
+        default_factory=_empty_ndarray,
+        description="Vertical position. [m]",
+    )
+
+    xsize: NDArray = pydantic.Field(
+        default_factory=_empty_ndarray,
+        description="Horizontal sigma. [m]",
+    )
+    ysize: NDArray = pydantic.Field(
+        default_factory=_empty_ndarray,
+        description="Vertical sigma. [m]",
+    )
+    extra: Dict[str, OutputDataType] = pydantic.Field(
+        default_factory=dict,
+        description=(
+            "Additional Genesis 4 output data.  This is a future-proofing mechanism "
+            "in case Genesis 4 changes and LUME-Genesis is not yet ready for it."
+        ),
+    )
+
+
 class OutputField(BaseModel, extra="allow"):
     units: Dict[str, PydanticPmdUnit] = pydantic.Field(default_factory=dict, repr=False)
+    global_: Optional[OutputFieldGlobal] = pydantic.Field(
+        default_factory=OutputFieldGlobal,
+        description="Global field information (/Field/Global)",
+    )
     dgrid: float = pydantic.Field(
         default=0.0,
         description=(
@@ -809,6 +914,10 @@ class OutputField(BaseModel, extra="allow"):
         default_factory=_empty_ndarray,
         description="Vertical sigma. [m]",
     )
+    energy: NDArray = pydantic.Field(
+        default_factory=_empty_ndarray,
+        description="Calculated by LUME-Genesis using slen from /Global.",
+    )
     extra: Dict[str, OutputDataType] = pydantic.Field(
         default_factory=dict,
         description=(
@@ -816,8 +925,6 @@ class OutputField(BaseModel, extra="allow"):
             "in case Genesis 4 changes and LUME-Genesis is not yet ready for it."
         ),
     )
-
-    energy: NDArray = pydantic.Field(default_factory=_empty_ndarray)
 
     def __init__(self, *args, slen=None, **kwargs):
         super().__init__(*args, **kwargs)
@@ -827,7 +934,7 @@ class OutputField(BaseModel, extra="allow"):
 
     @pydantic.computed_field
     @property
-    def peak_power(self) -> float:
+    def peak_power(self) -> NDArray:
         """Peak power [W]."""
         return np.max(self.power, axis=1)
 
@@ -852,11 +959,26 @@ LoadableH5File = Union[
 _T = TypeVar("_T", bound=BaseModel)
 
 
-class _ArrayInfo(BaseModel, arbitrary_types_allowed=True):
+class _ArrayInfo(NamedTuple):
     parent: BaseModel
     array_attr: str
     units: Optional[PydanticPmdUnit]
-    field: pydantic.fields.FieldInfo
+    field: Union[pydantic.fields.FieldInfo, pydantic.fields.ComputedFieldInfo]
+
+
+def _fix_scalar_data_for_model(
+    cls: Type[BaseModel], dct: Dict[str, OutputDataType]
+) -> Dict[str, OutputDataType]:
+    res = {}
+    for key, value in dct.items():
+        info = cls.model_fields.get(key, None)
+        if info is None:
+            res[key] = value
+        elif info.annotation is np.ndarray and isinstance(value, float):
+            res[key] = np.asarray([value])
+        else:
+            res[key] = value
+    return res
 
 
 class Genesis4Output(Mapping, BaseModel, arbitrary_types_allowed=True):
@@ -938,7 +1060,10 @@ class Genesis4Output(Mapping, BaseModel, arbitrary_types_allowed=True):
     )
 
     def model_post_init(self, _) -> None:
-        self.update_aliases()
+        try:
+            self.update_aliases()
+        except Exception:
+            logger.exception("Failed to update aliases")
 
     def update_aliases(self) -> None:
         self.alias.update(tools.make_dotted_aliases(self))
@@ -952,6 +1077,18 @@ class Genesis4Output(Mapping, BaseModel, arbitrary_types_allowed=True):
                     alias_prefix="field_",
                 )
             )
+
+        custom_aliases = {
+            # Back-compat
+            "beam_sigma_energy": "beam.stat.sigma_energy"
+        }
+        for alias_from, alias_to in custom_aliases.items():
+            self.alias.setdefault(alias_from, alias_to)
+
+    # @property
+    # def beam_global(self) -> Optional[OutputBeamGlobal]:
+    #     """Genesis 4 output beam global information (``/Beam/Global``)."""
+    #     return self.beam.global_
 
     @property
     def field_info(self) -> Optional[OutputField]:
@@ -1042,9 +1179,8 @@ class Genesis4Output(Mapping, BaseModel, arbitrary_types_allowed=True):
 
         units = parsers.known_unit.copy()
         with h5py.File(filename, "r") as h5:
-            data, loaded_units = parsers.extract_data_and_unit(h5)
+            data = parsers.extract_data(h5)
 
-        units.update(loaded_units)
         fields = [
             _FieldH5File(
                 key=fn.name[: -len(".fld.h5")],
@@ -1060,22 +1196,16 @@ class Genesis4Output(Mapping, BaseModel, arbitrary_types_allowed=True):
             for fn in output_root.glob("*.par.h5")
         ]
 
-        alias = parsers.extract_aliases(data)
-        for alias_from, alias_to in alias.items():
-            if alias_to in units:
-                units[alias_from] = units[alias_to]
-
         def instantiate(cls: Type[_T], data_key: str, **kwargs) -> _T:
             dct = data.pop(data_key, {})
-            if cls is OutputLattice:
-                dct = OutputLattice._fix_scalar_data(dct)
+            dct = _fix_scalar_data_for_model(cls, dct)
             extra = {key: dct.pop(key) for key in set(dct) - set(cls.model_fields)}
-            return cls(
+            instance = cls(
                 **dct,
-                extra=extra,
-                units=units.pop(data_key, {}),
                 **kwargs,
+                extra=extra,
             )
+            return instance
 
         def get_harmonics_keys():
             # The first harmonic is just "Field"
@@ -1086,7 +1216,7 @@ class Genesis4Output(Mapping, BaseModel, arbitrary_types_allowed=True):
                 yield harmonic, f"field_{harmonic}"
                 harmonic += 1
 
-        global_ = instantiate(OutputGlobal, "global")
+        global_ = instantiate(OutputGlobal, "global_")
         beam = instantiate(OutputBeam, "beam")
         field_harmonics = {
             harmonic: instantiate(OutputField, key, slen=global_.slen)
@@ -1105,7 +1235,7 @@ class Genesis4Output(Mapping, BaseModel, arbitrary_types_allowed=True):
             version=version,
             extra=extra,
             unit_info=units,
-            alias=alias,
+            alias={},
             field_files={field.key: field for field in fields},
             particle_files={particle.key: particle for particle in particles},
         )
@@ -1338,12 +1468,16 @@ class Genesis4Output(Mapping, BaseModel, arbitrary_types_allowed=True):
     def _get_array_info(self, key: str) -> _ArrayInfo:
         dotted_attr = self.alias[key]
         parent_attr, array_attr = dotted_attr.rsplit(".", 1)
-        parent = operator.attrgetter(parent_attr)(self)
+        parent: BaseModel = operator.attrgetter(parent_attr)(self)
+        try:
+            field = parent.model_fields[array_attr]
+        except KeyError:
+            field = parent.model_computed_fields[array_attr]
         return _ArrayInfo(
             parent=parent,
             array_attr=array_attr,
             units=parent.units.get(array_attr, None),
-            field=parent.model_fields[array_attr],
+            field=field,
         )
 
     def info(self):
@@ -1361,20 +1495,34 @@ class Genesis4Output(Mapping, BaseModel, arbitrary_types_allowed=True):
         )
 
     def stat(self, key: str) -> np.ndarray:
-        if key == "field_energy":
+        if "power" in key:
+            # TODO: this is also some back-compat
             if self.field_info is None:
                 raise ValueError("Field information unavailable")
-            return self.field_info.energy
+            return self.field_info.peak_power
+
         info = self._get_array_info(key)
         if isinstance(info.parent, (OutputField, OutputBeam)):
             stat = getattr(info.parent.stat, info.array_attr, None)
             if stat is not None:
                 return stat
+
+        if isinstance(info.parent, OutputBeam):
+            # Check again: xsize, ysize are not stats attributes but are
+            # expected to exist per many examples (beam_xsize)
+            # (TODO)
+            return OutputBeamStat.calculate_simple_stat(
+                info.parent.current,
+                getattr(info.parent, info.array_attr),
+            )
         if isinstance(info.parent, OutputLattice):
             # TODO: this is bringing forward the old functionality but
             # doesn't seem quite right
             return getattr(info.parent, info.array_attr)
-        raise ValueError(f"No stats for {key}")
+        # raise ValueError(f"No stats for {key}")
+        # TODO: passing the value through for now, so this would be like
+        # get_array(key)
+        return getattr(info.parent, info.array_attr)
 
     def __getitem__(self, key: str) -> Any:
         """Support for Mapping -> easy access to data."""

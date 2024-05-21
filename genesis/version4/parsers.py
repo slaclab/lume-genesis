@@ -1,3 +1,4 @@
+import keyword
 import os
 import pydantic.alias_generators
 import re
@@ -123,7 +124,7 @@ EXTRA_UNITS = {
 }
 
 
-def extract_data_and_unit(h5):
+def extract_data(h5):
     """
     Traverses an open h5 handle and extracts a dict of datasets and units
 
@@ -159,9 +160,7 @@ def extract_data_and_unit(h5):
         for key, item in node.items():
             key = output_key_to_python_identifier(key)
             if isinstance(item, h5py.Group):
-                data[key], group_units = convert_group(item)
-                if group_units:
-                    units[key] = group_units
+                data[key] = convert_group(item)
             elif isinstance(item, h5py.Dataset):
                 data[key] = convert_dataset(item)
 
@@ -170,22 +169,20 @@ def extract_data_and_unit(h5):
                 node_units = try_pmd_unit(node_units)
                 if node_units:
                     units[key] = node_units
+        if units:
+            data["units"] = units
+        return data
 
-        return data, units
-
-    # Add in extra
-    full_units = {}
-    for k, v in EXTRA_UNITS.items():
-        full_units[k] = try_pmd_unit(v)
-
-    full_data, units = convert_group(h5)
-    full_units.update(**units)
-    return full_data, full_units
+    full_data = convert_group(h5)
+    return full_data
 
 
 def output_key_to_python_identifier(key: str) -> str:
     key = re.sub("[^a-zA-Z_0-9]", "_", key)
     key = pydantic.alias_generators.to_snake(key)
+    if keyword.iskeyword(key):
+        # global -> global_
+        return f"{key}_"
     return {
         "ls_cfield": "lsc_field",
         "ss_cfield": "ssc_field",
