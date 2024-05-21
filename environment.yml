@@ -7,7 +7,7 @@ dependencies:
   - eval-type-backport
   - lume-base
 #  - genesis2=*=mpi_mpich*
-  - genesis4=4.6.4=mpi_openmpi* # Pinned because of a bug in 4.6.5
+  - genesis4 >=4.6.6=mpi_openmpi*
   - jinja2
   - lark
   - prettytable
