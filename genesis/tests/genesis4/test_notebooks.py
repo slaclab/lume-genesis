@@ -8,6 +8,7 @@ Running the notebooks themselves (as in `jupyter execute`) will be performed
 as part of the documentation generation process.
 """
 
+import h5py
 import pathlib
 import pprint
 import textwrap
@@ -701,8 +702,10 @@ def test_genesis4_example(_shorten_zstop, tmp_path: pathlib.Path) -> None:
     G.plot(["beam_sigma_energy", "beam_energyspread"], ylim=(0, 100))
     G.plot(["field_xsize", "field_ysize"])
     plt.imshow(G.output.field_info.power, aspect="auto")
-    G.archive("archived.h5")
-    Grestored = Genesis4.from_archive("archived.h5")
+    G.archive(tmp_path / "archived.h5")
+    fp = h5py.File(tmp_path / "archived.h5")
+    # Grestored = Genesis4.from_archive("archived.h5")
+    Grestored = Genesis4.from_archive(fp)
     assert Grestored.output is not None
     Grestored.output.plot()
     # # Manual loading of Genesis4 data

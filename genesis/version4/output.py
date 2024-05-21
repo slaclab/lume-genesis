@@ -26,7 +26,7 @@ from pmd_beamphysics import ParticleGroup
 from pmd_beamphysics.units import c_light, pmd_unit, unit
 
 from .. import tools
-from . import parsers, readers
+from . import archive as _archive, parsers, readers
 from .plot import plot_stats_with_layout
 from .types import (
     AnyPath,
@@ -1343,7 +1343,7 @@ class Genesis4Output(Mapping, BaseModel, arbitrary_types_allowed=True):
         """
         return self[key]
 
-    def archive(self, h5: h5py.Group, key: str = "output") -> None:
+    def archive(self, h5: h5py.Group) -> None:
         """
         Dump outputs into the given HDF5 group.
 
@@ -1351,28 +1351,24 @@ class Genesis4Output(Mapping, BaseModel, arbitrary_types_allowed=True):
         ----------
         h5 : h5py.Group
             The HDF5 file in which to write the information.
-        key : str, default="output"
-            The key to use when storing the data.
         """
-        tools.store_in_hdf5_file(h5, self, key=key)
+        _archive.store_in_hdf5_file(h5, self)
 
     @classmethod
-    def from_archive(cls, h5: h5py.Group, key: str = "output") -> Genesis4Output:
+    def from_archive(cls, h5: h5py.Group) -> Genesis4Output:
         """
         Loads output from the given HDF5 group.
 
         Parameters
         ----------
         h5 : str or h5py.File
-            The filename or handle on h5py.File from which to load data.
-        key : str, default="output"
             The key to use when restoring the data.
         """
-        loaded = tools.restore_from_hdf5_file(h5, key=key)
+        loaded = _archive.restore_from_hdf5_file(h5)
         if not isinstance(loaded, Genesis4Output):
             raise ValueError(
                 f"Loaded {loaded.__class__.__name__} instead of a "
-                f"Genesis4Output instance.  Is key={key} correct?"
+                f"Genesis4Output instance.  Was the HDF group correct?"
             )
         return loaded
 
