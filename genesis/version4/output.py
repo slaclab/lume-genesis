@@ -165,7 +165,7 @@ def _empty_ndarray() -> np.ndarray:
     return np.zeros(0)
 
 
-class OutputLattice(BaseModel, extra="allow"):
+class OutputLattice(BaseModel):
     """
     Genesis 4 lattice output information (HDF5 Group ``"/Lattice"``).
 
@@ -686,7 +686,7 @@ class OutputMetaDumps(BaseModel):
     )
 
 
-class OutputMetaVersion(BaseModel, extra="allow"):
+class OutputMetaVersion(BaseModel):
     """Version information from Genesis 4 output. (HDF5 ``/Meta/Version``)"""
 
     units: Dict[str, PydanticPmdUnit] = pydantic.Field(default_factory=dict, repr=False)
@@ -704,7 +704,7 @@ class OutputMetaVersion(BaseModel, extra="allow"):
     )
 
 
-class OutputMeta(BaseModel, extra="allow"):
+class OutputMeta(BaseModel):
     """Meta information from Genesis 4 output. (HDF5 ``/Meta``)"""
 
     units: Dict[str, PydanticPmdUnit] = pydantic.Field(default_factory=dict, repr=False)
@@ -727,7 +727,7 @@ class OutputMeta(BaseModel, extra="allow"):
     )
 
 
-class OutputGlobal(BaseModel, extra="allow"):
+class OutputGlobal(BaseModel):
     """Global information from Genesis 4 output. (HDF5 ``/Global``)"""
 
     units: Dict[str, PydanticPmdUnit] = pydantic.Field(default_factory=dict, repr=False)
@@ -795,7 +795,7 @@ class OutputFieldStat(BaseModel):
         )
 
 
-class OutputFieldGlobal(BaseModel, extra="allow"):
+class OutputFieldGlobal(BaseModel):
     """Field-global information from Genesis 4 output. (HDF5 ``/Field/Global``)"""
 
     units: Dict[str, PydanticPmdUnit] = pydantic.Field(default_factory=dict, repr=False)
@@ -849,7 +849,7 @@ class OutputFieldGlobal(BaseModel, extra="allow"):
     )
 
 
-class OutputField(BaseModel, extra="allow"):
+class OutputField(BaseModel):
     units: Dict[str, PydanticPmdUnit] = pydantic.Field(default_factory=dict, repr=False)
     global_: Optional[OutputFieldGlobal] = pydantic.Field(
         default_factory=OutputFieldGlobal,
