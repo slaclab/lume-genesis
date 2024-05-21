@@ -1,6 +1,9 @@
 import pathlib
 from typing import Optional
 
+import pydantic
+import numpy as np
+
 from ...version4 import MainInput, Lattice, Genesis4, Genesis4Input
 
 
@@ -41,3 +44,40 @@ def run_with_source(
             print(" ->", filename.readlink())
     output = genesis.run(raise_on_error=True)
     assert output.run.success
+
+
+def compare(obj, expected, history=()):
+    print("Comparing:", history, type(obj).__name__)
+    assert isinstance(obj, type(expected))
+    # assert repr(obj) == repr(expected)
+    if isinstance(obj, pydantic.BaseModel):
+        for attr, fld in obj.model_fields.items():
+            value = getattr(obj, attr)
+            if isinstance(value, np.ndarray):
+                assert fld.annotation is np.ndarray
+
+            compare(
+                getattr(obj, attr),
+                getattr(expected, attr),
+                history=history + (attr,),
+            )
+    elif isinstance(obj, dict):
+        assert set(obj) == set(expected)
+        for key in obj:
+            compare(
+                obj[key],
+                expected[key],
+                history=history + (key,),
+            )
+    elif isinstance(obj, (list, tuple)):
+        assert len(obj) == len(expected)
+        for idx, (value, value_expected) in enumerate(zip(obj, expected)):
+            compare(
+                value,
+                value_expected,
+                history=history + (idx,),
+            )
+    elif isinstance(obj, (np.ndarray, float)):
+        assert np.allclose(obj, expected)
+    else:
+        assert obj == expected

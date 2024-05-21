@@ -4,6 +4,7 @@ import numpy as np
 import pydantic
 import pytest
 
+from ...tools import pretty_repr
 from ...version4 import Genesis4
 from ...version4.output import (
     Genesis4Output,
@@ -77,6 +78,7 @@ def output(
     ],
 )
 def test_typed_dictionaries(
+    genesis4: Genesis4,
     output: Genesis4Output,
     attr: str,
     model_cls: pydantic.BaseModel,
@@ -86,6 +88,8 @@ def test_typed_dictionaries(
 
     for fld in model.model_fields:
         value = getattr(model, fld)
+        print(f"Checking {model_cls.__name__}.{fld} = {pretty_repr(value)}")
+        # NOTE: ssc_field may raise on Genesis4 < 4.6.6
         if isinstance(value, np.ndarray):
             assert len(value)
     assert not model.extra

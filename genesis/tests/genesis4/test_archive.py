@@ -9,8 +9,8 @@ from pydantic import BaseModel
 import pytest
 
 from ..conftest import test_artifacts
-from ...version4 import Genesis4
-from ...version4.input import (
+from ...version4 import (
+    Genesis4,
     AlterSetup,
     Beam,
     Chicane,
@@ -47,6 +47,7 @@ from ...version4.input import (
     Write,
 )
 from ...version4.types import BeamlineElement, NameList
+from . import util
 
 
 @pytest.fixture
@@ -131,43 +132,6 @@ def test_round_trip_json(
     assert obj == deserialized
 
 
-def compare(obj, expected, history=()):
-    print("Comparing:", history, type(obj).__name__)
-    assert isinstance(obj, type(expected))
-    # assert repr(obj) == repr(expected)
-    if isinstance(obj, BaseModel):
-        for attr, fld in obj.model_fields.items():
-            value = getattr(obj, attr)
-            if isinstance(value, np.ndarray):
-                assert fld.annotation is np.ndarray
-
-            compare(
-                getattr(obj, attr),
-                getattr(expected, attr),
-                history=history + (attr,),
-            )
-    elif isinstance(obj, dict):
-        assert set(obj) == set(expected)
-        for key in obj:
-            compare(
-                obj[key],
-                expected[key],
-                history=history + (key,),
-            )
-    elif isinstance(obj, (list, tuple)):
-        assert len(obj) == len(expected)
-        for idx, (value, value_expected) in enumerate(zip(obj, expected)):
-            compare(
-                value,
-                value_expected,
-                history=history + (idx,),
-            )
-    elif isinstance(obj, (np.ndarray, float)):
-        assert np.allclose(obj, expected)
-    else:
-        assert obj == expected
-
-
 def test_hdf_archive(
     genesis4: Genesis4,
     hdf5_filename: pathlib.Path,
@@ -201,8 +165,8 @@ def test_hdf_archive(
     restored_output_repr = repr(genesis4.output)
     assert orig_output_repr == restored_output_repr
 
-    compare(orig_input, genesis4.input)
-    compare(orig_output, genesis4.output)
+    util.compare(orig_input, genesis4.input)
+    util.compare(orig_output, genesis4.output)
 
     with open(test_artifacts / "orig_input.json", "wt") as fp:
         print(json_for_comparison(orig_input), file=fp)

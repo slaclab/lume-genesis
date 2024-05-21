@@ -1503,6 +1503,9 @@ class Genesis4Output(Mapping, BaseModel, arbitrary_types_allowed=True):
         )
 
     def info(self):
+        """
+        Get information about available string keys for the output.
+        """
         array_info = {key: self._get_array_info(key) for key in sorted(self.keys())}
         annotations = {
             key: array_info.field.description for key, array_info in array_info.items()
