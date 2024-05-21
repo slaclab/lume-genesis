@@ -1,5 +1,6 @@
 import json
 import pathlib
+import time
 from typing import Union
 
 import h5py
@@ -179,8 +180,15 @@ def test_hdf_archive(
     orig_output = genesis4.output
     assert orig_output is not None
 
+    t0 = time.monotonic()
     genesis4.archive(hdf5_filename)
+
+    t1 = time.monotonic()
     genesis4.load_archive(hdf5_filename)
+
+    t2 = time.monotonic()
+    print("Took", t1 - t0, "s to archive")
+    print("Took", t2 - t1, "s to restore")
     assert genesis4.output is not None
 
     # assert orig_input.model_dump_json(indent=True) == genesis4.input.model_dump_json(indent=True)
@@ -229,11 +237,18 @@ def test_hdf_archive_using_group(
     assert orig_output is not None
 
     hdf5_filename = test_artifacts / f"archive-{request.node.name}.h5"
+    t0 = time.monotonic()
     with h5py.File(hdf5_filename, "w") as h5:
         genesis4.archive(h5)
 
+    t1 = time.monotonic()
+
     with h5py.File(hdf5_filename, "r") as h5:
         genesis4.load_archive(h5)
+
+    t2 = time.monotonic()
+    print("Took", t1 - t0, "s to archive")
+    print("Took", t2 - t1, "s to restore")
 
     assert genesis4.output is not None
 

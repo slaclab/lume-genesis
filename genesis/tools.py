@@ -787,7 +787,11 @@ def get_attrs_of_type(
         The dotted attribute name.
     """
     for attr in list(inst.model_fields) + list(inst.model_computed_fields):
-        value = getattr(inst, attr, None)
+        try:
+            value = getattr(inst, attr, None)
+        except Exception:
+            continue
+
         if isinstance(value, include_types):
             yield attr
         elif isinstance(value, pydantic.BaseModel):

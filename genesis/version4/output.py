@@ -371,6 +371,8 @@ class OutputBeamStat(BaseModel):
         -------
         np.ndarray
         """
+        if not len(position) or not len(size) or not len(current):
+            return _empty_ndarray()
         # Properly calculated the projected value
         x = np.nan_to_num(position)  # <x>_islice
         x2 = np.nan_to_num(size**2)  # <x^2>_islice
@@ -401,6 +403,8 @@ class OutputBeamStat(BaseModel):
         -------
         np.ndarray
         """
+        if not len(bunching) or not len(bunchingphase) or not len(current):
+            return _empty_ndarray()
         dat = np.nan_to_num(bunching)  # Convert any nan to zero for averaging.
         phase = np.nan_to_num(bunchingphase)
         return np.abs(np.sum(np.exp(1j * phase) * dat * current, axis=1)) / np.sum(
@@ -424,6 +428,8 @@ class OutputBeamStat(BaseModel):
         -------
         np.ndarray
         """
+        if not len(dat):
+            return _empty_ndarray()
         dat = np.nan_to_num(dat)  # Convert any nan to zero for averaging.
         return np.sum(dat * current, axis=1) / np.sum(current, axis=1)
 
@@ -666,7 +672,12 @@ class OutputBeam(BaseModel):
     @pydantic.computed_field
     @cached_property
     def stat(self) -> Optional[OutputBeamStat]:
-        """Calculate statistics for the beam."""
+        """
+        Calculate statistics for the beam.
+
+        Returns ``None`` if the beam data is malformed and no statistics
+        are available.
+        """
         if not len(self.energy):
             return None
         return OutputBeamStat.from_output_beam(self)
@@ -786,7 +797,13 @@ class OutputFieldStat(BaseModel):
     ysize: NDArray
 
     @classmethod
-    def from_output_field(cls, field: OutputField) -> OutputFieldStat:
+    def from_output_field(cls, field: OutputField) -> Optional[OutputFieldStat]:
+        if any(
+            not len(fld)
+            for fld in (field.xposition, field.yposition, field.xsize, field.ysize)
+        ):
+            return None
+
         return OutputFieldStat(
             xposition=np.mean(field.xposition, axis=1),
             yposition=np.mean(field.yposition, axis=1),
@@ -929,17 +946,21 @@ class OutputField(BaseModel):
     def __init__(self, *args, slen=None, **kwargs):
         super().__init__(*args, **kwargs)
 
-        if slen is not None and len(self.power):
+        if slen is not None:
             self.energy = self.calculate_field_energy(slen)
 
     @pydantic.computed_field
     @property
     def peak_power(self) -> NDArray:
         """Peak power [W]."""
+        if not len(self.power):
+            return _empty_ndarray()
         return np.max(self.power, axis=1)
 
     def calculate_field_energy(self, slen: float) -> np.ndarray:
         """Calculate field energy, given global ``slen``."""
+        if not len(self.power):
+            return _empty_ndarray()
         # Integrate to get J
         nslice = self.power.shape[1]
         ds = slen / nslice
@@ -947,8 +968,13 @@ class OutputField(BaseModel):
 
     @pydantic.computed_field
     @cached_property
-    def stat(self) -> OutputFieldStat:
-        """Calculate statistics for the field."""
+    def stat(self) -> Optional[OutputFieldStat]:
+        """
+        Calculate statistics for the field.
+
+        Returns ``None`` if the field data is malformed and no statistics
+        are available.
+        """
         return OutputFieldStat.from_output_field(self)
 
 

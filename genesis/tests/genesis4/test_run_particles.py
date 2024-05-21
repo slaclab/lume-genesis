@@ -1,4 +1,5 @@
 import pathlib
+import time
 from math import pi, sqrt
 
 import matplotlib.pyplot as plt
@@ -222,9 +223,13 @@ def test_profile_array(
     list(output.beam)
     G1.input
 
+    t0 = time.monotonic()
     G1.archive(tmp_path / "archive.h5")
+    t1 = time.monotonic()
     loaded_g1 = Genesis4.from_archive(tmp_path / "archive.h5")
-
+    t2 = time.monotonic()
+    print("Took", t1 - t0, "s to archive")
+    print("Took", t2 - t1, "s to restore")
     for key, value in loaded_g1.input.main.initial_particles.data.items():
         if isinstance(value, np.ndarray):
             np.testing.assert_allclose(value, initial_particles.data[key])
