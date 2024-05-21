@@ -1679,7 +1679,7 @@ def _fix_parameters(
                 kwargs[name] = value
         elif dtype is float:
             try:
-                kwargs[name] = float(value)
+                kwargs[name] = float(value.rstrip("."))
             except ValueError:
                 # These may be references, let pydantic deal with them
                 kwargs[name] = value
