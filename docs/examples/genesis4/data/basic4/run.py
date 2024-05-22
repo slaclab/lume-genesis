@@ -2,8 +2,8 @@ import h5py
 import numpy as np
 import matplotlib.pyplot as plt
 
-from genesis.version4 import Genesis4
-from genesis.version4.input import (
+from genesis.version4 import (
+    Genesis4,
     Genesis4Input,
     Setup,
     Time,

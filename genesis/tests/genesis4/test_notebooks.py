@@ -24,6 +24,7 @@ from pmd_beamphysics import ParticleGroup
 from genesis.version4.input import MainInput, Track, Write, Lattice
 from genesis.version4.output import FieldFile
 
+from ... import version4 as g4
 from ...version4 import Genesis4
 from ...version4.types import Reference
 from ..conftest import genesis4_examples
@@ -456,46 +457,37 @@ def test_fodo_scan_model(_shorten_zstop, tmp_path: pathlib.Path) -> None:
             else:
                 seed = self.seed
 
-            lat = self.make_lattice()
-            latfile = "genesis4.lat"
-
-            with open(latfile, "w") as f:
-                f.write(lat)
-
-            input = MainInput.from_dicts(
-                [
-                    {
-                        "type": "setup",
-                        "rootname": "Benchmark",
-                        "lattice": latfile,
-                        "beamline": "LAT",
-                        "lambda0": self.lambdar,
-                        "gamma0": self.gamma,
-                        "delz": 0.045,
-                        "seed": seed,
-                        "shotnoise": 0,
-                        "beam_global_stat": True,
-                        "field_global_stat": True,
-                    },
-                    {"type": "lattice", "zmatch": self.Lcell},
-                    {
-                        "type": "field",
-                        "power": 5000,
-                        "dgrid": 0.0002,
-                        "ngrid": 255,
-                        "waist_size": 3e-05,
-                    },
-                    {
-                        "type": "beam",
-                        "current": self.current,
-                        "delgam": self.delgam,
-                        "ex": self.norm_emit_x,
-                        "ey": self.norm_emit_y,
-                    },
-                    {"type": "track", "zstop": self.Ltot},
+            input = MainInput(
+                namelists=[
+                    g4.Setup(
+                        rootname="Benchmark",
+                        beamline="LAT",
+                        lambda0=self.lambdar,
+                        gamma0=self.gamma,
+                        delz=0.045,
+                        seed=seed,
+                        shotnoise=False,
+                        beam_global_stat=True,
+                        field_global_stat=True,
+                    ),
+                    g4.LatticeNamelist(zmatch=self.Lcell),
+                    g4.Field(
+                        power=5000,
+                        dgrid=0.0002,
+                        ngrid=255,
+                        waist_size=3e-05,
+                    ),
+                    g4.Beam(
+                        current=self.current,
+                        delgam=self.delgam,
+                        ex=self.norm_emit_x,
+                        ey=self.norm_emit_y,
+                    ),
+                    g4.Track(zstop=self.Ltot),
                 ]
             )
-            G = Genesis4(input, verbose=True)
+            lattice = self.make_lattice()
+            G = Genesis4(input, lattice, verbose=True)
             return G
 
         def run(self):
