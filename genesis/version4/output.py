@@ -56,7 +56,7 @@ logger = logging.getLogger(__name__)
 
 
 class FieldFile(BaseModel):
-    label: str
+    label: FileKey
     dfl: NDArray
     param: FieldFileParams
 
@@ -136,10 +136,13 @@ class RunInfo(BaseModel):
         return not self.error
 
 
-class HDF5ReferenceFile(BaseModel):
-    """An externally-referenced HDF5 file.."""
+FileKey = Union[str, int]
 
-    key: str
+
+class HDF5ReferenceFile(BaseModel):
+    """An externally-referenced HDF5 file."""
+
+    key: FileKey
     filename: pathlib.Path
 
 
@@ -523,8 +526,8 @@ class OutputBeam(BaseModel):
     """Output beam information. (HDF5 ``/Beam``)"""
 
     units: Dict[str, PydanticPmdUnit] = pydantic.Field(default_factory=dict, repr=False)
-    global_: Optional[OutputBeamGlobal] = pydantic.Field(
-        default=None,
+    global_: OutputBeamGlobal = pydantic.Field(
+        default_factory=OutputBeamGlobal,
         description="",
     )
 
@@ -868,7 +871,7 @@ class OutputFieldGlobal(BaseModel):
 
 class OutputField(BaseModel):
     units: Dict[str, PydanticPmdUnit] = pydantic.Field(default_factory=dict, repr=False)
-    global_: Optional[OutputFieldGlobal] = pydantic.Field(
+    global_: OutputFieldGlobal = pydantic.Field(
         default_factory=OutputFieldGlobal,
         description="Global field information (/Field/Global)",
     )
@@ -978,10 +981,6 @@ class OutputField(BaseModel):
         return OutputFieldStat.from_output_field(self)
 
 
-LoadableH5File = Union[
-    _ParticleGroupH5File,
-    _FieldH5File,
-]
 _T = TypeVar("_T", bound=BaseModel)
 
 
@@ -1007,17 +1006,38 @@ def _fix_scalar_data_for_model(
     return res
 
 
+def get_key_from_filename(fn: str) -> FileKey:
+    """
+    Get the user-facing key from a given particle/field filename.
+
+    For named files such as "Example2.fld.h5", this would be the unique
+    portion: "Example2".
+
+    For integration step labeled files such as "Example2.123.fld.h5", this
+    would be the integration step (as an integer): 123.
+
+    Parameters
+    ----------
+    fn : str
+
+    Returns
+    -------
+    str or int
+    """
+    # basename.STEP.par.h5
+    parts = fn.split(".")
+    try:
+        return int(parts[-3])
+    except ValueError:
+        return parts[-3]
+
+
 class Genesis4Output(Mapping, BaseModel, arbitrary_types_allowed=True):
     """
     Genesis 4 command output.
 
     Attributes
     ----------
-    data : dict
-        Dictionary of data from a variety of sources, including the main
-        output HDF5 file, particle files, and field files.
-    unit_info : Dict[str, pmd_unit]
-        Unit information.
     run : RunInfo
         Execution information - e.g., how long did it take and what was
         the output from Genesis 4.
@@ -1025,6 +1045,10 @@ class Genesis4Output(Mapping, BaseModel, arbitrary_types_allowed=True):
         Dictionary of aliased data keys.
     """
 
+    run: RunInfo = pydantic.Field(
+        default_factory=RunInfo,
+        description="Run-related information - output text and timing.",
+    )
     beam: OutputBeam = pydantic.Field(
         default_factory=OutputBeam,
         description="Genesis 4 output beam information (/Beam)",
@@ -1057,18 +1081,15 @@ class Genesis4Output(Mapping, BaseModel, arbitrary_types_allowed=True):
             "LUME-Genesis is not yet ready for it."
         ),
     )
-    field: Dict[str, FieldFile] = pydantic.Field(
-        default_factory=dict, exclude=True, description="Loaded field data."
+    field: Dict[FileKey, FieldFile] = pydantic.Field(
+        default_factory=dict,
+        exclude=True,
+        description="Loaded field data, keyed by filename base (e.g., 'end' of 'end.fld.h5').",
     )
-    particles: Dict[str, ParticleGroup] = pydantic.Field(
-        default_factory=dict, exclude=True, description="Loaded particle data."
-    )
-    unit_info: Dict[str, PydanticPmdUnit] = pydantic.Field(
-        default_factory=dict, description="Unit information for keys."
-    )
-    run: RunInfo = pydantic.Field(
-        default_factory=RunInfo,
-        description="Run-related information - output text and timing.",
+    particles: Dict[FileKey, ParticleGroup] = pydantic.Field(
+        default_factory=dict,
+        exclude=True,
+        description="Loaded particle data, keyed by integration step number or filename base.",
     )
     alias: Dict[str, str] = pydantic.Field(
         default_factory=dict,
@@ -1077,21 +1098,26 @@ class Genesis4Output(Mapping, BaseModel, arbitrary_types_allowed=True):
             "dotted attribute names."
         ),
     )
-    field_files: Dict[str, LoadableH5File] = pydantic.Field(
-        default_factory=dict, description="Loadable field files by name."
-    )
-    particle_files: Dict[str, LoadableH5File] = pydantic.Field(
+
+    field_files: Dict[FileKey, _FieldH5File] = pydantic.Field(
         default_factory=dict,
-        description="Loadable particle files by name.",
+        description="Loaded field files, keyed by filename base (e.g., 'end' of 'end.fld.h5').",
+    )
+    particle_files: Dict[FileKey, _ParticleGroupH5File] = pydantic.Field(
+        default_factory=dict,
+        description="Loadable particle files, keyed by (integer) integration step number or filename base.",
     )
 
     def model_post_init(self, _) -> None:
         try:
             self.update_aliases()
         except Exception:
+            # If we don't catch errors here, Pydantic may fail to give us
+            # an Output object back.
             logger.exception("Failed to update aliases")
 
     def update_aliases(self) -> None:
+        """Update aliases based on available data."""
         self.alias.update(tools.make_dotted_aliases(self))
 
         if self.field_info is not None:
@@ -1106,23 +1132,31 @@ class Genesis4Output(Mapping, BaseModel, arbitrary_types_allowed=True):
 
         custom_aliases = {
             # Back-compat
-            "beam_sigma_energy": "beam.stat.sigma_energy"
+            "beam_sigma_energy": "beam.stat.sigma_energy",
+            "beam_sigma_x": "beam.stat.sigma_x",
+            "beam_sigma_y": "beam.stat.sigma_y",
         }
         for alias_from, alias_to in custom_aliases.items():
             self.alias.setdefault(alias_from, alias_to)
 
-    # @property
-    # def beam_global(self) -> Optional[OutputBeamGlobal]:
-    #     """Genesis 4 output beam global information (``/Beam/Global``)."""
-    #     return self.beam.global_
+    @property
+    def field_global(self) -> OutputFieldGlobal:
+        """Genesis 4 output 1st harmonic field global information (``/Field/Global``)."""
+        return self.field_info.global_
 
     @property
-    def field_info(self) -> Optional[OutputField]:
+    def beam_global(self) -> Optional[OutputBeamGlobal]:
+        """Genesis 4 output beam global information (``/Beam/Global``)."""
+        return self.beam.global_
+
+    @property
+    def field_info(self) -> OutputField:
         """Genesis 4 output field information (``/Field``) - 1st harmonic."""
-        return self.field_harmonics.get(1, None)
+        return self.field_harmonics.get(1, OutputField())
 
     @property
-    def fields(self) -> Dict[str, FieldFile]:
+    def fields(self) -> Dict[FileKey, FieldFile]:
+        """Convenience alias for .field."""
         return self.field
 
     @staticmethod
@@ -1203,20 +1237,19 @@ class Genesis4Output(Mapping, BaseModel, arbitrary_types_allowed=True):
         """
         output_root = pathlib.Path(filename).parent
 
-        units = parsers.known_unit.copy()
         with h5py.File(filename, "r") as h5:
             data = parsers.extract_data(h5)
 
         fields = [
             _FieldH5File(
-                key=fn.name[: -len(".fld.h5")],
+                key=get_key_from_filename(fn.name),
                 filename=fn,
             )
             for fn in output_root.glob("*.fld.h5")
         ]
         particles = [
             _ParticleGroupH5File(
-                key=fn.name[: -len(".par.h5")],
+                key=get_key_from_filename(fn.name),
                 filename=fn,
             )
             for fn in output_root.glob("*.par.h5")
@@ -1226,12 +1259,11 @@ class Genesis4Output(Mapping, BaseModel, arbitrary_types_allowed=True):
             dct = data.pop(data_key, {})
             dct = _fix_scalar_data_for_model(cls, dct)
             extra = {key: dct.pop(key) for key in set(dct) - set(cls.model_fields)}
-            instance = cls(
+            return cls(
                 **dct,
                 **kwargs,
                 extra=extra,
             )
-            return instance
 
         def get_harmonics_keys():
             # The first harmonic is just "Field"
@@ -1260,7 +1292,6 @@ class Genesis4Output(Mapping, BaseModel, arbitrary_types_allowed=True):
             global_=global_,
             version=version,
             extra=extra,
-            unit_info=units,
             alias={},
             field_files={field.key: field for field in fields},
             particle_files={particle.key: particle for particle in particles},
@@ -1274,14 +1305,15 @@ class Genesis4Output(Mapping, BaseModel, arbitrary_types_allowed=True):
 
         return output
 
-    def load_field_by_name(self, label: str) -> FieldFile:
+    def load_field_by_key(self, label: FileKey) -> FieldFile:
         """
         Loads a single field file by name into a dictionary.
 
         Parameters
         ----------
-        label : str
-            The label of the particles (e.g., "end" of "end.par.h5").
+        key : str or int
+            The label of the particles (e.g., "end" of "end.fld.h5"), or the
+            integer integration step.
 
         Returns
         -------
@@ -1295,30 +1327,31 @@ class Genesis4Output(Mapping, BaseModel, arbitrary_types_allowed=True):
         self.update_aliases
         return field
 
-    def load_particles_by_name(self, label: str, smear: bool = True) -> ParticleGroup:
+    def load_particles_by_key(self, key: FileKey, smear: bool = True) -> ParticleGroup:
         """
         Loads a single particle file into openPMD-beamphysics ParticleGroup
         object.
 
         Parameters
         ----------
-        label : str
-            The label of the particles (e.g., "end" of "end.par.h5").
+        key : str or int
+            The label of the particles (e.g., "end" of "end.par.h5"), or the
+            integer integration step.
         smear : bool, optional, default=True
             If set, will smear the phase over the sample (skipped) slices,
             preserving the modulus.
         """
-        lazy = self.particle_files[label]
+        lazy = self.particle_files[key]
         group = lazy.load(smear=smear)
         assert isinstance(group, ParticleGroup)
-        self.particles[label] = group
+        self.particles[key] = group
         logger.info(
-            f"Loaded particle data: '{label}' as a ParticleGroup with "
+            f"Loaded particle data: '{key}' as a ParticleGroup with "
             f"{len(group)} particles"
         )
         return group
 
-    def load_particles(self, smear: bool = True) -> List[str]:
+    def load_particles(self, smear: bool = True) -> List[FileKey]:
         """
         Loads all particle files produced.
 
@@ -1333,12 +1366,18 @@ class Genesis4Output(Mapping, BaseModel, arbitrary_types_allowed=True):
         list of str
             Key names of all loaded particles.
         """
-        to_load = list(self.particle_files)
-        for name in to_load:
-            self.load_particles_by_name(name, smear=smear)
+
+        def sort_key(key: FileKey):
+            if isinstance(key, int):
+                return (key, "")
+            return (-1, key)
+
+        to_load = sorted(self.particle_files, key=sort_key)
+        for key in to_load:
+            self.load_particles_by_key(key, smear=smear)
         return list(to_load)
 
-    def load_fields(self) -> List[str]:
+    def load_fields(self) -> List[FileKey]:
         """
         Loads all field files produced.
 
@@ -1347,9 +1386,15 @@ class Genesis4Output(Mapping, BaseModel, arbitrary_types_allowed=True):
         list of str
             Key names of all loaded fields.
         """
-        to_load = list(self.field_files)
-        for label in to_load:
-            self.load_field_by_name(label)
+
+        def sort_key(key: FileKey):
+            if isinstance(key, int):
+                return (key, "")
+            return (-1, key)
+
+        to_load = sorted(self.field_files, key=sort_key)
+        for key in to_load:
+            self.load_field_by_key(key)
         return to_load
 
     def units(self, key: str) -> Optional[pmd_unit]:
@@ -1625,12 +1670,8 @@ def load_field_file(file: Union[AnyPath, h5py.File]) -> FieldFile:
         with h5py.File(filename, "r") as h5:
             dfl, param = readers.load_genesis4_fields(h5)
 
-    label = pathlib.Path(filename).name
-    if label.endswith("fld.h5"):
-        label = label[:-7]
-
     return FieldFile(
-        label=label,
+        label=get_key_from_filename(pathlib.Path(filename).name),
         dfl=dfl,
         param=FieldFileParams(**param),
     )

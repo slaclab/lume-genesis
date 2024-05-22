@@ -3,7 +3,6 @@ import os
 import pydantic.alias_generators
 import re
 import warnings
-from typing import Any, Dict
 
 import h5py
 import numpy as np
@@ -189,34 +188,6 @@ def output_key_to_python_identifier(key: str) -> str:
         "one_4one": "one4one",
         "gamma_0": "gamma0",
     }.get(key, key)
-
-
-def extract_aliases(output_dict: Dict[str, Any]) -> Dict[str, str]:
-    """
-    Forms a convenient alias dict for output keys
-    """
-    # Include all `start/middle/last` keys as `start_middle_last`:
-    aliases = {
-        output_key_to_python_identifier(key): key for key in output_dict if "/" in key
-    }
-
-    # For keys of the form:
-    #   `start/middle/LAST`
-    # Track all keys which have the same "LAST" part.
-    # These are not unique and cannot have unqualified aliases without a
-    # `start_`-like prefix.
-    by_last_part = {}
-    for key in output_dict:
-        last_part = output_key_to_python_identifier(key.split("/")[-1])
-        by_last_part.setdefault(last_part, []).append(key)
-
-    for last_part, keys in by_last_part.items():
-        if len(keys) > 1:
-            continue
-        (key,) = keys
-        if key != last_part:
-            aliases[last_part] = key
-    return aliases
 
 
 def dumpfile_step(fname):

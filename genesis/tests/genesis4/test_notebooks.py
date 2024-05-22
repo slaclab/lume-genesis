@@ -154,7 +154,7 @@ def test_example2() -> None:
     for i1 in range(2):
         for i2 in range(2):
             i = (i2 * 2 + i1 + 1) * istep
-            inten, dg = getWF(output.fields[f"Example2.{i}"], slice=0)
+            inten, dg = getWF(output.fields[i], slice=0)
             axs[i2, i1].imshow(inten, extent=(-dg, dg, -dg, dg))
             txt = r"$z$ = %3.1f m" % (9.5 * (i2 * 2 + i1 + 1))
             axs[i2, i1].text(-0.15, 0.15, txt, color=color)
@@ -172,7 +172,7 @@ def test_example2() -> None:
     xmax = np.max(output.beam.xmax) * 1e6
 
     # plot final phase space
-    t, g = getPS(output.particles["Example2.700"])
+    t, g = getPS(output.particles[700])
     plt.scatter(t, g, s=0.2)
     plt.xlabel(r"$\theta$ (rad)")
     plt.ylabel(r"$E$ (GeV)")
@@ -191,7 +191,7 @@ def test_example2() -> None:
         return (scat,)
 
     def animate(i):
-        t, g = getPS(output.particles[f"Example2.{2 * i}"])
+        t, g = getPS(output.particles[2 * i])
         scat.set_offsets(np.hstack((t[:, np.newaxis], g[:, np.newaxis])))
         return (scat,)
 
@@ -207,7 +207,7 @@ def test_example2() -> None:
     scat = ax.scatter([], [], s=0.2)
 
     def animate2(i):
-        t, g = getTS(output.particles[f"Example2.{2 * i}"])
+        t, g = getTS(output.particles[2 * i])
         scat.set_offsets(np.hstack((t[:, np.newaxis], g[:, np.newaxis])))
         return (scat,)
 

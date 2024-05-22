@@ -1,10 +1,11 @@
-from typing import Dict, List
+from typing import Union
 
 import numpy as np
 import pydantic
 import pytest
 
 from ...tools import pretty_repr
+from ... import version4 as g4
 from ...version4 import Genesis4
 from ...version4.output import (
     Genesis4Output,
@@ -15,46 +16,7 @@ from ...version4.output import (
     OutputMeta,
     OutputField,
 )
-from ...version4.parsers import extract_aliases
 from ..conftest import test_root
-
-
-@pytest.mark.parametrize(
-    "keys, expected_aliases",
-    [
-        pytest.param(
-            ["Beam/Global/xsize", "Beam/xsize", "Field/Global/xsize", "Field/xsize"],
-            {
-                "beam_global_xsize": "Beam/Global/xsize",
-                "beam_xsize": "Beam/xsize",
-                "field_global_xsize": "Field/Global/xsize",
-                "field_xsize": "Field/xsize",
-            },
-            id="xsize",
-        ),
-        pytest.param(
-            [
-                "Beam/Global/xsize",
-                "Beam/xsize",
-                "Field/Global/xsize",
-                "Field/xsize",
-                "test/unique",
-                "foobar",
-            ],
-            {
-                "beam_global_xsize": "Beam/Global/xsize",
-                "beam_xsize": "Beam/xsize",
-                "field_global_xsize": "Field/Global/xsize",
-                "field_xsize": "Field/xsize",
-                "unique": "test/unique",
-                "test_unique": "test/unique",
-            },
-            id="xsize-and-unique",
-        ),
-    ],
-)
-def test_extract_aliases(keys: List[str], expected_aliases: Dict[str, str]) -> None:
-    assert extract_aliases(dict.fromkeys(keys)) == expected_aliases
 
 
 @pytest.fixture(scope="function")
@@ -64,6 +26,37 @@ def output(
     output = genesis4.run(raise_on_error=True)
     assert output.run.success
     return output
+
+
+def test_update_aliases(
+    output: Genesis4Output,
+) -> None:
+    output.update_aliases()
+
+
+@pytest.mark.parametrize(
+    ("alias", "expected_attr"),
+    [
+        ("beam_sigma_energy", "beam.stat.sigma_energy"),
+        ("beam_sigma_x", "beam.stat.sigma_x"),
+        ("field_intensity_farfield", "field_info.intensity_farfield"),
+        ("field_global_energy", "field_info.global_.energy"),
+        ("field_stat_xsize", "field_info.stat.xsize"),
+        ("global_frequency", "global_.frequency"),
+        ("beam_bunching", "beam.bunching"),
+        ("beam_global_energy", "beam.global_.energy"),
+        ("beam_stat_sigma_x", "beam.stat.sigma_x"),
+        ("lattice_ax", "lattice.ax"),
+    ],
+)
+def test_alias(
+    output: Genesis4Output,
+    alias: str,
+    expected_attr: str,
+) -> None:
+    assert output.alias[alias] == expected_attr
+    output._get_array_info(alias)
+    assert isinstance(output[alias], np.ndarray)
 
 
 @pytest.mark.parametrize(
@@ -140,3 +133,18 @@ def test_convenience_methods(
     with pytest.raises(TypeError):
         # Not a mutable mapping
         output["testing"] = np.asarray([0])
+
+
+@pytest.mark.parametrize(
+    ("filename", "key"),
+    [
+        ("test.par.h5", "test"),
+        ("test.123.par.h5", 123),
+        ("test.456.fld.h5", 456),
+    ],
+)
+def test_get_file_key(
+    filename: str,
+    key: Union[str, int],
+) -> None:
+    assert g4.output.get_key_from_filename(filename) == key
