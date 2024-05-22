@@ -177,8 +177,8 @@ class Line(BeamlineElement):
     """
 
     type: Literal["line"] = "line"
-    elements: List[LineItem] = pydantic.Field(default_factory=list)
-    label: str = ""
+    elements: List[LineItem] = pydantic.Field(default_factory=list, kw_only=False)
+    label: str = pydantic.Field(default="")
 
     def model_post_init(self, __context: Any) -> None:
         self.elements = [_fix_line_item(item) for item in self.elements]
@@ -241,6 +241,35 @@ class Line(BeamlineElement):
             )
 
 
+def lattice_elements_from_list(
+    elements: Sequence[AnyBeamlineElement],
+) -> Dict[str, AnyBeamlineElement]:
+    """
+    Make a label-to-lattice-element dictionary from a sequence of elements.
+
+    Parameters
+    ----------
+    elements : Sequence[AnyBeamlineElement]
+
+    Returns
+    -------
+    Dict[str, AnyBeamlineElement]
+    """
+    res = {}
+    for idx, element in enumerate(elements):
+        label = element.label
+        if not label:
+            raise ValueError(f"Element #{idx} does not have a label: ({element})")
+        if label in res:
+            raise ValueError(
+                f"Element #{idx} has a duplicate label to another element. "
+                f"Previous: {res[label]} "
+                f"element[{idx}] = {element}"
+            )
+        res[label] = element
+    return res
+
+
 class Lattice(BaseModel):
     """
     A Genesis 4 beamline Lattice configuration.
@@ -255,6 +284,20 @@ class Lattice(BaseModel):
 
     elements: Dict[str, AnyBeamlineElement] = pydantic.Field(default_factory=dict)
     filename: Optional[pathlib.Path] = None
+
+    def __init__(
+        self,
+        elements: Union[
+            Dict[str, AnyBeamlineElement], List[AnyBeamlineElement], None
+        ] = None,
+        *,
+        filename: Optional[pathlib.Path] = None,
+    ) -> None:
+        if elements is None:
+            elements = {}
+        if not isinstance(elements, dict):
+            elements = lattice_elements_from_list(elements)
+        super().__init__(elements=elements, filename=filename)
 
     def _repr_table_data_(self):
         return {
@@ -296,34 +339,42 @@ class Lattice(BaseModel):
 
     @property
     def undulators(self) -> List[auto_lattice.Undulator]:
+        """List of all Undulator instances."""
         return self.by_element.get(auto_lattice.Undulator, [])
 
     @property
     def drifts(self) -> List[auto_lattice.Drift]:
+        """List of all Drift instances."""
         return self.by_element.get(auto_lattice.Drift, [])
 
     @property
     def quadrupoles(self) -> List[auto_lattice.Quadrupole]:
+        """List of all Quadrupole instances."""
         return self.by_element.get(auto_lattice.Quadrupole, [])
 
     @property
     def correctors(self) -> List[auto_lattice.Corrector]:
+        """List of all Corrector instances."""
         return self.by_element.get(auto_lattice.Corrector, [])
 
     @property
     def chicanes(self) -> List[auto_lattice.Chicane]:
+        """List of all Chicane instances."""
         return self.by_element.get(auto_lattice.Chicane, [])
 
     @property
     def phase_shifters(self) -> List[auto_lattice.PhaseShifter]:
+        """List of all PhaseShifter instances."""
         return self.by_element.get(auto_lattice.PhaseShifter, [])
 
     @property
     def markers(self) -> List[auto_lattice.Marker]:
+        """List of all Marker instances."""
         return self.by_element.get(auto_lattice.Marker, [])
 
     @property
     def lines(self) -> List[Line]:
+        """List of all Line instances."""
         return self.by_element.get(Line, [])
 
     def model_dump(self, **kwargs) -> Dict[str, Dict]:
@@ -630,8 +681,18 @@ class MainInput(BaseModel):
         The filename from which this was loaded.
     """
 
-    namelists: List[AnyNameList] = pydantic.Field(default_factory=list)
-    filename: Optional[pathlib.Path] = None
+    namelists: List[AnyNameList]
+    filename: Optional[pathlib.Path]
+
+    def __init__(
+        self,
+        namelists: Optional[List[AnyNameList]] = None,
+        *,
+        filename: Optional[pathlib.Path] = None,
+    ) -> None:
+        if namelists is None:
+            namelists = []
+        super().__init__(namelists=namelists, filename=filename)
 
     def to_genesis(self) -> str:
         return "\n\n".join(namelist.to_genesis() for namelist in self.namelists)

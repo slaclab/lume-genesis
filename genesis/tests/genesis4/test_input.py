@@ -2,6 +2,7 @@ import pydantic
 import pydantic.alias_generators
 import pytest
 
+from ... import version4 as g4
 from ...version4 import MainInput, Lattice, Setup, AnyBeamlineElement, AnyNameList
 
 
@@ -73,3 +74,49 @@ def test_lattice_helpers(element: AnyBeamlineElement):
     attr = f"{attr_base}s" if not attr_base.endswith("s") else attr_base
 
     assert getattr(main, attr) == [element]
+
+
+def test_main_input_positional_instantiation():
+    base = MainInput(namelists=[Setup()])
+    positional = MainInput(namelists=[Setup()])
+    assert positional == base
+
+
+def test_lattice_positional_instantiation():
+    base = Lattice(elements={"a": g4.Quadrupole()})
+    positional = Lattice({"a": g4.Quadrupole()})
+    assert positional == base
+
+    base.fix_labels()
+    list_positional = Lattice([g4.Quadrupole(label="a")])
+    assert list_positional == base
+
+
+def test_lattice_empty_label():
+    with pytest.raises(ValueError):
+        Lattice(
+            [
+                g4.Quadrupole(label=""),
+            ]
+        )
+
+
+def test_lattice_duplicate_label():
+    with pytest.raises(ValueError):
+        Lattice(
+            [
+                g4.Quadrupole(label="a"),
+                g4.Quadrupole(label="a"),
+            ]
+        )
+
+
+@pytest.mark.xfail(reason="pydantic union discriminator + custom __init__", strict=True)
+def test_line_positional_instantiation():
+    base = g4.Line(elements=["a"])
+    # We want to support this eventually, but it appears that after adding a
+    # custom __init__ to Line, this causes the type-based discriminator to get
+    # confused and start trying to instantiate other beamline elements using
+    # the class.
+    positional = g4.Line(["a"])
+    assert positional == base
