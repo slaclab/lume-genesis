@@ -20,6 +20,7 @@ from typing import (
     TypeVar,
     Union,
 )
+from typing_extensions import override
 
 import h5py
 import lark
@@ -33,6 +34,7 @@ from pmd_beamphysics.units import c_light
 from .. import archive as _archive
 from ... import tools
 from ..types import (
+    ReprTableData,
     AnyPath,
     BaseModel,
     BeamlineElement,
@@ -115,6 +117,7 @@ class DuplicatedLineItem(BaseModel):
     def to_genesis(self) -> str:
         return str(self)
 
+    @override
     def __str__(self) -> str:
         return f"{self.count}*{self.label}"
 
@@ -147,6 +150,7 @@ class PositionedLineItem(BaseModel):
     def to_genesis(self) -> str:
         return str(self)
 
+    @override
     def __str__(self) -> str:
         return f"{self.label}@{self.position}"
 
@@ -180,6 +184,7 @@ class Line(BeamlineElement):
     elements: List[LineItem] = pydantic.Field(default_factory=list, kw_only=False)
     label: str = pydantic.Field(default="")
 
+    @override
     def model_post_init(self, __context: Any) -> None:
         self.elements = [_fix_line_item(item) for item in self.elements]
 
@@ -190,6 +195,7 @@ class Line(BeamlineElement):
             for elem in self.elements
         ]
 
+    @override
     def to_genesis(self) -> str:
         elements = ", ".join(self._string_elements)
         return "".join(
@@ -299,16 +305,19 @@ class Lattice(BaseModel):
             elements = lattice_elements_from_list(elements)
         super().__init__(elements=elements, filename=filename)
 
-    def _repr_table_data_(self):
+    @override
+    def _repr_table_data_(self) -> ReprTableData:
         return {
             "obj": self.elements,
             "annotations": None,
             "descriptions": None,
         }
 
+    @override
     def __str__(self) -> str:
         return self.to_string("repr")
 
+    @override
     def _repr_html_(self) -> str:
         repr_ = self.to_string("repr")
         return f"<pre>{repr_}</pre>"
@@ -377,7 +386,8 @@ class Lattice(BaseModel):
         """List of all Line instances."""
         return self.by_element.get(Line, [])
 
-    def model_dump(self, **kwargs) -> Dict[str, Dict]:
+    @override
+    def model_dump(self, **kwargs: Any) -> Dict[str, Any]:
         """Serialize this lattice to a list of dictionaries."""
         self.fix_labels()
         return super().model_dump(**kwargs)
@@ -534,6 +544,7 @@ class ProfileArray(NameList):
             autoassign=self.autoassign,
         )
 
+    @override
     def to_genesis(self) -> str:
         return self.to_profile_file().to_genesis()
 
@@ -589,7 +600,8 @@ class InitialParticles(NameList, arbitrary_types_allowed=True):
     )
     temporary_filename: Optional[str] = None
 
-    def model_post_init(self, context) -> None:
+    @override
+    def model_post_init(self, context: Any) -> None:
         workdir = pathlib.Path(".")
         if context and isinstance(context, dict):
             workdir = context.get("workdir", pathlib.Path("."))
@@ -664,6 +676,7 @@ class InitialParticles(NameList, arbitrary_types_allowed=True):
         logger.info("Saved particles to %s", path)
         return path
 
+    @override
     def to_genesis(self) -> str:
         self._update_import_distribution()
         return self.import_distribution.to_genesis()
@@ -697,17 +710,20 @@ class MainInput(BaseModel):
     def to_genesis(self) -> str:
         return "\n\n".join(namelist.to_genesis() for namelist in self.namelists)
 
-    def _repr_table_data_(self):
+    @override
+    def _repr_table_data_(self) -> ReprTableData:
         return {
             "obj": {f"{idx}": obj for idx, obj in enumerate(self.namelists)},
             "annotations": None,
             "descriptions": None,
         }
 
+    @override
     def _repr_html_(self) -> str:
         repr_ = self.to_string("repr")
         return f"<pre>{repr_}</pre>"
 
+    @override
     def __str__(self) -> str:
         return self.to_string("repr")
 
@@ -1374,10 +1390,12 @@ class Genesis4Input(BaseModel):
             )
         )
 
+    @override
     def _repr_html_(self) -> str:
         repr_ = self.to_string("repr")
         return f"<pre>{repr_}</pre>"
 
+    @override
     def __str__(self) -> str:
         return self.to_string("repr")
 
@@ -1637,7 +1655,7 @@ def new_parser(filename: AnyPath, **kwargs) -> lark.Lark:
     )
 
 
-def new_lattice_parser(**kwargs) -> lark.Lark:
+def new_lattice_parser(**kwargs: Any) -> lark.Lark:
     """
     Get a new parser for the packaged Lattice input grammar.
 
@@ -1649,7 +1667,7 @@ def new_lattice_parser(**kwargs) -> lark.Lark:
     return new_parser(LATTICE_GRAMMAR, **kwargs)
 
 
-def new_main_input_parser(**kwargs) -> lark.Lark:
+def new_main_input_parser(**kwargs: Any) -> lark.Lark:
     """
     Get a new parser for the packaged main input file grammar.
 

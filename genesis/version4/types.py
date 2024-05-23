@@ -4,7 +4,7 @@ import abc
 import pathlib
 import pydantic
 import sys
-from typing import Any, Dict, Iterable, Sequence, Tuple, Type, Union
+from typing import Any, Dict, Iterable, Sequence, Tuple, Type, Optional, Union
 
 import h5py
 import numpy as np
@@ -33,6 +33,14 @@ else:
     from typing_extensions import TypedDict
 
 
+class ReprTableData(TypedDict):
+    """Data to use for table output."""
+
+    obj: Union[BaseModel, Dict[str, Any]]
+    descriptions: Optional[Dict[str, str]]
+    annotations: Optional[Dict[str, str]]
+
+
 class BaseModel(pydantic.BaseModel, extra="forbid", validate_assignment=True):
     """
     LUME-Genesis customized pydantic BaseModel.
@@ -40,7 +48,7 @@ class BaseModel(pydantic.BaseModel, extra="forbid", validate_assignment=True):
     Alters `dir()` handling and other things for user convenience.
     """
 
-    def _repr_table_data_(self):
+    def _repr_table_data_(self) -> ReprTableData:
         units = getattr(self, "units", None)
         return {
             "obj": self,

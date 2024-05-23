@@ -38,6 +38,8 @@ from .types import (
 )
 from .particles import load_particle_group
 
+from typing_extensions import override
+
 try:
     from typing import Literal
 except ImportError:
@@ -1104,6 +1106,7 @@ class Genesis4Output(Mapping, BaseModel, arbitrary_types_allowed=True):
         description="Loadable particle files, keyed by (integer) integration step number or filename base.",
     )
 
+    @override
     def model_post_init(self, _) -> None:
         try:
             self.update_aliases()
@@ -1580,15 +1583,18 @@ class Genesis4Output(Mapping, BaseModel, arbitrary_types_allowed=True):
         # get_array(key)
         return getattr(info.parent, info.array_attr)
 
+    @override
     def __getitem__(self, key: str) -> Any:
         """Support for Mapping -> easy access to data."""
         dotted_attr = self.alias[key]
         return operator.attrgetter(dotted_attr)(self)
 
+    @override
     def __iter__(self) -> Generator[str, None, None]:
         """Support for Mapping -> easy access to data."""
         yield from self.alias
 
+    @override
     def __len__(self) -> int:
         """Support for Mapping -> easy access to data."""
         return len(self.alias)
