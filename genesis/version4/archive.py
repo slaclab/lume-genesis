@@ -18,6 +18,7 @@ logger = logging.getLogger(__name__)
 
 
 _reserved_h5_attrs = {
+    "__python_class_name__",
     "__python_key_map__",
     "__python_key_order__",
     "__num_items__",
@@ -314,4 +315,7 @@ def restore_from_hdf5_file(
 
     logger.debug(f"Dictifying data to restore from h5 group: {h5}")
     data = _hdf5_restore_dict(h5, encoding=encoding)
+    assert isinstance(data, dict)
+    for key in _reserved_h5_attrs:
+        data.pop(key, None)
     return cls.model_validate(data)

@@ -33,7 +33,7 @@ else:
     from typing_extensions import TypedDict
 
 
-class BaseModel(pydantic.BaseModel):
+class BaseModel(pydantic.BaseModel, extra="forbid", validate_assignment=True):
     """
     LUME-Genesis customized pydantic BaseModel.
 

@@ -168,7 +168,45 @@ def _empty_ndarray() -> np.ndarray:
     return np.zeros(0)
 
 
-class OutputLattice(BaseModel):
+class _OutputBase(BaseModel):
+    """Output model base class."""
+
+    units: Dict[str, PydanticPmdUnit] = pydantic.Field(default_factory=dict, repr=False)
+    extra: Dict[str, OutputDataType] = pydantic.Field(
+        default_factory=dict,
+        description=(
+            "Additional Genesis 4 output data.  This is a future-proofing mechanism "
+            "in case Genesis 4 changes and LUME-Genesis is not yet ready for it."
+        ),
+    )
+
+    def __init__(self, **kwargs) -> None:
+        extra = _split_extra(type(self), kwargs)
+        super().__init__(**kwargs, extra=extra)
+
+    @classmethod
+    def from_hdf5_data(cls, dct: Dict[str, OutputDataType], **kwargs):
+        dct = cls._fix_scalar_data(dct)
+        return cls(**dct, **kwargs)
+
+    @classmethod
+    def _fix_scalar_data(
+        cls, dct: Dict[str, OutputDataType]
+    ) -> Dict[str, OutputDataType]:
+        """Fix data from HDF5 that's mistakenly scalar."""
+        res = {}
+        for key, value in dct.items():
+            info = cls.model_fields.get(key, None)
+            if info is None:
+                res[key] = value
+            elif info.annotation is np.ndarray and isinstance(value, float):
+                res[key] = np.asarray([value])
+            else:
+                res[key] = value
+        return res
+
+
+class OutputLattice(_OutputBase):
     """
     Genesis 4 lattice output information (HDF5 Group ``"/Lattice"``).
 
@@ -300,7 +338,7 @@ class OutputLattice(BaseModel):
     )
 
 
-class OutputBeamStat(BaseModel):
+class OutputBeamStat(_OutputBase):
     """
     Output Beam statistics, based on HDF5 ``/Beam``.
 
@@ -447,6 +485,9 @@ class OutputBeamStat(BaseModel):
             "ysize",
             # Calculated below:
             "bunching",
+            # Other:
+            "emin",
+            "emax",
         }
         for attr in set(OutputBeam.model_fields):
             value = getattr(beam, attr)
@@ -492,7 +533,7 @@ class OutputBeamStat(BaseModel):
         )
 
 
-class OutputBeamGlobal(BaseModel):
+class OutputBeamGlobal(_OutputBase):
     """Output beam global information. (HDF5 ``/Beam/Global``)"""
 
     units: Dict[str, PydanticPmdUnit] = pydantic.Field(default_factory=dict, repr=False)
@@ -522,7 +563,7 @@ class OutputBeamGlobal(BaseModel):
     )
 
 
-class OutputBeam(BaseModel):
+class OutputBeam(_OutputBase):
     """Output beam information. (HDF5 ``/Beam``)"""
 
     units: Dict[str, PydanticPmdUnit] = pydantic.Field(default_factory=dict, repr=False)
@@ -686,42 +727,45 @@ class OutputBeam(BaseModel):
         return OutputBeamStat.from_output_beam(self)
 
 
-class OutputMetaDumps(BaseModel):
+def _split_extra(cls: Type[BaseModel], dct) -> Dict[str, Any]:
+    extra = dct.pop("extra", {})
+    assert isinstance(extra, dict)
+    # Don't let computed fields make it into 'extra':
+    for fld in cls.model_computed_fields:
+        dct.pop(fld, None)
+    return {key: dct.pop(key) for key in set(dct) - set(cls.model_fields)}
+
+
+class OutputMetaDumps(_OutputBase):
     """Dump-related output information. (HDF5 ``/Meta/*dumps``)"""
 
-    units: Dict[str, PydanticPmdUnit] = pydantic.Field(default_factory=dict, repr=False)
+    def __init__(self, **kwargs) -> None:
+        filename_keys = [key for key in kwargs if key.startswith("filename_")]
+        filenames = kwargs.pop("filenames", {})
+        assert isinstance(filenames, dict)
+        filenames.update(
+            {key[len("filename_") :]: kwargs.pop(key) for key in filename_keys}
+        )
+        super().__init__(filenames=filenames, **kwargs)
+
+    filenames: Dict[str, str] = pydantic.Field(default_factory=dict)
+    intstep: NDArray = pydantic.Field(default_factory=_empty_ndarray)
     ndumps: int = 0
-    extra: Dict[str, OutputDataType] = pydantic.Field(
-        default_factory=dict,
-        description=(
-            "Additional Genesis 4 output data.  This is a future-proofing mechanism "
-            "in case Genesis 4 changes and LUME-Genesis is not yet ready for it."
-        ),
-    )
 
 
-class OutputMetaVersion(BaseModel):
+class OutputMetaVersion(_OutputBase):
     """Version information from Genesis 4 output. (HDF5 ``/Meta/Version``)"""
 
-    units: Dict[str, PydanticPmdUnit] = pydantic.Field(default_factory=dict, repr=False)
     beta: float = 0.0
     build_info: str = ""
     major: float = 0.0
     minor: float = 0.0
     revision: float = 0.0
-    extra: Dict[str, OutputDataType] = pydantic.Field(
-        default_factory=dict,
-        description=(
-            "Additional Genesis 4 output data.  This is a future-proofing mechanism "
-            "in case Genesis 4 changes and LUME-Genesis is not yet ready for it."
-        ),
-    )
 
 
-class OutputMeta(BaseModel):
+class OutputMeta(_OutputBase):
     """Meta information from Genesis 4 output. (HDF5 ``/Meta``)"""
 
-    units: Dict[str, PydanticPmdUnit] = pydantic.Field(default_factory=dict, repr=False)
     beamdumps: OutputMetaDumps = pydantic.Field(default_factory=OutputMetaDumps)
     fielddumps: OutputMetaDumps = pydantic.Field(default_factory=OutputMetaDumps)
     host: str = ""
@@ -732,19 +776,11 @@ class OutputMeta(BaseModel):
     version: OutputMetaVersion = pydantic.Field(default_factory=OutputMetaVersion)
     cwd: str = ""
     mpisize: float = 0.0
-    extra: Dict[str, OutputDataType] = pydantic.Field(
-        default_factory=dict,
-        description=(
-            "Additional Genesis 4 output data.  This is a future-proofing mechanism "
-            "in case Genesis 4 changes and LUME-Genesis is not yet ready for it."
-        ),
-    )
 
 
-class OutputGlobal(BaseModel):
+class OutputGlobal(_OutputBase):
     """Global information from Genesis 4 output. (HDF5 ``/Global``)"""
 
-    units: Dict[str, PydanticPmdUnit] = pydantic.Field(default_factory=dict, repr=False)
     frequency: NDArray = pydantic.Field(
         default_factory=_empty_ndarray,
         description="Frequency [eV]",
@@ -780,19 +816,10 @@ class OutputGlobal(BaseModel):
     )
     time: bool = False
 
-    extra: Dict[str, OutputDataType] = pydantic.Field(
-        default_factory=dict,
-        description=(
-            "Additional Genesis 4 output data.  This is a future-proofing mechanism "
-            "in case Genesis 4 changes and LUME-Genesis is not yet ready for it."
-        ),
-    )
 
-
-class OutputFieldStat(BaseModel):
+class OutputFieldStat(_OutputBase):
     """Calculated output field statistics. Mean field position and size."""
 
-    units: Dict[str, PydanticPmdUnit] = pydantic.Field(default_factory=dict, repr=False)
     xposition: NDArray
     yposition: NDArray
 
@@ -815,10 +842,9 @@ class OutputFieldStat(BaseModel):
         )
 
 
-class OutputFieldGlobal(BaseModel):
+class OutputFieldGlobal(_OutputBase):
     """Field-global information from Genesis 4 output. (HDF5 ``/Field/Global``)"""
 
-    units: Dict[str, PydanticPmdUnit] = pydantic.Field(default_factory=dict, repr=False)
     energy: NDArray = pydantic.Field(default_factory=_empty_ndarray)
     intensity_farfield: NDArray = pydantic.Field(
         default_factory=_empty_ndarray,
@@ -860,17 +886,9 @@ class OutputFieldGlobal(BaseModel):
         default_factory=_empty_ndarray,
         description="Vertical sigma. [m]",
     )
-    extra: Dict[str, OutputDataType] = pydantic.Field(
-        default_factory=dict,
-        description=(
-            "Additional Genesis 4 output data.  This is a future-proofing mechanism "
-            "in case Genesis 4 changes and LUME-Genesis is not yet ready for it."
-        ),
-    )
 
 
-class OutputField(BaseModel):
-    units: Dict[str, PydanticPmdUnit] = pydantic.Field(default_factory=dict, repr=False)
+class OutputField(_OutputBase):
     global_: OutputFieldGlobal = pydantic.Field(
         default_factory=OutputFieldGlobal,
         description="Global field information (/Field/Global)",
@@ -938,13 +956,6 @@ class OutputField(BaseModel):
         default_factory=_empty_ndarray,
         description="Calculated by LUME-Genesis using slen from /Global.",
     )
-    extra: Dict[str, OutputDataType] = pydantic.Field(
-        default_factory=dict,
-        description=(
-            "Additional Genesis 4 output data.  This is a future-proofing mechanism "
-            "in case Genesis 4 changes and LUME-Genesis is not yet ready for it."
-        ),
-    )
 
     def __init__(self, *args, slen=None, **kwargs):
         super().__init__(*args, **kwargs)
@@ -981,7 +992,7 @@ class OutputField(BaseModel):
         return OutputFieldStat.from_output_field(self)
 
 
-_T = TypeVar("_T", bound=BaseModel)
+_T = TypeVar("_T", bound=_OutputBase)
 
 
 class _ArrayInfo(NamedTuple):
@@ -989,21 +1000,6 @@ class _ArrayInfo(NamedTuple):
     array_attr: str
     units: Optional[PydanticPmdUnit]
     field: Union[pydantic.fields.FieldInfo, pydantic.fields.ComputedFieldInfo]
-
-
-def _fix_scalar_data_for_model(
-    cls: Type[BaseModel], dct: Dict[str, OutputDataType]
-) -> Dict[str, OutputDataType]:
-    res = {}
-    for key, value in dct.items():
-        info = cls.model_fields.get(key, None)
-        if info is None:
-            res[key] = value
-        elif info.annotation is np.ndarray and isinstance(value, float):
-            res[key] = np.asarray([value])
-        else:
-            res[key] = value
-    return res
 
 
 def get_key_from_filename(fn: str) -> FileKey:
@@ -1255,16 +1251,6 @@ class Genesis4Output(Mapping, BaseModel, arbitrary_types_allowed=True):
             for fn in output_root.glob("*.par.h5")
         ]
 
-        def instantiate(cls: Type[_T], data_key: str, **kwargs) -> _T:
-            dct = data.pop(data_key, {})
-            dct = _fix_scalar_data_for_model(cls, dct)
-            extra = {key: dct.pop(key) for key in set(dct) - set(cls.model_fields)}
-            return cls(
-                **dct,
-                **kwargs,
-                extra=extra,
-            )
-
         def get_harmonics_keys():
             # The first harmonic is just "Field"
             yield 1, "field"
@@ -1274,14 +1260,14 @@ class Genesis4Output(Mapping, BaseModel, arbitrary_types_allowed=True):
                 yield harmonic, f"field_{harmonic}"
                 harmonic += 1
 
-        global_ = instantiate(OutputGlobal, "global_")
-        beam = instantiate(OutputBeam, "beam")
+        global_ = OutputGlobal.from_hdf5_data(data.pop("global_", {}))
+        beam = OutputBeam.from_hdf5_data(data.pop("beam", {}))
         field_harmonics = {
-            harmonic: instantiate(OutputField, key, slen=global_.slen)
+            harmonic: OutputField.from_hdf5_data(data.pop(key, {}), slen=global_.slen)
             for harmonic, key in get_harmonics_keys()
         }
-        lattice = instantiate(OutputLattice, "lattice")
-        meta = instantiate(OutputMeta, "meta")
+        lattice = OutputLattice.from_hdf5_data(data.pop("lattice", {}))
+        meta = OutputMeta.from_hdf5_data(data.pop("meta", {}))
         version = meta.version
         extra = data
 
@@ -1305,7 +1291,7 @@ class Genesis4Output(Mapping, BaseModel, arbitrary_types_allowed=True):
 
         return output
 
-    def load_field_by_key(self, label: FileKey) -> FieldFile:
+    def load_field_by_key(self, key: FileKey) -> FieldFile:
         """
         Loads a single field file by name into a dictionary.
 
@@ -1319,12 +1305,12 @@ class Genesis4Output(Mapping, BaseModel, arbitrary_types_allowed=True):
         -------
         FieldFile
         """
-        lazy = self.field_files[label]
+        lazy = self.field_files[key]
         field = lazy.load()
         assert isinstance(field, FieldFile)
-        self.field[label] = field
-        logger.info(f"Loaded field data: '{label}'")
-        self.update_aliases
+        self.field[key] = field
+        logger.info(f"Loaded field data: '{key}'")
+        self.update_aliases()
         return field
 
     def load_particles_by_key(self, key: FileKey, smear: bool = True) -> ParticleGroup:

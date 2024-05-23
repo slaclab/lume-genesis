@@ -604,7 +604,7 @@ class InitialParticles(NameList, arbitrary_types_allowed=True):
 
         if self.data is None:
             raise ValueError(
-                "Either `filename` or `data` must be specified for " "InitialParticles."
+                "Either `filename` or `data` must be specified for InitialParticles."
             )
         self.particles = ParticleGroup(data=self.data)
 
@@ -1422,7 +1422,6 @@ class Genesis4Input(BaseModel):
     def write(
         self,
         workdir: AnyPath = pathlib.Path("."),
-        write_run_script: bool = True,
         rename: bool = True,
     ) -> List[pathlib.Path]:
         """
@@ -1434,7 +1433,8 @@ class Genesis4Input(BaseModel):
             The working directory for Genesis 4. This will be where all
             input and output files are written.
         rename : bool, optional
-            Rename temporary HDF5 files according to their
+            Adjust temporary filenames of HDF5 files, replacing random
+            characters with sensible namelist-prefixed names.
 
         Returns
         -------
@@ -1448,6 +1448,7 @@ class Genesis4Input(BaseModel):
             path,
             main_filename=self.input_filename,
             source_path=self.source_path,
+            rename=rename,
         )
         lattice_path = path / self.lattice_filename
         self.lattice.to_file(filename=lattice_path)
@@ -1494,7 +1495,7 @@ class Genesis4Input(BaseModel):
         main: MainInput,
         lattice: Union[Lattice, str, pathlib.Path] = "",
         *,
-        source_path: pathlib.Path = pathlib.Path("."),
+        source_path: Optional[pathlib.Path] = None,
     ) -> Genesis4Input:
         """
         Work with a lume-genesis MainInput and potentially an external
@@ -1503,6 +1504,9 @@ class Genesis4Input(BaseModel):
         If the input refers to files that already exist on disk, ensures
         that `source_path` is set correctly.
         """
+        if source_path is None:
+            source_path = pathlib.Path(".")
+
         if isinstance(lattice, Lattice):
             return cls(
                 main=main,
@@ -1533,9 +1537,11 @@ class Genesis4Input(BaseModel):
             except Exception:
                 if setup is not None:
                     logger.exception(
-                        "Lattice not specified and unable to determine it from the "
-                        "main input's setup. Setup.lattice=%s Lattice file should "
-                        "be located here: %s",
+                        (
+                            "Lattice not specified and unable to determine it from the "
+                            "main input's setup. Setup.lattice=%s Lattice file should "
+                            "be located here: %s"
+                        ),
                         setup.lattice,
                         source_path / setup.lattice,
                     )
@@ -1664,7 +1670,7 @@ def check_allows_reference(field: pydantic.fields.FieldInfo) -> bool:
 
 
 def get_primary_type(field: pydantic.fields.FieldInfo) -> type:
-    def is_model(typ):
+    def is_model(typ: object):
         return isclass(typ) and issubclass(typ, pydantic.BaseModel)
 
     def check_type(typ: type) -> type:
@@ -1728,9 +1734,7 @@ def _fix_parameters(
         allow_reference = check_allows_reference(field)
         dtype = get_primary_type(field)
         string_value = str(value).strip()
-        if dtype is None:
-            extra[name] = string_value
-        elif value.startswith("@") and allow_reference:
+        if value.startswith("@") and allow_reference:
             kwargs[name] = Reference(string_value[1:].strip())
         elif dtype is int:
             try:
@@ -1770,7 +1774,7 @@ class _LatticeTransformer(lark.visitors.Transformer_InPlaceRecursive):
         self._filename = pathlib.Path(filename)
 
         # This maps, e.g., "setup" to the Setup dataclass
-        self.type_name_to_class = {
+        self.type_name_to_class: Dict[str, Type[BeamlineElement]] = {
             cls.model_fields["type"].default: cls
             for cls in BeamlineElement.__subclasses__()
         }
@@ -1906,7 +1910,7 @@ class _MainInputTransformer(lark.visitors.Transformer_InPlaceRecursive):
         parameters, unknown = _fix_parameters(cls, dict(parameter_list))
         if unknown:
             raise ValueError(
-                f"Namelist {name} received unexpected parameter(s): " f"{unknown}"
+                f"Namelist {name} received unexpected parameter(s): {unknown}"
             )
         return cls(**parameters)
 

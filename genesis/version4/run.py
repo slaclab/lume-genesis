@@ -416,14 +416,14 @@ class Genesis4(CommandWrapper):
 
         return shlex.join(runscript)
 
-    def write_input(self, path=None):
+    def write_input(self, path: Optional[AnyPath] = None):
         """
         Write the input parameters into the file.
 
         Parameters
         ----------
-        input_filename : str
-            The file in which to write the input parameters
+        path : str, optional
+            The directory to write the input parameters
         """
         if path is None:
             path = self.path

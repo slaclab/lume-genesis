@@ -383,6 +383,7 @@ def _plot_show_to_savefig(
 
 def get_namelists() -> Sequence[AnyNameList]:
     return [
+        auto_main.AlterField(),
         auto_main.AlterSetup(),
         auto_main.Beam(),
         auto_main.Efield(),
@@ -393,10 +394,13 @@ def get_namelists() -> Sequence[AnyNameList]:
         auto_main.ImportTransformation(),
         auto_main.ProfileConst(label="label"),
         auto_main.ProfileFile(label="label"),
+        auto_main.ProfileFileMulti(),
         auto_main.ProfileGauss(label="label"),
         auto_main.ProfilePolynom(label="label"),
         auto_main.ProfileStep(label="label"),
         auto_main.SequenceConst(label="label"),
+        auto_main.SequenceFilelist(label="label"),
+        auto_main.SequenceList(label="label"),
         auto_main.SequencePolynom(label="label"),
         auto_main.SequencePower(label="label"),
         auto_main.SequenceRandom(label="label"),
