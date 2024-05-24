@@ -27,7 +27,7 @@ from pmd_beamphysics.units import c_light, pmd_unit, unit
 
 from .. import tools
 from . import archive as _archive, parsers, readers
-from .plot import plot_stats_with_layout, PlotLimits
+from .plot import PlotMaybeLimits, plot_stats_with_layout, PlotLimits
 from .types import (
     AnyPath,
     BaseModel,
@@ -82,10 +82,12 @@ class FieldFile(BaseModel):
             write_openpmd_wavefront(
                 str(dest), self.dfl, self.param.model_dump(), verbose=verbose
             )
-        elif isinstance(dest, h5py.Group):
+            return
+        if isinstance(dest, h5py.Group):
             write_openpmd_wavefront_h5(dest, self.dfl, self.param.model_dump())
-        else:
-            raise ValueError(type(dest))
+            return
+
+        raise ValueError(type(dest))  # type: ignore[unreachable]
 
 
 class RunInfo(BaseModel):
@@ -166,7 +168,7 @@ class _ParticleGroupH5File(HDF5ReferenceFile):
             return load_particle_group(h5, **kwargs)
 
 
-def _empty_ndarray() -> np.ndarray:
+def _empty_ndarray():
     return np.zeros(0)
 
 
@@ -1437,8 +1439,8 @@ class Genesis4Output(Mapping, BaseModel, arbitrary_types_allowed=True):
         y: Union[str, Sequence[str]] = "field_energy",
         x: str = "zplot",
         xlim: Optional[PlotLimits] = None,
-        ylim: Optional[PlotLimits] = None,
-        ylim2: Optional[PlotLimits] = None,
+        ylim: Optional[PlotMaybeLimits] = None,
+        ylim2: Optional[PlotMaybeLimits] = None,
         yscale: str = "linear",
         yscale2: str = "linear",
         y2: Union[str, Sequence[str]] = (),

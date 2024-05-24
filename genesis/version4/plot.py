@@ -3,6 +3,7 @@ from __future__ import annotations
 import typing
 from typing import Any, Optional, Sequence, Tuple, Union
 
+import matplotlib.axes
 import matplotlib.figure
 import matplotlib.pyplot as plt
 import numpy as np
@@ -13,20 +14,32 @@ if typing.TYPE_CHECKING:
     from .output import Genesis4Output
 
 
+PlotMaybeLimits = Tuple[Optional[float], Optional[float]]
 PlotLimits = Tuple[float, float]
 
 
 def add_layout_to_axes(
     output: Genesis4Output,
+    ax: matplotlib.axes.Axes,
     *,
-    ax=None,
-    bounds=None,
-    xfactor=1,
-    add_legend=False,
-):
+    bounds: Optional[PlotLimits] = None,
+    xfactor: float = 1,
+    add_legend: bool = False,
+) -> None:
     """
     Adds undulator layout to an axes.
 
+    Parameters
+    ----------
+    output : Genesis4Output
+        The output instance to get data from.
+    ax : matplotlib.axes.Axes
+    bounds : PlotLimits or None, default=None
+        Z limits (defaults to 0 to zmax)
+    xfactor : float, default=1
+        Divisor for Z position.
+    add_legend : bool, default=False
+        Add a legend to the plot.
     """
 
     if bounds is None:
@@ -48,7 +61,7 @@ def add_layout_to_axes(
     ):
         fz = output.stat(component)
 
-        y, factor, prefix = nice_array(fz)
+        y, _factor, prefix = nice_array(fz)
 
         ax1.fill_between(zlist / xfactor, y, color=color, label=label, alpha=0.5)
 
@@ -66,8 +79,8 @@ def plot_stats_with_layout(
     ykeys2: Union[str, Sequence[str]] = (),
     xkey: str = "zplot",
     xlim: Optional[PlotLimits] = None,
-    ylim: Optional[PlotLimits] = None,
-    ylim2: Optional[PlotLimits] = None,
+    ylim: Optional[PlotMaybeLimits] = None,
+    ylim2: Optional[PlotMaybeLimits] = None,
     yscale: str = "linear",
     yscale2: str = "linear",
     nice: bool = True,
@@ -128,6 +141,7 @@ def plot_stats_with_layout(
         ax_layout = all_axis[-1]
         ax_plot = [all_axis[0]]
     else:
+        ax_layout = None
         fig, all_axis = plt.subplots(**kwargs)
         ax_plot = [all_axis]
 
@@ -140,6 +154,8 @@ def plot_stats_with_layout(
             ykeys2 = [ykeys2]
         ax_twinx = ax_plot[0].twinx()
         ax_plot.append(ax_twinx)
+    else:
+        ax_twinx = None
 
     # No need for a legend if there is only one plot
     if len(ykeys) == 1 and not ykeys2:
@@ -219,7 +235,7 @@ def plot_stats_with_layout(
         # Scaling(e.g. "linear", "log", "symlog", "logit")
         if ix == 0:
             ax.set_yscale(yscale)
-        else:
+        elif ax_twinx is not None:
             ax_twinx.set_yscale(yscale2)
 
         # Set limits, considering the scaling.
@@ -234,8 +250,7 @@ def plot_stats_with_layout(
             new_ylim = (ymin, ymax)
             ax.set_ylim(new_ylim)
         # Set limits, considering the scaling.
-        if ix == 1 and ylim2:
-            pass
+        if ix == 1 and ylim2 and ax_twinx is not None:
             # TODO
             if ylim2:
                 ymin2 = ylim2[0]
@@ -262,6 +277,7 @@ def plot_stats_with_layout(
 
     # Layout
     if include_layout:
+        assert ax_layout is not None
         # Gives some space to the top plot
         ax_layout.set_ylim(-1, 1.5)
 
