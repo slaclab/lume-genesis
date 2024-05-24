@@ -14,23 +14,21 @@ nav:
       - API: api/genesis2.md
   - Genesis4:
       - Usage:
-          - examples/genesis4/intro-Quickstart.ipynb
-          - examples/genesis4/intro-MainInput.ipynb
-          - examples/genesis4/intro-LatticeFiles.ipynb
-          - examples/genesis4/intro-Running.ipynb
-      - Examples:
-          - Sven's:
-              - examples/genesis4/Example1.ipynb
-              - examples/genesis4/Example2.ipynb
-              - examples/genesis4/Example3-TimeDependent.ipynb
-          - LUME-Genesis:
-              - examples/genesis4/genesis4_field.ipynb
-              - examples/genesis4/genesis4_parsing.ipynb
-              - examples/genesis4/genesis4_particles.ipynb
-              - examples/genesis4/fodo_scan.ipynb
-              - examples/genesis4/fodo_scan_model.ipynb
-              - examples/genesis4/genesis4_example.ipynb
-              - examples/genesis4/perlmutter_benchmark.ipynb
+          - examples/genesis4/intro-1-Quickstart.ipynb
+          - examples/genesis4/intro-2-MainInput.ipynb
+          - examples/genesis4/intro-3-Lattice.ipynb
+          - examples/genesis4/intro-4-Running.ipynb
+      - Sven's examples:
+          - examples/genesis4/Example1.ipynb
+          - examples/genesis4/Example2.ipynb
+          - examples/genesis4/Example3-TimeDependent.ipynb
+      - More examples:
+          - examples/genesis4/genesis4_field.ipynb
+          - examples/genesis4/genesis4_particles.ipynb
+          - examples/genesis4/fodo_scan.ipynb
+          - examples/genesis4/fodo_scan_model.ipynb
+          - examples/genesis4/genesis4_example.ipynb
+          - examples/genesis4/perlmutter_benchmark.ipynb
       - API:
           - api/genesis4.md
           - api/genesis4-main-input.md
