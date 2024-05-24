@@ -27,7 +27,7 @@ from pmd_beamphysics.units import c_light, pmd_unit, unit
 
 from .. import tools
 from . import archive as _archive, parsers, readers
-from .plot import plot_stats_with_layout
+from .plot import plot_stats_with_layout, PlotLimits
 from .types import (
     AnyPath,
     BaseModel,
@@ -1435,18 +1435,18 @@ class Genesis4Output(Mapping, BaseModel, arbitrary_types_allowed=True):
     def plot(
         self,
         y: Union[str, Sequence[str]] = "field_energy",
-        x="zplot",
-        xlim=None,
-        ylim=None,
-        ylim2=None,
-        yscale="linear",
-        yscale2="linear",
+        x: str = "zplot",
+        xlim: Optional[PlotLimits] = None,
+        ylim: Optional[PlotLimits] = None,
+        ylim2: Optional[PlotLimits] = None,
+        yscale: str = "linear",
+        yscale2: str = "linear",
         y2: Union[str, Sequence[str]] = (),
-        nice=True,
-        include_layout=True,
-        include_legend=True,
-        return_figure=False,
-        tex=False,
+        nice: bool = True,
+        include_layout: bool = True,
+        include_legend: bool = True,
+        return_figure: bool = False,
+        tex: bool = False,
         **kwargs,
     ) -> Optional[matplotlib.figure.Figure]:
         """
@@ -1598,26 +1598,6 @@ class Genesis4Output(Mapping, BaseModel, arbitrary_types_allowed=True):
     def __len__(self) -> int:
         """Support for Mapping -> easy access to data."""
         return len(self.alias)
-
-
-def get_description_for_value(key: str, value) -> str:
-    """
-    Returns a line describing an output
-    """
-    if isinstance(value, dict):
-        return ""
-
-    if isinstance(value, str):
-        if len(value) > 200:
-            return "long str: " + value[0:20].replace("\n", " ") + "..."
-        return value
-    if np.isscalar(value):
-        return f"{value}"
-    if isinstance(value, np.ndarray):
-        return f"array: {str(value.shape):10}"
-    if isinstance(value, list):
-        return str(value)
-    raise ValueError(f"Cannot describe {key}")
 
 
 def projected_variance_from_slice_data(x2, x1, current):

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import typing
-from typing import Optional, Sequence, Union
+from typing import Any, Optional, Sequence, Tuple, Union
 
 import matplotlib.figure
 import matplotlib.pyplot as plt
@@ -11,6 +11,9 @@ from pmd_beamphysics.units import nice_array, nice_scale_prefix
 
 if typing.TYPE_CHECKING:
     from .output import Genesis4Output
+
+
+PlotLimits = Tuple[float, float]
 
 
 def add_layout_to_axes(
@@ -61,35 +64,64 @@ def plot_stats_with_layout(
     output: Genesis4Output,
     ykeys: Union[str, Sequence[str]] = "field_energy",
     ykeys2: Union[str, Sequence[str]] = (),
-    xkey="zplot",
-    xlim=None,
-    ylim=None,
-    ylim2=None,
-    yscale="linear",
-    yscale2="linear",
-    nice=True,
-    tex=False,
-    include_layout=True,
-    include_legend=True,
-    return_figure=False,
-    **kwargs,
+    xkey: str = "zplot",
+    xlim: Optional[PlotLimits] = None,
+    ylim: Optional[PlotLimits] = None,
+    ylim2: Optional[PlotLimits] = None,
+    yscale: str = "linear",
+    yscale2: str = "linear",
+    nice: bool = True,
+    tex: bool = False,
+    include_layout: bool = True,
+    include_legend: bool = True,
+    return_figure: bool = False,
+    **kwargs: Any,
 ) -> Optional[matplotlib.figure.Figure]:
     """
     Plots stat output multiple keys.
 
-    If a list of ykeys2 is given, these will be put on the right hand axis. This can also be given as a single key.
+    If a list of ykeys2 is given, these will be put on the right hand axis.
+    This can also be given as a single key.
 
-    Logical switches:
-        nice: a nice SI prefix and scaling will be used to make the numbers reasonably sized. Default: True
+    Parameters
+    ----------
+    output : Genesis4Output
+        The output instance to get data from.
+    ykeys : str or list of str, default="field_energy"
+        Y keys to plot.
+    ykeys2 : str or list of str, default=()
+        Y keys to plot on the right-hand axis.
+    xkey : str, optional
+        The X axis data key.
+    xlim : list
+        Limits for the X axis
+    ylim : list
+        Limits for the Y axis
+    ylim2 : list
+        Limits for the secondary Y axis
+    yscale: str
+        one of "linear", "log", "symlog", "logit", ... for the Y axis
+    yscale2: str
+        one of "linear", "log", "symlog", "logit", ... for the secondary Y axis
+    y2 : list
+        List of keys to be displayed on the secondary Y axis
+    nice : bool
+        Whether or not a nice SI prefix and scaling will be used to
+        make the numbers reasonably sized. Default: True
+    include_layout : bool
+        Whether or not to include a layout plot at the bottom. Default: True
+        Whether or not the plot should include the legend. Default: True
+    return_figure : bool
+        Whether or not to return the figure object for further manipulation.
+        Default: True
+    kwargs : dict
+        Extra arguments can be passed to the specific plotting function.
 
-        tex: use mathtext (TeX) for plot labels. Default: True
-
-        include_legend: The plot will include the legend.  Default: True
-
-        include_layout: the layout plot will be displayed at the bottom.  Default: True
-
-        return_figure: return the figure object for further manipulation. Default: False
-
+    Returns
+    -------
+    fig : matplotlib.pyplot.figure.Figure
+        The plot figure for further customizations or `None` if
+        `return_figure` is set to False.
     """
     if include_layout:
         fig, all_axis = plt.subplots(2, gridspec_kw={"height_ratios": [4, 1]}, **kwargs)
@@ -113,20 +145,20 @@ def plot_stats_with_layout(
     if len(ykeys) == 1 and not ykeys2:
         include_legend = False
 
-    X = output.stat(xkey)
+    x_array = output.stat(xkey)
 
     # Only get the data we need
     if xlim:
-        good = np.logical_and(X >= xlim[0], X <= xlim[1])
-        X = X[good]
+        good = np.logical_and(x_array >= xlim[0], x_array <= xlim[1])
+        x_array = x_array[good]
     else:
-        xlim = X.min(), X.max()
+        xlim = x_array.min(), x_array.max()
         good = slice(None, None, None)  # everything
 
     # X axis scaling
     units_x = str(output.units(xkey))
     if nice:
-        X, factor_x, prefix_x = nice_array(X)
+        x_array, factor_x, prefix_x = nice_array(x_array)
         units_x = prefix_x + units_x
     else:
         factor_x = 1
@@ -176,7 +208,9 @@ def plot_stats_with_layout(
 
             # Handle tex labels
             label = mathlabel(key, units=unit, tex=tex)
-            ax.plot(X, dat / factor, label=label, color=color, linestyle=linestyle)
+            ax.plot(
+                x_array, dat / factor, label=label, color=color, linestyle=linestyle
+            )
 
         # Handle tex labels
         ylabel = mathlabel(*keys, units=unit, tex=tex)
