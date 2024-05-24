@@ -17,9 +17,7 @@ from ._main import (
     ImportDistribution,
     ImportField,
     ImportTransformation,
-)
-from ._main import Lattice as LatticeNamelist
-from ._main import (
+    LatticeNamelist,
     ProfileConst,
     ProfileFile,
     ProfileFileMulti,

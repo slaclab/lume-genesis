@@ -1011,9 +1011,9 @@ class MainInput(BaseModel):
         return self.by_namelist.get(auto_main.AlterSetup, [])
 
     @property
-    def lattices(self) -> List[auto_main.Lattice]:
+    def lattices(self) -> List[auto_main.LatticeNamelist]:
         """List of all Lattice instances."""
-        return self.by_namelist.get(auto_main.Lattice, [])
+        return self.by_namelist.get(auto_main.LatticeNamelist, [])
 
     @property
     def times(self) -> List[auto_main.Time]:
@@ -1152,6 +1152,7 @@ class MainInput(BaseModel):
         if len(items) > 1:
             plural_fix = {
                 "profile_gauss": "profile_gausses",
+                "lattice_namelist": "lattices",
             }
             plural = pydantic.alias_generators.to_snake(cls.__name__)
             plural = plural_fix.get(plural, f"{plural}s")
@@ -1167,9 +1168,9 @@ class MainInput(BaseModel):
         return self._get_only_one(auto_main.AlterSetup)
 
     @property
-    def lattice(self) -> auto_main.Lattice:
+    def lattice(self) -> auto_main.LatticeNamelist:
         """Get a single Lattice instance. Errors if zero or 2+ exist."""
-        return self._get_only_one(auto_main.Lattice)
+        return self._get_only_one(auto_main.LatticeNamelist)
 
     @property
     def time(self) -> auto_main.Time:

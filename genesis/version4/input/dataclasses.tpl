@@ -44,7 +44,7 @@ class {{ name | to_class_name }}(types.{{ base_class }}):
     {{ docstrings[name] | wordwrap | indent(4) }}
     {%- endif %}
 
-    {{ name | to_class_name }} corresponds to Genesis 4 `{{ name }}`.
+    {{ name | to_class_name }} corresponds to Genesis 4 {{ base_class | lower }} `{{ name }}`.
 
     Attributes
     ----------

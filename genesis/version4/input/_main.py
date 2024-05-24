@@ -22,7 +22,7 @@ class Setup(types.NameList):
     only be called once. If the user want to change some parameter the namelist
     `alter_setup` should be used.
 
-    Setup corresponds to Genesis 4 `setup`.
+    Setup corresponds to Genesis 4 namelist `setup`.
 
     Attributes
     ----------
@@ -345,7 +345,7 @@ class AlterSetup(types.NameList):
     setup module so that for another invocation of alter_setup some defaults values
     are use which have been defined in the preceding call of alter_setup
 
-    AlterSetup corresponds to Genesis 4 `alter_setup`.
+    AlterSetup corresponds to Genesis 4 namelist `alter_setup`.
 
     Attributes
     ----------
@@ -465,13 +465,13 @@ class AlterSetup(types.NameList):
     )
 
 
-class Lattice(types.NameList):
+class LatticeNamelist(types.NameList):
     r"""
     This namelist is used to change the raw lattice from the lattice file, such as
     generating errors in the position of the elements. The namelist can be defined
     several times to add more than one error source to the lattice.
 
-    Lattice corresponds to Genesis 4 `lattice`.
+    LatticeNamelist corresponds to Genesis 4 namelist `lattice`.
 
     Attributes
     ----------
@@ -593,7 +593,7 @@ class Time(types.NameList):
     time-dependence but disables slippage during simulations. That way the
     radiation field is kept in the same slice, acting as steady-state simulations.
 
-    Time corresponds to Genesis 4 `time`.
+    Time corresponds to Genesis 4 namelist `time`.
 
     Attributes
     ----------
@@ -649,7 +649,7 @@ class Time(types.NameList):
 class ProfileConst(types.NameList):
     r"""
 
-    ProfileConst corresponds to Genesis 4 `profile_const`.
+    ProfileConst corresponds to Genesis 4 namelist `profile_const`.
 
     Attributes
     ----------
@@ -672,7 +672,7 @@ class ProfileConst(types.NameList):
 class ProfileGauss(types.NameList):
     r"""
 
-    ProfileGauss corresponds to Genesis 4 `profile_gauss`.
+    ProfileGauss corresponds to Genesis 4 namelist `profile_gauss`.
 
     Attributes
     ----------
@@ -707,7 +707,7 @@ class ProfileGauss(types.NameList):
 class ProfileStep(types.NameList):
     r"""
 
-    ProfileStep corresponds to Genesis 4 `profile_step`.
+    ProfileStep corresponds to Genesis 4 namelist `profile_step`.
 
     Attributes
     ----------
@@ -742,7 +742,7 @@ class ProfileStep(types.NameList):
 class ProfilePolynom(types.NameList):
     r"""
 
-    ProfilePolynom corresponds to Genesis 4 `profile_polynom`.
+    ProfilePolynom corresponds to Genesis 4 namelist `profile_polynom`.
 
     Attributes
     ----------
@@ -789,7 +789,7 @@ class ProfilePolynom(types.NameList):
 class ProfileFile(types.NameList):
     r"""
 
-    ProfileFile corresponds to Genesis 4 `profile_file`.
+    ProfileFile corresponds to Genesis 4 namelist `profile_file`.
 
     Attributes
     ----------
@@ -852,7 +852,7 @@ class ProfileFile(types.NameList):
 class SequenceConst(types.NameList):
     r"""
 
-    SequenceConst corresponds to Genesis 4 `sequence_const`.
+    SequenceConst corresponds to Genesis 4 namelist `sequence_const`.
 
     Attributes
     ----------
@@ -875,7 +875,7 @@ class SequenceConst(types.NameList):
 class SequencePolynom(types.NameList):
     r"""
 
-    SequencePolynom corresponds to Genesis 4 `sequence_polynom`.
+    SequencePolynom corresponds to Genesis 4 namelist `sequence_polynom`.
 
     Attributes
     ----------
@@ -922,7 +922,7 @@ class SequencePolynom(types.NameList):
 class SequencePower(types.NameList):
     r"""
 
-    SequencePower corresponds to Genesis 4 `sequence_power`.
+    SequencePower corresponds to Genesis 4 namelist `sequence_power`.
 
     Attributes
     ----------
@@ -967,7 +967,7 @@ class SequencePower(types.NameList):
 class SequenceRandom(types.NameList):
     r"""
 
-    SequenceRandom corresponds to Genesis 4 `sequence_random`.
+    SequenceRandom corresponds to Genesis 4 namelist `sequence_random`.
 
     Attributes
     ----------
@@ -1014,7 +1014,7 @@ class Beam(types.NameList):
     This namelist initiates the generation of the particle distribution to be kept
     in memory. Any time-dependence has to be defined before calling this namelist.
 
-    Beam corresponds to Genesis 4 `beam`.
+    Beam corresponds to Genesis 4 namelist `beam`.
 
     Attributes
     ----------
@@ -1157,7 +1157,7 @@ class Field(types.NameList):
     distribution but adds up the wavefronts. That way higher mode content in either
     spatial and time direction can be created.
 
-    Field corresponds to Genesis 4 `field`.
+    Field corresponds to Genesis 4 namelist `field`.
 
     Attributes
     ----------
@@ -1306,7 +1306,7 @@ class ImportDistribution(types.NameList):
     Note that this namelist will be expanded in the future, to enable tilts and
     match/center to a core part of the beam
 
-    ImportDistribution corresponds to Genesis 4 `importdistribution`.
+    ImportDistribution corresponds to Genesis 4 namelist `importdistribution`.
 
     Attributes
     ----------
@@ -1463,7 +1463,7 @@ class ImportBeam(types.NameList):
     should not be called). The routine defines also the parameter for a time-
     dependent run if the `time`-namelist hasn’t been defined yet.
 
-    ImportBeam corresponds to Genesis 4 `importbeam`.
+    ImportBeam corresponds to Genesis 4 namelist `importbeam`.
 
     Attributes
     ----------
@@ -1502,7 +1502,7 @@ class ImportField(types.NameList):
     routine defines also the parameter for a time-dependent run if the
     `time`-namelist hasn’t been defined yet.
 
-    ImportField corresponds to Genesis 4 `importfield`.
+    ImportField corresponds to Genesis 4 namelist `importfield`.
 
     Attributes
     ----------
@@ -1560,7 +1560,7 @@ class ImportTransformation(types.NameList):
     `slen` should be also specified. In the case that `n=1` or `slen=0` only a
     global transformation is applied.
 
-    ImportTransformation corresponds to Genesis 4 `importtransformation`.
+    ImportTransformation corresponds to Genesis 4 namelist `importtransformation`.
 
     Attributes
     ----------
@@ -1622,7 +1622,7 @@ class Efield(types.NameList):
     is the sum of the space charge field in the rest frame where each slice is
     treated as a uniform disk.
 
-    Efield corresponds to Genesis 4 `efield`.
+    Efield corresponds to Genesis 4 namelist `efield`.
 
     Attributes
     ----------
@@ -1683,7 +1683,7 @@ class Sponrad(types.NameList):
     This enables the effect of spontaneous radiation outside of the frequency band
     of the FEL simulation.
 
-    Sponrad corresponds to Genesis 4 `sponrad`.
+    Sponrad corresponds to Genesis 4 namelist `sponrad`.
 
     Attributes
     ----------
@@ -1735,7 +1735,7 @@ class Wake(types.NameList):
     *Note that this functionality hasn't been fully tested yet or optimized for
     rapid calculation*
 
-    Wake corresponds to Genesis 4 `wake`.
+    Wake corresponds to Genesis 4 namelist `wake`.
 
     Attributes
     ----------
@@ -1891,7 +1891,7 @@ class Write(types.NameList):
     placeholder character `@` can be used to refer to the rootname of the
     simulation run, e.g. `field = @.final`
 
-    Write corresponds to Genesis 4 `write`.
+    Write corresponds to Genesis 4 namelist `write`.
 
     Attributes
     ----------
@@ -1939,7 +1939,7 @@ class Track(types.NameList):
     defined in the lattice but the namelist allows some ’last minute’ change of the
     behavior of the code
 
-    Track corresponds to Genesis 4 `track`.
+    Track corresponds to Genesis 4 namelist `track`.
 
     Attributes
     ----------
@@ -2037,7 +2037,7 @@ class AlterField(types.NameList):
     Note that the namelist `field_manipulator` is deprecated and will be removed in
     the future. Use `alter_field` instead.
 
-    AlterField corresponds to Genesis 4 `alter_field`.
+    AlterField corresponds to Genesis 4 namelist `alter_field`.
 
     Attributes
     ----------
@@ -2081,7 +2081,7 @@ class ProfileFileMulti(types.NameList):
     Generates profile objects `<label_prefix>.gamma`, `<label_prefix>.delgam`,
     `<label_prefix>.current`, etc., each one corresponding to one `&profile_file`.
 
-    ProfileFileMulti corresponds to Genesis 4 `profile_file_multi`.
+    ProfileFileMulti corresponds to Genesis 4 namelist `profile_file_multi`.
 
     Attributes
     ----------
@@ -2146,7 +2146,7 @@ class SequenceList(types.NameList):
     r"""
     A sequence of values given as a string.
 
-    SequenceList corresponds to Genesis 4 `sequence_list`.
+    SequenceList corresponds to Genesis 4 namelist `sequence_list`.
 
     Attributes
     ----------
@@ -2176,7 +2176,7 @@ class SequenceFilelist(types.NameList):
     r"""
     A sequence list with data in a file.
 
-    SequenceFilelist corresponds to Genesis 4 `sequence_filelist`.
+    SequenceFilelist corresponds to Genesis 4 namelist `sequence_filelist`.
 
     Attributes
     ----------
@@ -2199,7 +2199,7 @@ class SequenceFilelist(types.NameList):
 AutogeneratedNameList = Union[
     Setup,
     AlterSetup,
-    Lattice,
+    LatticeNamelist,
     Time,
     ProfileConst,
     ProfileGauss,

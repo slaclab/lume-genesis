@@ -19,7 +19,7 @@ class Undulator(types.BeamlineElement):
     r"""
     Lattice beamline element: an undulator.
 
-    Undulator corresponds to Genesis 4 `undulator`.
+    Undulator corresponds to Genesis 4 beamlineelement `undulator`.
 
     Attributes
     ----------
@@ -118,7 +118,7 @@ class Drift(types.BeamlineElement):
     r"""
     Lattice beamline element: drift.
 
-    Drift corresponds to Genesis 4 `drift`.
+    Drift corresponds to Genesis 4 beamlineelement `drift`.
 
     Attributes
     ----------
@@ -140,7 +140,7 @@ class Quadrupole(types.BeamlineElement):
     r"""
     Lattice beamline element: quadrupole.
 
-    Quadrupole corresponds to Genesis 4 `quadrupole`.
+    Quadrupole corresponds to Genesis 4 beamlineelement `quadrupole`.
 
     Attributes
     ----------
@@ -184,7 +184,7 @@ class Corrector(types.BeamlineElement):
     r"""
     Lattice beamline element: corrector.
 
-    Corrector corresponds to Genesis 4 `corrector`.
+    Corrector corresponds to Genesis 4 beamlineelement `corrector`.
 
     Attributes
     ----------
@@ -218,7 +218,7 @@ class Chicane(types.BeamlineElement):
     r"""
     Lattice beamline element: chicane.
 
-    Chicane corresponds to Genesis 4 `chicane`.
+    Chicane corresponds to Genesis 4 beamlineelement `chicane`.
 
     Attributes
     ----------
@@ -281,7 +281,7 @@ class PhaseShifter(types.BeamlineElement):
     r"""
     Lattice beamline element: phase shifter.
 
-    PhaseShifter corresponds to Genesis 4 `phaseshifter`.
+    PhaseShifter corresponds to Genesis 4 beamlineelement `phaseshifter`.
 
     Attributes
     ----------
@@ -315,7 +315,7 @@ class Marker(types.BeamlineElement):
     r"""
     Lattice beamline element: marker.
 
-    Marker corresponds to Genesis 4 `marker`.
+    Marker corresponds to Genesis 4 beamlineelement `marker`.
 
     Attributes
     ----------

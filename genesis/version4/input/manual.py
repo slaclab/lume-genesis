@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import ast
+import functools
 import pathlib
 from typing import Dict, Optional, Set, Tuple, TypedDict, Union
 
@@ -226,8 +227,12 @@ def parse_manual(path: AnyPath) -> LatticeManual:
     return manual
 
 
-def _to_class_name(genesis_name: str) -> str:
+def _to_class_name(base_class: str, genesis_name: str) -> str:
     """Convert a Genesis 4 manual name to a dataclass name."""
+    if base_class == "NameList":
+        if genesis_name == "lattice":
+            # Avoid clashing with the beamline element Lattice class
+            return "LatticeNamelist"
     name_chars = list(genesis_name.capitalize())
     while "_" in name_chars:
         idx = name_chars.index("_")
@@ -265,10 +270,6 @@ def make_dataclasses_from_manual(
     manual = parse_manual(path)
     with open(template_filename) as fp:
         template = fp.read()
-    env = jinja2.Environment()
-    env.filters["repr"] = _custom_repr
-    env.filters["to_class_name"] = _to_class_name
-    tpl = env.from_string(template)
 
     if "undulator" in manual["elements"]:
         base_class = "BeamlineElement"
@@ -279,6 +280,11 @@ def make_dataclasses_from_manual(
             f"Unsupported manual pages; expected to see 'undulator' or 'setup' "
             f"to identify the correct page. Saw: {manual['elements']}"
         )
+
+    env = jinja2.Environment()
+    env.filters["repr"] = _custom_repr
+    env.filters["to_class_name"] = functools.partial(_to_class_name, base_class)
+    tpl = env.from_string(template)
 
     return tpl.render(
         manual=manual,

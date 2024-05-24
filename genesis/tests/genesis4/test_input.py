@@ -43,6 +43,10 @@ def test_main_input_helpers(namelist: AnyNameList):
 
     if attr_base in {"setup", "initial_particles"}:
         assert getattr(main, attr_base) == namelist
+    elif attr_base in {"lattice_namelist"}:
+        assert main.lattice == namelist
+        assert main.lattices == [namelist]
+        return
     elif attr_base == "profile_gauss":
         assert getattr(main, "profile_gausses") == [namelist]
     else:
@@ -55,6 +59,9 @@ def test_main_input_helpers_plural(namelist: AnyNameList):
     main = MainInput(namelists=[namelist, namelist])
 
     attr = pydantic.alias_generators.to_snake(namelist.__class__.__name__)
+
+    if attr == "lattice_namelist":
+        attr = "lattice"
 
     if attr in {"setup", "initial_particles"}:
         ...

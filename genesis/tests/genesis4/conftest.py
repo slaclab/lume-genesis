@@ -411,7 +411,7 @@ def get_namelists() -> Sequence[AnyNameList]:
         auto_main.Wake(),
         auto_main.Write(),
         # InitialParticles(filename='...'),
-        auto_main.Lattice(),
+        auto_main.LatticeNamelist(),
         ProfileArray(label="label", xdata=[0.0], ydata=[0.0]),
         InitialParticles(
             data={
