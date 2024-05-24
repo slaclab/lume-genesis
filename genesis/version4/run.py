@@ -7,7 +7,7 @@ import shlex
 import shutil
 import traceback
 from time import monotonic
-from typing import ClassVar, Dict, Optional, Sequence, Tuple, Union
+from typing import Any, ClassVar, Dict, Optional, Sequence, Tuple, Union
 
 import h5py
 from lume import tools as lume_tools
@@ -140,24 +140,24 @@ class Genesis4(CommandWrapper):
     lattice : Lattice, str or pathlib.Path, optional
         Lattice file source code or path to a lattice file.
         Not required if ``Genesis4Input`` is used for the ``input`` parameter.
-    command: str, default="genesis4"
+    command : str, default="genesis4"
         The command to run to execute Genesis 4.
-    command_mpi: str, default="genesis4"
+    command_mpi : str, default="genesis4"
         The Genesis 4 executable to run under MPI.
-    use_mpi: bool, default=False
+    use_mpi : bool, default=False
         Enable parallel processing with MPI.
-    mpi_run: str, default=""
+    mpi_run : str, default=""
         The template for invoking ``mpirun``. If not specified, the class
         attribute ``MPI_RUN`` is used. This is expected to be a formated string
         taking as parameters the number of processors (``nproc``) and the
         command to be executed (``command_mpi``).
-    use_temp_dir: bool, default=True
+    use_temp_dir : bool, default=True
         Whether or not to use a temporary directory to run the process.
-    workdir: path-like, default=None
+    workdir : path-like, default=None
         The work directory to be used.
-    verbose: bool, default=False
+    verbose : bool, default=False
         Whether or not to produce verbose output.
-    timeout: float, default=None
+    timeout : float, default=None
         The timeout in seconds to be used when running Genesis.
     """
 
@@ -185,12 +185,12 @@ class Genesis4(CommandWrapper):
         units: Optional[Dict[str, pmd_unit]] = None,
         command: Optional[str] = None,
         command_mpi: Optional[str] = None,
-        use_mpi=False,
-        mpi_run="",
-        use_temp_dir=True,
-        verbose=False,
+        use_mpi: bool = False,
+        mpi_run: str = "",
+        use_temp_dir: bool = True,
+        verbose: bool = tools.global_display_options.verbose >= 1,
         timeout: Optional[float] = None,
-        **kwargs,
+        **kwargs: Any,
     ):
         super().__init__(
             command=command,

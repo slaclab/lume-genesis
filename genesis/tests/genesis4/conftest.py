@@ -474,7 +474,7 @@ def element_or_namelist(request: pytest.FixtureRequest):
 def display_options_ctx(
     jupyter_render_mode: Literal["html", "markdown", "genesis"] = "html",
     console_render_mode: Literal["markdown", "genesis"] = "markdown",
-    echo_genesis_output: bool = True,
+    verbose: int = 1,
     include_description: bool = True,
     filter_tab_completion: bool = True,
     ascii_table_type: int = prettytable.MARKDOWN,
@@ -482,10 +482,10 @@ def display_options_ctx(
     tools.global_display_options = DisplayOptions(
         jupyter_render_mode=jupyter_render_mode,
         console_render_mode=console_render_mode,
-        echo_genesis_output=echo_genesis_output,
         include_description=include_description,
         filter_tab_completion=filter_tab_completion,
         ascii_table_type=ascii_table_type,
+        verbose=verbose,
     )
     yield
     tools.global_display_options = DisplayOptions()

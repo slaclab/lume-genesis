@@ -46,20 +46,27 @@ class DisplayOptions(
     include_description : bool, default=True
         Include descriptions in table representations.
         Environment variable: LUME_INCLUDE_DESCRIPTION.
+    ascii_table_type : int, default=prettytable.MARKDOWN
+        Default to a PrettyTable markdown ASCII table.
+        Environment variable: LUME_ASCII_TABLE_TYPE.
     filter_tab_completion : bool, default=True
         Filter out unimportant details (pydantic methods and such) from
         Genesis4 classes.
         Environment variable: LUME_FILTER_TAB_COMPLETION.
-    ascii_table_type : int, default=prettytable.MARKDOWN
-        Default to a PrettyTable markdown ASCII table.
-        Environment variable: LUME_ASCII_TABLE_TYPE.
+    verbose : int, default=1
+        At level 0, hide Genesis4 output during `run()` by default.
+        At level 1, show Genesis4 output during `run()` by default.
+        Equivalent to configuring the default setting of `Genesis4.verbose` to
+        `True`.
+        Environment variable: LUME_VERBOSE.
     """
 
     jupyter_render_mode: Literal["html", "markdown", "genesis", "repr"] = "repr"
     console_render_mode: Literal["markdown", "genesis", "repr"] = "repr"
     include_description: bool = True
-    filter_tab_completion: bool = True
     ascii_table_type: int = prettytable.MARKDOWN
+    verbose: int = 1
+    filter_tab_completion: bool = True
 
 
 global_display_options = DisplayOptions()
