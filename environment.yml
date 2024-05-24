@@ -6,13 +6,14 @@ dependencies:
   - python>=3.9
   - eval-type-backport
   - lume-base
-#  - genesis2=*=mpi_mpich*
+  #  - genesis2=*=mpi_mpich*
   - genesis4 >=4.6.6=mpi_openmpi*
   - jinja2
   - lark
   - prettytable
   - pydantic >2
-# Developer
+  - pydantic-settings
+  # Developer
   - ffmpeg
   - pytest
   - pytest-cov
@@ -29,4 +30,4 @@ dependencies:
   - ruff
   - typing-extensions
   - pip:
-    - mkdocs-jupyter>=0.24.7
+      - mkdocs-jupyter>=0.24.7

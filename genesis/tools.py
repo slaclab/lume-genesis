@@ -20,6 +20,7 @@ from typing import Any, Dict, Generator, Mapping, Optional, Sequence, Tuple, Uni
 import numpy as np
 import prettytable
 import pydantic
+import pydantic_settings
 
 try:
     from typing import Literal
@@ -30,10 +31,32 @@ except ImportError:
 logger = logging.getLogger(__name__)
 
 
-class DisplayOptions(pydantic.BaseModel):
+class DisplayOptions(
+    pydantic_settings.BaseSettings,
+    env_prefix="LUME_",
+    case_sensitive=False,
+):
+    """
+    jupyter_render_mode : One of {"html", "markdown", "genesis", "repr"}
+        Defaults to "repr".
+        Environment variable: LUME_JUPYTER_RENDER_MODE.
+    console_render_mode : One of {"markdown", "genesis", "repr"}
+        Defaults to "repr".
+        Environment variable: LUME_CONSOLE_RENDER_MODE.
+    include_description : bool, default=True
+        Include descriptions in table representations.
+        Environment variable: LUME_INCLUDE_DESCRIPTION.
+    filter_tab_completion : bool, default=True
+        Filter out unimportant details (pydantic methods and such) from
+        Genesis4 classes.
+        Environment variable: LUME_FILTER_TAB_COMPLETION.
+    ascii_table_type : int, default=prettytable.MARKDOWN
+        Default to a PrettyTable markdown ASCII table.
+        Environment variable: LUME_ASCII_TABLE_TYPE.
+    """
+
     jupyter_render_mode: Literal["html", "markdown", "genesis", "repr"] = "repr"
     console_render_mode: Literal["markdown", "genesis", "repr"] = "repr"
-    echo_genesis_output: bool = True
     include_description: bool = True
     filter_tab_completion: bool = True
     ascii_table_type: int = prettytable.MARKDOWN
