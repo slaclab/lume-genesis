@@ -671,6 +671,7 @@ class InitialParticles(NameList, arbitrary_types_allowed=True):
                 f"temporary_filename={self.temporary_filename!r}"
             )
 
+        assert self.temporary_filename is not None
         path = pathlib.Path(base_path) / self.temporary_filename
         self.particles.write_genesis4_distribution(str(path), verbose=True)
         logger.info("Saved particles to %s", path)
@@ -747,7 +748,10 @@ class MainInput(BaseModel):
         return setups[0]
 
     def to_dicts(
-        self, exclude_defaults: bool = True, by_alias: bool = True, **kwargs
+        self,
+        exclude_defaults: bool = True,
+        by_alias: bool = True,
+        **kwargs: Any,
     ) -> List[Dict]:
         """Serialize this main input to a list of dictionaries."""
         return [
@@ -1303,7 +1307,7 @@ def _symlink_or_copy(symlink: pathlib.Path, file: pathlib.Path):
         # With Windows 10, users need Administator Privileges or run on
         # Developer mode in order to be able to create symlinks.
         # Ref: https://docs.python.org/3/library/os.html#os.symlink
-        return shutil.copy2(file, symlink)
+        return shutil.copy2(file, symlink)  # type: ignore[unreachable]
 
     if symlink != file and not symlink.is_symlink():
         return symlink.symlink_to(file)
@@ -1634,7 +1638,7 @@ class Genesis4Input(BaseModel):
         return loaded
 
 
-def new_parser(filename: AnyPath, **kwargs) -> lark.Lark:
+def new_parser(filename: AnyPath, **kwargs: Any) -> lark.Lark:
     """
     Get a new parser for one of the packaged grammars.
 

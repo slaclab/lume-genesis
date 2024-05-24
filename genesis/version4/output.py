@@ -153,7 +153,7 @@ class HDF5ReferenceFile(BaseModel):
 class _FieldH5File(HDF5ReferenceFile):
     type: Literal["field"] = "field"
 
-    def load(self, **kwargs) -> FieldFile:
+    def load(self, **kwargs: Any) -> FieldFile:
         with h5py.File(self.filename) as h5:
             if self.type == "field":
                 return load_field_file(h5, **kwargs)
@@ -163,7 +163,7 @@ class _FieldH5File(HDF5ReferenceFile):
 class _ParticleGroupH5File(HDF5ReferenceFile):
     type: Literal["particle_group"] = "particle_group"
 
-    def load(self, **kwargs) -> ParticleGroup:
+    def load(self, **kwargs: Any) -> ParticleGroup:
         with h5py.File(self.filename) as h5:
             return load_particle_group(h5, **kwargs)
 
@@ -184,12 +184,12 @@ class _OutputBase(BaseModel):
         ),
     )
 
-    def __init__(self, **kwargs) -> None:
+    def __init__(self, **kwargs: Any) -> None:
         extra = _split_extra(type(self), kwargs)
         super().__init__(**kwargs, extra=extra)
 
     @classmethod
-    def from_hdf5_data(cls, dct: Dict[str, OutputDataType], **kwargs):
+    def from_hdf5_data(cls, dct: Dict[str, OutputDataType], **kwargs: Any):
         dct = cls._fix_scalar_data(dct)
         return cls(**dct, **kwargs)
 
@@ -731,7 +731,7 @@ class OutputBeam(_OutputBase):
         return OutputBeamStat.from_output_beam(self)
 
 
-def _split_extra(cls: Type[BaseModel], dct) -> Dict[str, Any]:
+def _split_extra(cls: Type[BaseModel], dct: dict) -> Dict[str, Any]:
     extra = dct.pop("extra", {})
     assert isinstance(extra, dict)
     # Don't let computed fields make it into 'extra':
@@ -961,7 +961,7 @@ class OutputField(_OutputBase):
         description="Calculated by LUME-Genesis using slen from /Global.",
     )
 
-    def __init__(self, *args, slen=None, **kwargs):
+    def __init__(self, *args, slen: Optional[float] = None, **kwargs):
         super().__init__(*args, **kwargs)
 
         if slen is not None:
@@ -1000,7 +1000,7 @@ _T = TypeVar("_T", bound=_OutputBase)
 
 
 class _ArrayInfo(NamedTuple):
-    parent: BaseModel
+    parent: _OutputBase
     array_attr: str
     units: Optional[PydanticPmdUnit]
     field: Union[pydantic.fields.FieldInfo, pydantic.fields.ComputedFieldInfo]
@@ -1526,7 +1526,7 @@ class Genesis4Output(Mapping, BaseModel, arbitrary_types_allowed=True):
     def _get_array_info(self, key: str) -> _ArrayInfo:
         dotted_attr = self.alias[key]
         parent_attr, array_attr = dotted_attr.rsplit(".", 1)
-        parent: BaseModel = operator.attrgetter(parent_attr)(self)
+        parent: _OutputBase = operator.attrgetter(parent_attr)(self)
         try:
             field = parent.model_fields[array_attr]
         except KeyError:
@@ -1602,7 +1602,11 @@ class Genesis4Output(Mapping, BaseModel, arbitrary_types_allowed=True):
         return len(self.alias)
 
 
-def projected_variance_from_slice_data(x2, x1, current):
+def projected_variance_from_slice_data(
+    x2: np.ndarray,
+    x1: np.ndarray,
+    current: np.ndarray,
+):
     """
     Slice variance data individually removes the mean values.
     This restores that in a proper projection calc.
