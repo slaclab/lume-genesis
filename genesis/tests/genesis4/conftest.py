@@ -1,6 +1,6 @@
-from contextlib import contextmanager
 import copy
 import sys
+from contextlib import contextmanager
 from typing import Sequence
 
 import h5py
@@ -13,8 +13,6 @@ import pytest
 from ... import tools
 from ...tools import DisplayOptions
 from ...version4 import Genesis4, Genesis4Input
-from ...version4.input.core import AnyBeamlineElement, AnyNameList
-from ...version4.input import _main as auto_main
 from ...version4.input import (
     Beam,
     Chicane,
@@ -34,6 +32,8 @@ from ...version4.input import (
     Track,
     Undulator,
 )
+from ...version4.input import _main as auto_main
+from ...version4.input.core import AnyBeamlineElement, AnyNameList
 from ...version4.types import Reference
 from ..conftest import test_artifacts, test_root
 

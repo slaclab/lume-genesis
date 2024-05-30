@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 import logging
 import os
 import pathlib
@@ -8,17 +9,17 @@ import shutil
 import traceback
 from time import monotonic
 from typing import Any, ClassVar, Dict, Optional, Sequence, Tuple, Union
-from typing_extensions import override
 
 import h5py
 import psutil
 from lume import tools as lume_tools
 from lume.base import CommandWrapper
 from pmd_beamphysics.units import pmd_unit
+from typing_extensions import override
 
 from .. import tools
 from . import parsers
-from .input import Genesis4Input, MainInput, Lattice
+from .input import Genesis4Input, Lattice, MainInput
 from .output import Genesis4Output, RunInfo
 from .types import AnyPath
 

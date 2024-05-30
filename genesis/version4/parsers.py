@@ -1,11 +1,11 @@
 import keyword
 import os
-import pydantic.alias_generators
 import re
 import warnings
 
 import h5py
 import numpy as np
+import pydantic.alias_generators
 from lume import tools
 from lume.parsers.namelist import parse_simple_namelist, parse_unrolled_namelist
 from pmd_beamphysics.units import e_charge, known_unit, mec2, pmd_unit, unit

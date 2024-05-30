@@ -1,7 +1,8 @@
 from warnings import warn
+
 from .genesis2 import Genesis2
-from .version4 import Genesis4
 from .tools import global_display_options
+from .version4 import Genesis4
 
 try:
     from ._version import __version__

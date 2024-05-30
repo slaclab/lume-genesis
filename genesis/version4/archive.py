@@ -10,9 +10,8 @@ import numpy as np
 import pydantic
 from pmd_beamphysics.units import pmd_unit
 
-from .types import PydanticPmdUnit
 from .. import tools
-
+from .types import PydanticPmdUnit
 
 logger = logging.getLogger(__name__)
 

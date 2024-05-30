@@ -3,7 +3,7 @@ import pydantic.alias_generators
 import pytest
 
 from ... import version4 as g4
-from ...version4 import MainInput, Lattice, Setup, AnyBeamlineElement, AnyNameList
+from ...version4 import AnyBeamlineElement, AnyNameList, Lattice, MainInput, Setup
 
 
 def test_namelist_output():

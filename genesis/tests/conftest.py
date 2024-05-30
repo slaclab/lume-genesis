@@ -1,6 +1,7 @@
 import logging
-import matplotlib as mpl
 import pathlib
+
+import matplotlib as mpl
 
 mpl.use("Agg")
 

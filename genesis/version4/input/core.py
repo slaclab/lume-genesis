@@ -20,7 +20,6 @@ from typing import (
     TypeVar,
     Union,
 )
-from typing_extensions import override
 
 import h5py
 import lark
@@ -30,21 +29,25 @@ import pydantic.alias_generators
 from lume import tools as lume_tools
 from pmd_beamphysics import ParticleGroup
 from pmd_beamphysics.units import c_light
+from typing_extensions import override
 
-from .. import archive as _archive
 from ... import tools
+from .. import archive as _archive
+from ..particles import load_particle_group
 from ..types import (
-    ReprTableData,
     AnyPath,
     BaseModel,
     BeamlineElement,
     NameList,
-    ParticleData,
     NDArray,
+    ParticleData,
     Reference,
+    ReprTableData,
     ValueType,
     union_types,
 )
+from . import _lattice as auto_lattice
+from . import _main as auto_main
 from . import util
 from ._main import (
     ImportBeam,
@@ -56,10 +59,6 @@ from ._main import (
     SequenceFilelist,
     Setup,
 )
-from . import _main as auto_main
-from . import _lattice as auto_lattice
-from ..particles import load_particle_group
-
 
 try:
     from typing import Literal

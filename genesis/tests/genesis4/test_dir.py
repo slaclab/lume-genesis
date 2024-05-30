@@ -1,5 +1,5 @@
-from pydantic import BaseModel
 import pytest
+from pydantic import BaseModel
 
 from .conftest import display_options_ctx
 

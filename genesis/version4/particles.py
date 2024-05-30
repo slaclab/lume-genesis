@@ -1,5 +1,6 @@
 import pathlib
 from typing import Union
+
 import h5py
 from pmd_beamphysics import ParticleGroup
 from pmd_beamphysics.interfaces.genesis import genesis4_par_to_data

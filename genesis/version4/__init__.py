@@ -1,8 +1,8 @@
 from .input import (
-    AnyBeamlineElement,
-    AnyNameList,
     AlterField,
     AlterSetup,
+    AnyBeamlineElement,
+    AnyNameList,
     Beam,
     Chicane,
     Corrector,
@@ -48,7 +48,7 @@ from .input import (
 )
 from .output import Genesis4Output
 from .run import Genesis4
-from .types import Reference, AnyPath
+from .types import AnyPath, Reference
 
 __all__ = [
     "Genesis4",

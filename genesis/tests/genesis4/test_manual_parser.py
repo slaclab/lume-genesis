@@ -9,7 +9,6 @@ from ...version4.input.manual import (
     parse_manual_parameter,
 )
 
-
 test_v4_root = pathlib.Path(__file__).resolve().parent
 main_manual = test_v4_root / "main_input.md"
 lattice_manual = test_v4_root / "lattice.md"

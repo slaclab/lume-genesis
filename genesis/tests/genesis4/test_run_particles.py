@@ -4,14 +4,15 @@ from math import pi, sqrt
 
 import matplotlib.pyplot as plt
 import numpy as np
-from pmd_beamphysics import ParticleGroup
 import pytest
+from pmd_beamphysics import ParticleGroup
 from scipy.constants import c
 
 from ...version4 import Genesis4, Genesis4Input, Lattice, MainInput, Reference
 from ...version4.input import (
     Beam,
     Drift,
+    InitialParticles,
     Line,
     ProfileArray,
     ProfileGauss,
@@ -19,7 +20,6 @@ from ...version4.input import (
     Time,
     Track,
     Write,
-    InitialParticles,
 )
 from ..conftest import test_root
 

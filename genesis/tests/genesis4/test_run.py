@@ -3,10 +3,9 @@ from typing import Optional
 
 import pytest
 
-from ..conftest import test_root
-
 from ...version4 import Genesis4
 from ...version4.input import Beam, Lattice, MainInput
+from ..conftest import test_root
 from .conftest import run_basic
 from .util import run_with_instances, run_with_source
 

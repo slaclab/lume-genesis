@@ -5,12 +5,10 @@ from typing import Union
 
 import h5py
 import numpy as np
-from pydantic import BaseModel
 import pytest
+from pydantic import BaseModel
 
-from ..conftest import test_artifacts
 from ...version4 import (
-    Genesis4,
     AlterSetup,
     Beam,
     Chicane,
@@ -18,6 +16,7 @@ from ...version4 import (
     Drift,
     Efield,
     Field,
+    Genesis4,
     ImportBeam,
     ImportDistribution,
     ImportField,
@@ -47,6 +46,7 @@ from ...version4 import (
     Write,
 )
 from ...version4.types import BeamlineElement, NameList
+from ..conftest import test_artifacts
 from . import util
 
 

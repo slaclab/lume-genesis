@@ -4,17 +4,17 @@ import numpy as np
 import pydantic
 import pytest
 
-from ...tools import pretty_repr
 from ... import version4 as g4
+from ...tools import pretty_repr
 from ...version4 import Genesis4
 from ...version4.output import (
     Genesis4Output,
-    OutputLattice,
     OutputBeam,
-    OutputGlobal,
-    OutputMetaVersion,
-    OutputMeta,
     OutputField,
+    OutputGlobal,
+    OutputLattice,
+    OutputMeta,
+    OutputMetaVersion,
 )
 from ..conftest import test_root
 

@@ -1,10 +1,10 @@
 from __future__ import annotations
 
-from functools import cached_property
 import logging
 import operator
 import pathlib
 import typing
+from functools import cached_property
 from typing import (
     Any,
     Dict,
@@ -24,21 +24,21 @@ import numpy as np
 import pydantic
 from pmd_beamphysics import ParticleGroup
 from pmd_beamphysics.units import c_light, pmd_unit, unit
+from typing_extensions import override
 
 from .. import tools
-from . import archive as _archive, parsers, readers
-from .plot import PlotMaybeLimits, plot_stats_with_layout, PlotLimits
+from . import archive as _archive
+from . import parsers, readers
+from .particles import load_particle_group
+from .plot import PlotLimits, PlotMaybeLimits, plot_stats_with_layout
 from .types import (
     AnyPath,
     BaseModel,
     FieldFileParams,
-    OutputDataType,
     NDArray,
+    OutputDataType,
     PydanticPmdUnit,
 )
-from .particles import load_particle_group
-
-from typing_extensions import override
 
 try:
     from typing import Literal
@@ -76,7 +76,7 @@ class FieldFile(BaseModel):
         dest : str, pathlib.Path, or h5py.Group
             Filename or already-open h5py.Group to write to.
         """
-        from .writers import write_openpmd_wavefront_h5, write_openpmd_wavefront
+        from .writers import write_openpmd_wavefront, write_openpmd_wavefront_h5
 
         if isinstance(dest, (str, pathlib.Path)):
             write_openpmd_wavefront(

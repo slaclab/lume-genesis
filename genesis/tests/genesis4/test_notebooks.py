@@ -8,20 +8,20 @@ Running the notebooks themselves (as in `jupyter execute`) will be performed
 as part of the documentation generation process.
 """
 
-import h5py
 import pathlib
 import pprint
 import textwrap
-from math import sqrt, pi
+from math import pi, sqrt
 from typing import Optional
 
+import h5py
 import matplotlib.animation as animation
 import matplotlib.pyplot as plt
 import numpy as np
 import pytest
 from pmd_beamphysics import ParticleGroup
 
-from genesis.version4.input import MainInput, Track, Write, Lattice
+from genesis.version4.input import Lattice, MainInput, Track, Write
 from genesis.version4.output import FieldFile
 
 from ... import version4 as g4
@@ -338,8 +338,10 @@ def test_fodo_scan_model(_shorten_zstop, tmp_path: pathlib.Path) -> None:
 
     import string
     from dataclasses import dataclass
-    import numpy as np
+
     import matplotlib.pyplot as plt
+    import numpy as np
+
     from genesis.version4 import Genesis4, MainInput
 
     def make_fodo(
@@ -747,12 +749,16 @@ def test_parsing(_shorten_zstop):
 
 
 def test_genesis4_particles(_shorten_zstop, tmp_path: pathlib.Path):
+    import matplotlib.pyplot as plt
+    import numpy as np
+    from scipy.constants import c
+
     from genesis.version4.input import (
-        Genesis4Input,
-        Line,
         Beam,
         Drift,
+        Genesis4Input,
         Lattice,
+        Line,
         MainInput,
         ProfileArray,
         ProfileGauss,
@@ -761,9 +767,6 @@ def test_genesis4_particles(_shorten_zstop, tmp_path: pathlib.Path):
         Track,
         Write,
     )
-    import numpy as np
-    from scipy.constants import c
-    import matplotlib.pyplot as plt
 
     D1 = Drift(L=1)
     lattice = Lattice(elements={"D1": D1, "LAT": Line(elements=[D1])})

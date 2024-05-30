@@ -1,10 +1,10 @@
 import pathlib
 from typing import Optional
 
-import pydantic
 import numpy as np
+import pydantic
 
-from ...version4 import MainInput, Lattice, Genesis4, Genesis4Input
+from ...version4 import Genesis4, Genesis4Input, Lattice, MainInput
 
 
 def run_with_instances(
