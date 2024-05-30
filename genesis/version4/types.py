@@ -218,7 +218,7 @@ class NameList(BaseModel, abc.ABC):
     """Base class for name lists used in Genesis 4 main input files."""
 
     @property
-    def genesis_parameters(self) -> Dict[str, ValueType]:
+    def _to_genesis_params(self) -> Dict[str, ValueType]:
         """Dictionary of parameters to pass to Genesis 4."""
         dump = self.model_dump(by_alias=True, exclude_defaults=True)
         return {attr: value for attr, value in dump.items() if attr not in {"type"}}
@@ -229,7 +229,7 @@ class NameList(BaseModel, abc.ABC):
 
         parameters = (
             f"  {name} = {python_to_namelist_value(value)}"
-            for name, value in self.genesis_parameters.items()
+            for name, value in self._to_genesis_params.items()
         )
         return "\n".join(
             (
@@ -284,7 +284,7 @@ class BeamlineElement(BaseModel, abc.ABC):
     label: str
 
     @property
-    def genesis_parameters(self) -> Dict[str, ValueType]:
+    def _to_genesis_params(self) -> Dict[str, ValueType]:
         """Dictionary of parameters to pass to Genesis 4."""
         dump = self.model_dump(by_alias=True, exclude_defaults=True)
         return {attr: value for attr, value in dump.items() if attr not in {"type"}}
@@ -295,7 +295,7 @@ class BeamlineElement(BaseModel, abc.ABC):
 
         parameters = ", ".join(
             f"{name}={python_to_namelist_value(value)}"
-            for name, value in self.genesis_parameters.items()
+            for name, value in self._to_genesis_params.items()
             if name not in {"label"}
         )
         return "".join(
