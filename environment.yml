@@ -6,7 +6,7 @@ dependencies:
   - python>=3.9
   - eval-type-backport
   - lume-base
-  #  - genesis2=*=mpi_mpich*
+  - genesis2=*=mpi_openmpi*
   - genesis4 >=4.6.6=mpi_openmpi*
   - jinja2
   - lark
