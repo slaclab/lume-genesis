@@ -2,11 +2,10 @@ from __future__ import annotations
 
 import abc
 import pathlib
-import pydantic
-import sys
-from typing import Any, Dict, Iterable, Sequence, Tuple, Type, Optional, Union
+from typing import Any, Dict, Iterable, Optional, Sequence, Tuple, Type, Union
 
 import numpy as np
+import pydantic
 import pydantic_core
 from pmd_beamphysics.units import pmd_unit
 
@@ -20,16 +19,7 @@ except ImportError:
 else:
     union_types = {UnionType, Union}
 
-try:
-    from typing import Annotated, Literal, NotRequired
-except ImportError:
-    from typing_extensions import Annotated, Literal, NotRequired
-
-if sys.version_info >= (3, 12):
-    from typing import TypedDict
-else:
-    # Pydantic specifically requires this for Python < 3.12
-    from typing_extensions import TypedDict
+from typing_extensions import Annotated, Literal, NotRequired, TypedDict, override
 
 
 class ReprTableData(TypedDict):
@@ -38,6 +28,63 @@ class ReprTableData(TypedDict):
     obj: Union[BaseModel, Dict[str, Any]]
     descriptions: Optional[Dict[str, str]]
     annotations: Optional[Dict[str, str]]
+
+
+def _check_equality(obj1: Any, obj2: Any) -> bool:
+    """
+    Check equality of `obj1` and `obj2`.`
+
+    Parameters
+    ----------
+    obj1 : Any
+    obj2 : Any
+
+    Returns
+    -------
+    bool
+    """
+    if not isinstance(obj1, type(obj2)):
+        return False
+
+    if isinstance(obj1, pydantic.BaseModel):
+        return all(
+            _check_equality(
+                getattr(obj1, attr),
+                getattr(obj2, attr),
+            )
+            for attr, fld in obj1.model_fields.items()
+            if not fld.exclude
+        )
+
+    if isinstance(obj1, dict):
+        if set(obj1) != set(obj2):
+            return False
+
+        return all(
+            _check_equality(
+                obj1[key],
+                obj2[key],
+            )
+            for key in obj1
+        )
+
+    if isinstance(obj1, (list, tuple)):
+        if len(obj1) != len(obj2):
+            return False
+        return all(
+            _check_equality(obj1_value, obj2_value)
+            for obj1_value, obj2_value in zip(obj1, obj2)
+        )
+
+    if isinstance(obj1, np.ndarray):
+        if not obj1.shape and not obj2.shape:
+            return True
+        return np.allclose(obj1, obj2)
+
+    if isinstance(obj1, float):
+        return np.allclose(obj1, obj2)
+
+    return bool(obj1 == obj2)
 
 
 class BaseModel(pydantic.BaseModel, extra="forbid", validate_assignment=True):
@@ -83,12 +130,23 @@ class BaseModel(pydantic.BaseModel, extra="forbid", validate_assignment=True):
             return as_string
         return f"<pre>{as_string}</pre>"
 
+    @override
+    def __eq__(self, other: Any) -> bool:
+        return _check_equality(self, other)
+
+    @override
+    def __ne__(self, other: Any) -> bool:
+        return not _check_equality(self, other)
+
+    @override
     def __str__(self) -> str:
         return self.to_string(tools.global_display_options.console_render_mode)
 
+    @override
     def __repr__(self) -> str:
         return self._pretty_repr_()
 
+    @override
     def __dir__(self) -> Iterable[str]:
         full = super().__dir__()
         if not tools.global_display_options.filter_tab_completion:

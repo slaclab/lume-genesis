@@ -165,8 +165,12 @@ def test_hdf_archive(
     restored_output_repr = repr(genesis4.output)
     assert orig_output_repr == restored_output_repr
 
-    util.compare(orig_input, genesis4.input)
-    util.compare(orig_output, genesis4.output)
+    if orig_input != genesis4.input:
+        util.compare(orig_input, genesis4.input)
+        assert False, "Verbose comparison should have failed?"
+    if orig_output != genesis4.output:
+        util.compare(orig_output, genesis4.output)
+        assert False, "Verbose comparison should have failed?"
 
     with open(test_artifacts / "orig_input.json", "wt") as fp:
         print(json_for_comparison(orig_input), file=fp)

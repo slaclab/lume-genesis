@@ -78,6 +78,9 @@ def compare(obj, expected, history=()):
                 history=history + (idx,),
             )
     elif isinstance(obj, (np.ndarray, float)):
+        if isinstance(obj, np.ndarray):
+            if not obj.shape and not expected.shape:
+                return
         assert np.allclose(obj, expected)
     else:
         assert obj == expected

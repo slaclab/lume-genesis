@@ -8,6 +8,7 @@ import shutil
 import traceback
 from time import monotonic
 from typing import Any, ClassVar, Dict, Optional, Sequence, Tuple, Union
+from typing_extensions import override
 
 import h5py
 from lume import tools as lume_tools
@@ -650,3 +651,15 @@ class Genesis4(CommandWrapper):
         Lattice
         """
         return Lattice.from_file(path)
+
+    @override
+    def __eq__(self, other: Any) -> bool:
+        if not isinstance(other, Genesis4):
+            return False
+        return self.input == other.input and self.output == other.output
+
+    @override
+    def __ne__(self, other: Any) -> bool:
+        if not isinstance(other, Genesis4):
+            return False
+        return self.input != other.input or self.output != other.output

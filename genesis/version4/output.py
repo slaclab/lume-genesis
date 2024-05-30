@@ -1588,6 +1588,14 @@ class Genesis4Output(Mapping, BaseModel, arbitrary_types_allowed=True):
         return getattr(info.parent, info.array_attr)
 
     @override
+    def __eq__(self, other: Any) -> bool:
+        return BaseModel.__eq__(self, other)
+
+    @override
+    def __ne__(self, other: Any) -> bool:
+        return BaseModel.__ne__(self, other)
+
+    @override
     def __getitem__(self, key: str) -> Any:
         """Support for Mapping -> easy access to data."""
         dotted_attr = self.alias[key]
