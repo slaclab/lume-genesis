@@ -11,6 +11,7 @@ dependencies:
   - jinja2
   - lark
   - prettytable
+  - psutil
   - pydantic >2
   - pydantic-settings
   # Developer

@@ -11,6 +11,7 @@ from typing import Any, ClassVar, Dict, Optional, Sequence, Tuple, Union
 from typing_extensions import override
 
 import h5py
+import psutil
 from lume import tools as lume_tools
 from lume.base import CommandWrapper
 from pmd_beamphysics.units import pmd_unit
@@ -236,6 +237,20 @@ class Genesis4(CommandWrapper):
         self.nproc = 1
         self.nnode = 1
 
+    @property
+    def nproc(self):
+        """
+        Number of MPI processes to use.
+        """
+        return self._nproc
+
+    @nproc.setter
+    def nproc(self, nproc: Optional[int]):
+        if nproc is None or nproc <= 0:
+            nproc = psutil.cpu_count(logical=False)
+        self._nproc = nproc
+
+    @override
     def configure(self):
         """
         Configure and set up for run.
@@ -245,6 +260,7 @@ class Genesis4(CommandWrapper):
         self.configured = True
         self.finished = False
 
+    @override
     def run(
         self,
         load_fields: bool = False,
@@ -396,6 +412,7 @@ class Genesis4(CommandWrapper):
             )
         return exe
 
+    @override
     def get_run_script(self) -> str:
         """
         Assembles the run script using self.mpi_run string of the form:
@@ -417,6 +434,7 @@ class Genesis4(CommandWrapper):
 
         return shlex.join(runscript)
 
+    @override
     def write_input(self, path: Optional[AnyPath] = None):
         """
         Write the input parameters into the file.
@@ -441,6 +459,7 @@ class Genesis4(CommandWrapper):
         if self.output is not None:
             self.output.archive(h5.create_group("output"))
 
+    @override
     def archive(self, dest: Union[AnyPath, h5py.Group]) -> None:
         """
         Archive the latest run, input and output, to a single HDF5 file.
@@ -464,6 +483,7 @@ class Genesis4(CommandWrapper):
         else:
             self.output = None
 
+    @override
     def load_archive(self, arch: Union[AnyPath, h5py.Group]) -> None:
         """
         Load an archive from a single HDF5 file into this Genesis4 object.
@@ -478,6 +498,7 @@ class Genesis4(CommandWrapper):
         elif isinstance(arch, (h5py.File, h5py.Group)):
             self._load_archive(arch)
 
+    @override
     @classmethod
     def from_archive(cls, arch: Union[AnyPath, h5py.Group]) -> Genesis4:
         """
@@ -491,6 +512,7 @@ class Genesis4(CommandWrapper):
         inst.load_archive(arch)
         return inst
 
+    @override
     def load_output(
         self,
         load_fields: bool = False,
@@ -527,6 +549,7 @@ class Genesis4(CommandWrapper):
             smear=smear,
         )
 
+    @override
     def plot(
         self,
         y: Union[str, Sequence[str]] = "field_energy",
@@ -618,6 +641,7 @@ class Genesis4(CommandWrapper):
             )
         return self.output.stat(key=key)
 
+    @override
     @staticmethod
     def input_parser(path: AnyPath) -> MainInput:
         """
