@@ -966,6 +966,8 @@ class OutputField(_OutputBase):
 
         if slen is not None:
             self.energy = self.calculate_field_energy(slen)
+        self.units["energy"] = parsers.known_unit["J"]
+        self.units["peak_power"] = parsers.known_unit["W"]
 
     @pydantic.computed_field
     @property

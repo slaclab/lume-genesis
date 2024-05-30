@@ -148,3 +148,19 @@ def test_get_file_key(
     key: Union[str, int],
 ) -> None:
     assert g4.output.get_key_from_filename(filename) == key
+
+
+@pytest.mark.parametrize(
+    ("key",),
+    [
+        ("beam_energy",),
+        ("peak_power",),
+    ],
+)
+def test_ensure_units(
+    output: Genesis4Output,
+    key: str,
+) -> None:
+    units = output.units(key)
+    print("Units for", key, "is", units)
+    assert units is not None
