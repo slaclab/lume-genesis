@@ -6,7 +6,6 @@ import pydantic
 import sys
 from typing import Any, Dict, Iterable, Sequence, Tuple, Type, Optional, Union
 
-import h5py
 import numpy as np
 import pydantic_core
 from pmd_beamphysics.units import pmd_unit
@@ -158,16 +157,6 @@ class _PydanticNDArray(BaseModel):
                     f"Only supports numpy ndarray. Got {type(obj).__name__}: {obj}"
                 )
 
-            if info.context and isinstance(info.context, dict):
-                if "hdf5" in info.context:
-                    h5: h5py.Group = info.context["hdf5"]
-                    array_prefix = info.context["array_prefix"]
-                    info.context["array_index"] += 1
-                    key = array_prefix + str(info.context["array_index"])
-                    h5.create_dataset(name=key, data=obj)
-                    full_path = f"{h5.name}/{key}" if h5.name else key
-                    return H5Reference(path=full_path).model_dump()
-
             return obj.tolist()
 
         return pydantic_core.core_schema.with_info_plain_validator_function(
@@ -180,13 +169,9 @@ class _PydanticNDArray(BaseModel):
     @classmethod
     def _pydantic_validate(
         cls,
-        value: Union[Any, np.ndarray, Sequence, H5Reference, dict],
+        value: Union[Any, np.ndarray, Sequence, dict],
         info: pydantic.ValidationInfo,
     ) -> np.ndarray:
-        if info.context and isinstance(info.context, dict) and "hdf5" in info.context:
-            h5: h5py.Group = info.context["hdf5"]
-            if isinstance(value, dict) and "path" in value:
-                return H5Reference.model_validate(value).load(h5)
         if isinstance(value, np.ndarray):
             return value
         if isinstance(value, Sequence):
@@ -309,21 +294,6 @@ class BeamlineElement(BaseModel, abc.ABC):
         )
 
 
-class H5Reference(BaseModel):
-    """
-    HDF5 path reference.
-
-    Used in archiving of Genesis 4 input/output.  The _PydanticNDArray
-    validator dereferences this path and seamlessly inserts an ndarray in its
-    place.
-    """
-
-    path: str
-
-    def load(self, h5: h5py.Group) -> np.ndarray:
-        return np.asarray(h5[self.path])
-
-
 AnyPath = Union[pathlib.Path, str]
 ValueType = Union[int, float, bool, str, Reference]
 PydanticPmdUnit = Annotated[pmd_unit, _PydanticPmdUnit]
@@ -335,9 +305,6 @@ def _get_output_discriminator_value(value):
     # be used in the union. As someone new to custom types in Pydantic v2,
     # I'm sure there's a better way to do this - and am open to suggestions!
     if isinstance(value, np.ndarray):
-        return "array"
-    if isinstance(value, dict) and "path" in value:
-        # H5Reference which is restored by NDArray during validation
         return "array"
     if isinstance(value, np.generic):
         value = value.item()
