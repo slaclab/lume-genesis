@@ -19,6 +19,8 @@ dependencies:
   - pytest
   - pytest-cov
   - jupyterlab>=3
+  - jupyterlab-lsp
+  - python-lsp-server
   - matplotlib
   - pygments
   - mkdocs
