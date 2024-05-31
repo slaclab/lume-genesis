@@ -693,7 +693,11 @@ def pretty_repr(
     str
     """
     if isinstance(obj, pydantic.BaseModel):
-        values = {attr: getattr(obj, attr, None) for attr in obj.model_fields}
+        values = {
+            attr: getattr(obj, attr, None)
+            for attr, field in obj.model_fields.items()
+            if field.repr
+        }
         defaults = {attr: field.default for attr, field in obj.model_fields.items()}
         attr_prefix = "{attr}="
         if hasattr(obj, "_pretty_repr_"):
