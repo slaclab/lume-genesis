@@ -3,6 +3,7 @@ import os
 import re
 import warnings
 
+
 import h5py
 import numpy as np
 import pydantic.alias_generators
@@ -133,8 +134,8 @@ def extract_data(h5):
 
     Returns
     -------
-    data: dict of np.array
-    unit: dict of str
+    data : dict of np.array
+    key_map : dict of str
     """
 
     def convert_dataset(node: h5py.Dataset):
@@ -156,8 +157,10 @@ def extract_data(h5):
     def convert_group(node: h5py.Group):
         data = {}
         units = {}
-        for key, item in node.items():
-            key = output_key_to_python_identifier(key)
+        key_map = {}
+        for hdf_key, item in node.items():
+            key = output_key_to_python_identifier(hdf_key)
+            key_map[key] = hdf_key
             if isinstance(item, h5py.Group):
                 data[key] = convert_group(item)
             elif isinstance(item, h5py.Dataset):
@@ -170,10 +173,11 @@ def extract_data(h5):
                     units[key] = node_units
         if units:
             data["units"] = units
+        if key_map:
+            data["hdf_key_map"] = key_map
         return data
 
-    full_data = convert_group(h5)
-    return full_data
+    return convert_group(h5)
 
 
 def output_key_to_python_identifier(key: str) -> str:

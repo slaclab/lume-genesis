@@ -164,3 +164,9 @@ def test_ensure_units(
     units = output.units(key)
     print("Units for", key, "is", units)
     assert units is not None
+
+
+def test_hdf_summary_smoke(
+    output: Genesis4Output,
+) -> None:
+    assert "/Global" in output.to_hdf_summary()

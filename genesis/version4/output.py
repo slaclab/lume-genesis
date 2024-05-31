@@ -22,6 +22,7 @@ import h5py
 import matplotlib.figure
 import numpy as np
 import pydantic
+import pydantic.alias_generators
 from pmd_beamphysics import ParticleGroup
 from pmd_beamphysics.units import c_light, pmd_unit, unit
 from typing_extensions import override
@@ -141,6 +142,7 @@ class RunInfo(BaseModel):
 
 
 FileKey = Union[str, int]
+HDFKeyMap = Dict[str, Union[str, "HDFKeyMap"]]
 
 
 class HDF5ReferenceFile(BaseModel):
@@ -182,6 +184,11 @@ class _OutputBase(BaseModel):
             "Additional Genesis 4 output data.  This is a future-proofing mechanism "
             "in case Genesis 4 changes and LUME-Genesis is not yet ready for it."
         ),
+    )
+    hdf_key_map: Dict[str, str] = pydantic.Field(
+        default_factory=dict,
+        description="Mapping of attributes to HDF5 file keys",
+        repr=False,
     )
 
     def __init__(self, **kwargs: Any) -> None:
@@ -236,11 +243,11 @@ class OutputLattice(_OutputBase):
     units: Dict[str, PydanticPmdUnit] = pydantic.Field(default_factory=dict, repr=False)
     aw: NDArray = pydantic.Field(
         default_factory=_empty_ndarray,
-        description=r"""
-        The dimensionless rms undulator parameter. For planar undulator this value
-        is smaller by a factor $1 / \sqrt{2}$ than its K-value, while for helical
-        undulator rms and peak values are identical.
-        """.strip(),
+        description=(
+            r"The dimensionless rms undulator parameter. For planar undulator this value "
+            r"is smaller by a factor $1 / \sqrt{2}$ than its K-value, while for helical "
+            r"undulator rms and peak values are identical."
+        ),
     )
     ax: NDArray = pydantic.Field(
         default_factory=_empty_ndarray,
@@ -257,11 +264,11 @@ class OutputLattice(_OutputBase):
     )
     chic_ld: NDArray = pydantic.Field(
         default_factory=_empty_ndarray,
-        description=r"""
-        Drift between the outer and inner dipoles, projected onto the undulator
-        axis. The actual path length is longer by the factor $1/\cos\theta$, where
-        $\theta$ is the bending angle of an individual dipole.
-        """.strip(),
+        description=(
+            r"Drift between the outer and inner dipoles, projected onto the undulator "
+            r"axis. The actual path length is longer by the factor $1/\cos\theta$, where "
+            r"$\theta$ is the bending angle of an individual dipole. "
+        ),
     )
     chic_lt: NDArray = pydantic.Field(default_factory=_empty_ndarray)
     cx: NDArray = pydantic.Field(
@@ -278,25 +285,25 @@ class OutputLattice(_OutputBase):
     )
     gradx: NDArray = pydantic.Field(
         default_factory=_empty_ndarray,
-        description=r"""
-        Relative transverse gradient of undulator field in $x$ $\equiv (1/a_w)
-        \partial a_w/\partial x$.
-        """.strip(),
+        description=(
+            r"Relative transverse gradient of undulator field in $x$ $\equiv (1/a_w) "
+            r"\partial a_w/\partial x$."
+        ),
     )
     grady: NDArray = pydantic.Field(
         default_factory=_empty_ndarray,
-        description=r"""
-        Relative transverse gradient of undulator field in $y$ $\equiv (1/a_w)
-        \partial a_w/\partial y$.
-        """.strip(),
+        description=(
+            r"Relative transverse gradient of undulator field in $y$ $\equiv (1/a_w) "
+            r"\partial a_w/\partial y$."
+        ),
     )
     ku: NDArray = pydantic.Field(default_factory=_empty_ndarray)
     kx: NDArray = pydantic.Field(
         default_factory=_empty_ndarray,
-        description=r"""
-        Roll-off parameter of the quadratic term of the undulator field in x. It
-        is normalized with respect to $k_u^2$.
-        """.strip(),
+        description=(
+            r"Roll-off parameter of the quadratic term of the undulator field in x. It "
+            r"is normalized with respect to $k_u^2$."
+        ),
     )
     ky: NDArray = pydantic.Field(
         default_factory=_empty_ndarray,
@@ -1034,6 +1041,47 @@ def get_key_from_filename(fn: str) -> FileKey:
         return parts[-3]
 
 
+def _hdf_summary(
+    obj: Union[Genesis4Output, _OutputBase],
+    base_attr: str,
+    base_key: str,
+):
+    """
+    Generate an HDF5 file key mapping to field information.
+
+    Parameters
+    ----------
+    obj : Genesis4Output or _OutputBase
+    base_attr : str
+    base_key : str
+    """
+    res = {}
+    for attr, hdf_key in obj.hdf_key_map.items():
+        full_attr = ".".join(attr for attr in (base_attr, attr))
+        full_key = "/".join(key for key in (base_key, hdf_key))
+        fld = obj.model_fields[attr]
+
+        if isinstance(obj, Genesis4Output):
+            units = None
+        else:
+            units = obj.units.get(attr, None)
+
+        res[full_key] = {
+            "python_attr": full_attr,
+            "hdf_key": full_key,
+            "units": units,
+            "description": fld.description or "",
+        }
+
+        value = getattr(obj, attr)
+        if isinstance(value, _OutputBase):
+            for sub_key, info in _hdf_summary(
+                value, base_attr=full_attr, base_key=full_key
+            ).items():
+                res[sub_key] = info
+    return res
+
+
 class Genesis4Output(Mapping, BaseModel, arbitrary_types_allowed=True):
     """
     Genesis 4 command output.
@@ -1108,6 +1156,11 @@ class Genesis4Output(Mapping, BaseModel, arbitrary_types_allowed=True):
     particle_files: Dict[FileKey, _ParticleGroupH5File] = pydantic.Field(
         default_factory=dict,
         description="Loadable particle files, keyed by (integer) integration step number or filename base.",
+    )
+    hdf_key_map: Dict[str, str] = pydantic.Field(
+        default_factory=dict,
+        description="Mapping of attributes to HDF5 file keys",
+        repr=False,
     )
 
     @override
@@ -1276,6 +1329,7 @@ class Genesis4Output(Mapping, BaseModel, arbitrary_types_allowed=True):
         lattice = OutputLattice.from_hdf5_data(data.pop("lattice", {}))
         meta = OutputMeta.from_hdf5_data(data.pop("meta", {}))
         version = meta.version
+        key_map = data.pop("hdf_key_map", {})
         extra = data
 
         output = cls(
@@ -1288,6 +1342,7 @@ class Genesis4Output(Mapping, BaseModel, arbitrary_types_allowed=True):
             alias={},
             field_files={field.key: field for field in fields},
             particle_files={particle.key: particle for particle in particles},
+            hdf_key_map=key_map,
         )
 
         if load_fields:
@@ -1297,6 +1352,10 @@ class Genesis4Output(Mapping, BaseModel, arbitrary_types_allowed=True):
             output.load_particles(smear=smear)
 
         return output
+
+    def to_hdf_summary(self):
+        """Summarize the data based on HDF5 keys."""
+        return _hdf_summary(self, base_attr="output", base_key="")
 
     def load_field_by_key(self, key: FileKey) -> FieldFile:
         """
