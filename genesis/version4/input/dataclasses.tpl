@@ -24,11 +24,17 @@ from .. import types
         default={{ param.default | repr }},
     {%- endif -%}
     {%- if param.description | length > 80 -%}
-        description=r"""
-        {{ param.description | wordwrap(width=74) | indent(8) }}
-        """.strip(),
+        {%- set lines = param.description | replace('"', "'") | wordwrap(width=74) | splitlines %}
+        description=({%- for line in lines %}
+        {%- if loop.last %}
+            {{ line | maybe_raw_string }}"{{ line }}"
+        {%- else %}
+            {{ line | maybe_raw_string }}"{{ line }} "
+        {%- endif %}
+        {%- endfor %}
+        ),
     {%- else -%}
-        description=r"{{ param.description | replace('"', "'") }}",
+        description={{ param.description | maybe_raw_string }}"{{ param.description | replace('"', "'") }}",
     {%- endif -%}
     {%- if param.name != param.python_name %}
         validation_alias=pydantic.AliasChoices("{{ param.python_name }}", "{{ param.name }}"),

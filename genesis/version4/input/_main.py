@@ -135,206 +135,206 @@ class Setup(types.NameList):
     type: Literal["setup"] = "setup"
     rootname: str = pydantic.Field(
         default="",
-        description=r"""
-        The basic string, with which all output files will start, unless the
-        output filename is directly overwritten (see `write` namelist)
-        """.strip(),
+        description=(
+            "The basic string, with which all output files will start, unless the "
+            "output filename is directly overwritten (see `write` namelist)"
+        ),
     )
     outputdir: str = pydantic.Field(
         default="",
-        description=r"Output directory name.",
+        description="Output directory name.",
     )
     lattice: str = pydantic.Field(
         default="",
-        description=r"""
-        The name of the file which contains the undulator lattice description.
-        This can also include some relative paths if the lattice file is not in
-        the same directory as the input file.
-        """.strip(),
+        description=(
+            "The name of the file which contains the undulator lattice description. "
+            "This can also include some relative paths if the lattice file is not in "
+            "the same directory as the input file."
+        ),
     )
     beamline: str = pydantic.Field(
         default="",
-        description=r"""
-        The name of the beamline, which has to be defined within the lattice file.
-        For more information on the lattice file, see the next chapter.
-        """.strip(),
+        description=(
+            "The name of the beamline, which has to be defined within the lattice file. "
+            "For more information on the lattice file, see the next chapter."
+        ),
     )
     gamma0: float = pydantic.Field(
         default=11350.3,
-        description=r"""
-        The reference energy in unites of the electron rest mass. This is the
-        reference energy which is used in the code at various place, mostly in the
-        calculation of the matching condition, the reference focusing strength of
-        quadrupoles and undulator as well as the default value if an electron
-        distribution is generated.
-        """.strip(),
+        description=(
+            "The reference energy in unites of the electron rest mass. This is the "
+            "reference energy which is used in the code at various place, mostly in the "
+            "calculation of the matching condition, the reference focusing strength of "
+            "quadrupoles and undulator as well as the default value if an electron "
+            "distribution is generated."
+        ),
     )
     lambda0: float = pydantic.Field(
         default=1e-10,
-        description=r"""
-        The reference wavelength in meter, which is used as the wavelength in
-        steady-state simulation or for defining the sample distance in time-
-        dependent runs. It also acts as the default value when field distributions
-        are generated.
-        """.strip(),
+        description=(
+            "The reference wavelength in meter, which is used as the wavelength in "
+            "steady-state simulation or for defining the sample distance in time- "
+            "dependent runs. It also acts as the default value when field distributions "
+            "are generated."
+        ),
     )
     delz: float = pydantic.Field(
         default=0.015,
-        description=r"""
-        Preferred integration stepsize in meter. Note that this is not a strict
-        value because Genesis tries to optimized the stepsize according to the
-        elements it can resolve. E.g. if an undulator is 1.99 m long but the
-        preferred stepsize is 2 cm than it uses a stepsize which is the closest to
-        preserve the number of integration step. In this case the preferred
-        stepsize gives 99.5 steps which is than rounded to 100 and thus resulting
-        in an actual stepsize of 1.99 cm. Note that outside of the undulator,
-        which are free drifts for the radiation field, Genesis progresses the
-        electron beam and radiation field in larger steps, namely one step per
-        resolved element (drift, quadrupole, phase shifter).
-        """.strip(),
+        description=(
+            "Preferred integration stepsize in meter. Note that this is not a strict "
+            "value because Genesis tries to optimized the stepsize according to the "
+            "elements it can resolve. E.g. if an undulator is 1.99 m long but the "
+            "preferred stepsize is 2 cm than it uses a stepsize which is the closest to "
+            "preserve the number of integration step. In this case the preferred "
+            "stepsize gives 99.5 steps which is than rounded to 100 and thus resulting "
+            "in an actual stepsize of 1.99 cm. Note that outside of the undulator, "
+            "which are free drifts for the radiation field, Genesis progresses the "
+            "electron beam and radiation field in larger steps, namely one step per "
+            "resolved element (drift, quadrupole, phase shifter)."
+        ),
     )
     seed: int = pydantic.Field(
         default=123456789,
-        description=r"""
-        Seed to initialize the random number generator, which is used for shot
-        noise calculation and undulator lattice errors, though it is recommended
-        that the random number generator seed is redefined explicitly for
-        undulator errors in its corresponding namelist.
-        """.strip(),
+        description=(
+            "Seed to initialize the random number generator, which is used for shot "
+            "noise calculation and undulator lattice errors, though it is recommended "
+            "that the random number generator seed is redefined explicitly for "
+            "undulator errors in its corresponding namelist."
+        ),
     )
     npart: int = pydantic.Field(
         default=8192,
-        description=r"""
-        Number of macro particles per slice. Note that the number must be a
-        multiple of the used bins `nbins` otherwise Genesis will exit with an
-        error. If one-for-one simulations are used, this parameter has no meaning.
-        """.strip(),
+        description=(
+            "Number of macro particles per slice. Note that the number must be a "
+            "multiple of the used bins `nbins` otherwise Genesis will exit with an "
+            "error. If one-for-one simulations are used, this parameter has no meaning."
+        ),
     )
     nbins: int = pydantic.Field(
         default=4,
-        description=r"""
-        Number of macro particles, which are grouped into beamlets for gener ating
-        the correct shot noise. For one-for-one simulations this parameter has no
-        meaning
-        """.strip(),
+        description=(
+            "Number of macro particles, which are grouped into beamlets for gener ating "
+            "the correct shot noise. For one-for-one simulations this parameter has no "
+            "meaning"
+        ),
     )
     one4one: bool = pydantic.Field(
         default=False,
-        description=r"""
-        Flag to enable or disable resolving each electron in the simulation. This
-        is mandatory for certain features, such as sorting or slicing of particle
-        distributions. If set to `true` other parameters such as `npart` and
-        `nbins` are obsolete and do not need to be defined. It is recommended to
-        estimate the number of electrons, which are generated in the simulations,
-        because this can easily required memory beyond what is available on the
-        computer.
-        """.strip(),
+        description=(
+            "Flag to enable or disable resolving each electron in the simulation. This "
+            "is mandatory for certain features, such as sorting or slicing of particle "
+            "distributions. If set to `true` other parameters such as `npart` and "
+            "`nbins` are obsolete and do not need to be defined. It is recommended to "
+            "estimate the number of electrons, which are generated in the simulations, "
+            "because this can easily required memory beyond what is available on the "
+            "computer."
+        ),
     )
     shotnoise: bool = pydantic.Field(
         default=True,
-        description=r"""
-        Flag to enable the calculation of shotnoise per each slice during
-        generation of the electron distribution. It is recommended to set the
-        value to `false` for steady-state or scan simulations.
-        """.strip(),
+        description=(
+            "Flag to enable the calculation of shotnoise per each slice during "
+            "generation of the electron distribution. It is recommended to set the "
+            "value to `false` for steady-state or scan simulations."
+        ),
     )
     beam_global_stat: bool = pydantic.Field(
         default=False,
-        description=r"""
-        Flag to enable extra output of beam parameters of the entire bunch, such
-        as energy, energy spread etc. The data are placed in the HDF group
-        ”Global” within the group ”Beam” of the output file
-        """.strip(),
+        description=(
+            "Flag to enable extra output of beam parameters of the entire bunch, such "
+            "as energy, energy spread etc. The data are placed in the HDF group "
+            "”Global” within the group ”Beam” of the output file"
+        ),
     )
     field_global_stat: bool = pydantic.Field(
         default=False,
-        description=r"Flag for the field output, similar to `beam_global_stat`.",
+        description="Flag for the field output, similar to `beam_global_stat`.",
     )
     exclude_spatial_output: bool = pydantic.Field(
         default=False,
-        description=r"""
-        Flag to suppress the datasets in the output file for the x- and y-position
-        and size (both Beam and Field) and px- and py-position (Beam only). This
-        might be useful to reduce the file size of the output file, if these
-        datasets are not needed for the post-processing
-        """.strip(),
+        description=(
+            "Flag to suppress the datasets in the output file for the x- and y-position "
+            "and size (both Beam and Field) and px- and py-position (Beam only). This "
+            "might be useful to reduce the file size of the output file, if these "
+            "datasets are not needed for the post-processing"
+        ),
     )
     exclude_fft_output: bool = pydantic.Field(
         default=False,
-        description=r"""
-        Flag to suppress the datasets in the output file for the field divergence
-        and pointing. Since it also disable the FFT calculation of the 2D
-        wavefronts it speeds up the execution time slightly. If the code has been
-        compiled without the support of the FFTW library this parametr has no
-        effect.
-        """.strip(),
+        description=(
+            "Flag to suppress the datasets in the output file for the field divergence "
+            "and pointing. Since it also disable the FFT calculation of the 2D "
+            "wavefronts it speeds up the execution time slightly. If the code has been "
+            "compiled without the support of the FFTW library this parametr has no "
+            "effect."
+        ),
     )
     exclude_intensity_output: bool = pydantic.Field(
         default=False,
-        description=r"""
-        Flag to suppress the datasets for the near and farfield intensity and
-        phase for the radiation field. If excluded the output file size becomes
-        smaller but no post-processing calculation of the spectra is possible.
-        """.strip(),
+        description=(
+            "Flag to suppress the datasets for the near and farfield intensity and "
+            "phase for the radiation field. If excluded the output file size becomes "
+            "smaller but no post-processing calculation of the spectra is possible."
+        ),
     )
     exclude_energy_output: bool = pydantic.Field(
         default=False,
-        description=r"""
-        Flag to suppress the datasets in the output file for the mean energy and
-        energy spread of the electron beam.
-        """.strip(),
+        description=(
+            "Flag to suppress the datasets in the output file for the mean energy and "
+            "energy spread of the electron beam."
+        ),
     )
     exclude_aux_output: bool = pydantic.Field(
         default=False,
-        description=r"""
-        Flag to suppress the auxiliary datasets in the output file. In the moment
-        it is the long-range longitudinal electric field as seen by the electrons.
-        """.strip(),
+        description=(
+            "Flag to suppress the auxiliary datasets in the output file. In the moment "
+            "it is the long-range longitudinal electric field as seen by the electrons."
+        ),
     )
     exclude_current_output: bool = pydantic.Field(
         default=True,
-        description=r"""
-        Flag to reduce the size of the current dataset for the electron beam.
-        Under most circumstances the current profile is constant and only the
-        initial current profile is written out. However, simulation with one-4-one
-        set to `true` and sorting events the current profile might change. Example
-        are ESASE/HGHG schemes. By setting the flag to false the current profile
-        is written out at each output step similar to radiation power and bunching
-        profile.
-        """.strip(),
+        description=(
+            "Flag to reduce the size of the current dataset for the electron beam. "
+            "Under most circumstances the current profile is constant and only the "
+            "initial current profile is written out. However, simulation with one-4-one "
+            "set to `true` and sorting events the current profile might change. Example "
+            "are ESASE/HGHG schemes. By setting the flag to false the current profile "
+            "is written out at each output step similar to radiation power and bunching "
+            "profile."
+        ),
     )
     exclude_field_dump: bool = pydantic.Field(
         default=False,
-        description=r"Exclude the field dump to `.fld.h5`.",
+        description="Exclude the field dump to `.fld.h5`.",
     )
     write_meta_file: bool = pydantic.Field(
         default=False,
-        description=r"Write a metadata file.",
+        description="Write a metadata file.",
     )
     semaphore_file_name: str = pydantic.Field(
         default="",
-        description=r"""
-        Providing a file name for the semaphore file always switches on writing
-        the "done" semaphore file, overriding 'write_semaphore_file' flag. This
-        allows to switch on semaphore functionality just by specifying
-        corresponding command line argument -- no modification of G4 input file
-        needed.
-        """.strip(),
+        description=(
+            "Providing a file name for the semaphore file always switches on writing "
+            "the 'done' semaphore file, overriding 'write_semaphore_file' flag. This "
+            "allows to switch on semaphore functionality just by specifying "
+            "corresponding command line argument -- no modification of G4 input file "
+            "needed."
+        ),
     )
     write_semaphore_file: bool = pydantic.Field(
         default=False,
-        description=r"Write a semaphore file when the simulation has completed.",
+        description="Write a semaphore file when the simulation has completed.",
     )
     write_semaphore_file_done: bool = pydantic.Field(
         default=False,
-        description=r"""
-        Alias for `write_semaphore_file`. This takes precedence over
-        `write_semaphore_file` if both are specified.
-        """.strip(),
+        description=(
+            "Alias for `write_semaphore_file`. This takes precedence over "
+            "`write_semaphore_file` if both are specified."
+        ),
     )
     write_semaphore_file_started: bool = pydantic.Field(
         default=False,
-        description=r"Write a semaphore file at startup, after the setup block is parsed.",
+        description="Write a semaphore file at startup, after the setup block is parsed.",
     )
 
 
@@ -396,72 +396,72 @@ class AlterSetup(types.NameList):
     type: Literal["alter_setup"] = "alter_setup"
     rootname: str = pydantic.Field(
         default="",
-        description=r"""
-        The basic string, with which all output files will start, unless the
-        output filename is directly overwritten (see `write`-namelist)
-        """.strip(),
+        description=(
+            "The basic string, with which all output files will start, unless the "
+            "output filename is directly overwritten (see `write`-namelist)"
+        ),
     )
     beamline: str = pydantic.Field(
         default="",
-        description=r"""
-        The name of the beamline, which has to be defined within the lattice file.
-        This way another beamline can be selected in the case the simulation has
-        multiple stages
-        """.strip(),
+        description=(
+            "The name of the beamline, which has to be defined within the lattice file. "
+            "This way another beamline can be selected in the case the simulation has "
+            "multiple stages"
+        ),
     )
     delz: float = pydantic.Field(
         default=0.0,
-        description=r"""
-        Preferred integration stepsize in meter. Note that this is not a strict
-        value because Genesis tries to optimized the stepsize according to the
-        elements it can resolve. E.g. if an undulator is 1.99 m long but the
-        preferred stepsize is 2 cm than it uses a stepsize which is the closes to
-        preserve the number of integration step. In this case the preferred
-        stepsize gives 99.5 steps which is than rounded to 100 and thus resulting
-        in an actual stepsize of 1.99 cm. Note that outside of the undulator
-        Genesis, which are free drifts for the radiation field, it progress the
-        electron beam and radiation field in larger steps, namely one step per
-        resolved element (drift, quadrupole, phase shifter).
-        """.strip(),
+        description=(
+            "Preferred integration stepsize in meter. Note that this is not a strict "
+            "value because Genesis tries to optimized the stepsize according to the "
+            "elements it can resolve. E.g. if an undulator is 1.99 m long but the "
+            "preferred stepsize is 2 cm than it uses a stepsize which is the closes to "
+            "preserve the number of integration step. In this case the preferred "
+            "stepsize gives 99.5 steps which is than rounded to 100 and thus resulting "
+            "in an actual stepsize of 1.99 cm. Note that outside of the undulator "
+            "Genesis, which are free drifts for the radiation field, it progress the "
+            "electron beam and radiation field in larger steps, namely one step per "
+            "resolved element (drift, quadrupole, phase shifter)."
+        ),
     )
     harmonic: int = pydantic.Field(
         default=1,
-        description=r"""
-        If the value is not 1 than a harmonic conversion is done. This has several
-        consequences. The reference wavelength in `setup` is divided by the
-        harmonic number, the sample rate in `time` is multiplied by the harmonic
-        number, the ponderomotive phases of all macro particles are scaled with
-        the harmonic number, all radiation fields, which are not identical to the
-        harmonic numbers are deleted, while an existing harmonic field is changed
-        to be at the fundamental wavelength
-        """.strip(),
+        description=(
+            "If the value is not 1 than a harmonic conversion is done. This has several "
+            "consequences. The reference wavelength in `setup` is divided by the "
+            "harmonic number, the sample rate in `time` is multiplied by the harmonic "
+            "number, the ponderomotive phases of all macro particles are scaled with "
+            "the harmonic number, all radiation fields, which are not identical to the "
+            "harmonic numbers are deleted, while an existing harmonic field is changed "
+            "to be at the fundamental wavelength"
+        ),
     )
     subharmonic: int = pydantic.Field(
         default=1,
-        description=r"""
-        If the value is not 1 than a down conversion is done. It is similar to the
-        action of `harmonics` but in the opposite directions. For the radiation
-        field all field definitions are deleted except for the fundamental, which
-        is converted to a harmonic. In this case the fundamental field needs to be
-        defined before another tracking is called.
-        """.strip(),
+        description=(
+            "If the value is not 1 than a down conversion is done. It is similar to the "
+            "action of `harmonics` but in the opposite directions. For the radiation "
+            "field all field definitions are deleted except for the fundamental, which "
+            "is converted to a harmonic. In this case the fundamental field needs to be "
+            "defined before another tracking is called."
+        ),
     )
     resample: bool = pydantic.Field(
         default=False,
-        description=r"""
-        If this is set to true and only if one-for-one simulations are used the
-        harmonic and subharmonic conversion can re-sample to the new wavelength.
-        In the case of up-conversion the slices are split and the total number of
-        slices increases. Same with the radiation field. An previously existing
-        harmonic field, which is now becoming the fundamental, is interpolated
-        between the existing sample points (still needs to be implemented). If a
-        new field is generated it has automatically the new number of slices. If
-        also prevents that the sample rate is changed by remaining unchanged.
-        """.strip(),
+        description=(
+            "If this is set to true and only if one-for-one simulations are used the "
+            "harmonic and subharmonic conversion can re-sample to the new wavelength. "
+            "In the case of up-conversion the slices are split and the total number of "
+            "slices increases. Same with the radiation field. An previously existing "
+            "harmonic field, which is now becoming the fundamental, is interpolated "
+            "between the existing sample points (still needs to be implemented). If a "
+            "new field is generated it has automatically the new number of slices. If "
+            "also prevents that the sample rate is changed by remaining unchanged."
+        ),
     )
     disable: bool = pydantic.Field(
         default=False,
-        description=r"Disable non-matching radiation harmonic.",
+        description="Disable non-matching radiation harmonic.",
     )
 
 
@@ -513,62 +513,62 @@ class LatticeNamelist(types.NameList):
     type: Literal["lattice"] = "lattice"
     zmatch: float = pydantic.Field(
         default=0.0,
-        description=r"""
-        If the position within the undulator in meter is non-zero than Genesis
-        tries to calculate the matched optics function for a periodic solution. In
-        the case that it cannot find a solution than it will report it. Found
-        solution will also be the default values for a succeeding beam generation,
-        so that no explicit optical functions need to be defined any longer. If
-        the lattice is highly non-periodic it is recommended    to find the
-        matching condition with an external program such as MAdX.
-        """.strip(),
+        description=(
+            "If the position within the undulator in meter is non-zero than Genesis "
+            "tries to calculate the matched optics function for a periodic solution. In "
+            "the case that it cannot find a solution than it will report it. Found "
+            "solution will also be the default values for a succeeding beam generation, "
+            "so that no explicit optical functions need to be defined any longer. If "
+            "the lattice is highly non-periodic it is recommended    to find the "
+            "matching condition with an external program such as MAdX."
+        ),
     )
     element: str = pydantic.Field(
         default="",
-        description=r"""
-        Name of the element type, which will be changed, e.g. Undulator if
-        undulator modules are altered. Only the first 4 letters need to be
-        defined. If there is no match, e.g. due to a type, nothing will be
-        changed. It acts rather as a filter than a mandatory element. Elements of
-        the type `MARKER` are not supported.
-        """.strip(),
+        description=(
+            "Name of the element type, which will be changed, e.g. Undulator if "
+            "undulator modules are altered. Only the first 4 letters need to be "
+            "defined. If there is no match, e.g. due to a type, nothing will be "
+            "changed. It acts rather as a filter than a mandatory element. Elements of "
+            "the type `MARKER` are not supported."
+        ),
     )
     field: str = pydantic.Field(
         default="",
-        description=r"""
-        attribute name for a given element. The names are the same as in the
-        definition of the lattice file. The field acts as a filter again. With
-        non-matching events nothing will be changed.
-        """.strip(),
+        description=(
+            "attribute name for a given element. The names are the same as in the "
+            "definition of the lattice file. The field acts as a filter again. With "
+            "non-matching events nothing will be changed."
+        ),
     )
     value: float | types.Reference = pydantic.Field(
         default=0.0,
-        description=r"""
-        The new value. If a reference to a sequence is used, values can be
-        different depending on how many elements are changed. For a double the
-        value would be the same for all elements affected.
-        """.strip(),
+        description=(
+            "The new value. If a reference to a sequence is used, values can be "
+            "different depending on how many elements are changed. For a double the "
+            "value would be the same for all elements affected."
+        ),
     )
     instance: int = pydantic.Field(
         default=0,
-        description=r"""
-        The instances of affected elements. If a positive value is given, than
-        only that element is changed, where its occurence matches the number. E.g.
-        for a value of 3 only the third element is selected. For a value of 0 all
-        elements are changed. The ability to change more than one but less than
-        all is currently not supported.
-        """.strip(),
+        description=(
+            "The instances of affected elements. If a positive value is given, than "
+            "only that element is changed, where its occurence matches the number. E.g. "
+            "for a value of 3 only the third element is selected. For a value of 0 all "
+            "elements are changed. The ability to change more than one but less than "
+            "all is currently not supported."
+        ),
     )
     add: bool = pydantic.Field(
         default=True,
-        description=r"""
-        If the value is `true`, the changes are added to the existing value. For a
-        value of `false`, the old values are overwritten.
-        """.strip(),
+        description=(
+            "If the value is `true`, the changes are added to the existing value. For a "
+            "value of `false`, the old values are overwritten."
+        ),
     )
     resolvePeriod: bool = pydantic.Field(
         default=False,
-        description=r"currently unused.",
+        description="currently unused.",
     )
 
 
@@ -617,32 +617,32 @@ class Time(types.NameList):
     type: Literal["time"] = "time"
     s0: float = pydantic.Field(
         default=0.0,
-        description=r"Starting point of the time-window in meters.",
+        description="Starting point of the time-window in meters.",
     )
     slen: float = pydantic.Field(
         default=0.0,
-        description=r"""
-        Length of the time window in meters. Note that for parallel jobs this
-        might be adjusted towards larger values.
-        """.strip(),
+        description=(
+            "Length of the time window in meters. Note that for parallel jobs this "
+            "might be adjusted towards larger values."
+        ),
     )
     sample: int = pydantic.Field(
         default=1,
-        description=r"""
-        Sample rate in units of the reference wavelength from thesetup namelist,
-        so that the number of slices is given by `SLEN / LAMBDA0 /SAMPLE` after
-        `SLEN` has been adjusted to fit the MPI size.
-        """.strip(),
+        description=(
+            "Sample rate in units of the reference wavelength from thesetup namelist, "
+            "so that the number of slices is given by `SLEN / LAMBDA0 /SAMPLE` after "
+            "`SLEN` has been adjusted to fit the MPI size."
+        ),
     )
     time: bool = pydantic.Field(
         default=True,
-        description=r"""
-        Flag to indicate time-dependent run. Note that time-dependent simulations
-        are enabled already by using this namelist. This flag has the
-        functionality to differentiate between time-dependent run and scans, which
-        disable the slippage in the tracking. To restrict the simulation to
-        steady-state the `time` namelist has to be omitted from the input deck.
-        """.strip(),
+        description=(
+            "Flag to indicate time-dependent run. Note that time-dependent simulations "
+            "are enabled already by using this namelist. This flag has the "
+            "functionality to differentiate between time-dependent run and scans, which "
+            "disable the slippage in the tracking. To restrict the simulation to "
+            "steady-state the `time` namelist has to be omitted from the input deck."
+        ),
     )
 
 
@@ -661,11 +661,11 @@ class ProfileConst(types.NameList):
 
     type: Literal["profile_const"] = "profile_const"
     label: str = pydantic.Field(
-        description=r"Name of the profile, which is used to refer to it in later calls of namelists",
+        description="Name of the profile, which is used to refer to it in later calls of namelists",
     )
     c0: float = pydantic.Field(
         default=0.0,
-        description=r"constant value to be used.",
+        description="constant value to be used.",
     )
 
 
@@ -688,19 +688,19 @@ class ProfileGauss(types.NameList):
 
     type: Literal["profile_gauss"] = "profile_gauss"
     label: str = pydantic.Field(
-        description=r"Name of the profile, which is used to refer to it in later calls of namelists",
+        description="Name of the profile, which is used to refer to it in later calls of namelists",
     )
     c0: float = pydantic.Field(
         default=0.0,
-        description=r"Maximum function value of the Gaussian distribution",
+        description="Maximum function value of the Gaussian distribution",
     )
     s0: float = pydantic.Field(
         default=0.0,
-        description=r"Center point of the Gaussian distribution",
+        description="Center point of the Gaussian distribution",
     )
     sig: float = pydantic.Field(
         default=0.0,
-        description=r"Standard deviation of the Gaussian distribution",
+        description="Standard deviation of the Gaussian distribution",
     )
 
 
@@ -723,19 +723,19 @@ class ProfileStep(types.NameList):
 
     type: Literal["profile_step"] = "profile_step"
     label: str = pydantic.Field(
-        description=r"Name of the profile, which is used to refer to it in later calls of namelists",
+        description="Name of the profile, which is used to refer to it in later calls of namelists",
     )
     c0: float = pydantic.Field(
         default=0.0,
-        description=r"Constant term",
+        description="Constant term",
     )
     s_start: float = pydantic.Field(
         default=0.0,
-        description=r"Starting point of the step function",
+        description="Starting point of the step function",
     )
     s_end: float = pydantic.Field(
         default=0.0,
-        description=r"Ending point of the step function",
+        description="Ending point of the step function",
     )
 
 
@@ -762,27 +762,27 @@ class ProfilePolynom(types.NameList):
 
     type: Literal["profile_polynom"] = "profile_polynom"
     label: str = pydantic.Field(
-        description=r"Name of the profile, which is used to refer to it in later calls of namelists",
+        description="Name of the profile, which is used to refer to it in later calls of namelists",
     )
     c0: float = pydantic.Field(
         default=0.0,
-        description=r"Constant term",
+        description="Constant term",
     )
     c1: float = pydantic.Field(
         default=0.0,
-        description=r"Term proportional to s",
+        description="Term proportional to s",
     )
     c2: float = pydantic.Field(
         default=0.0,
-        description=r"Term proportional to s^2",
+        description="Term proportional to s^2",
     )
     c3: float = pydantic.Field(
         default=0.0,
-        description=r"Term proportional to s^3",
+        description="Term proportional to s^3",
     )
     c4: float = pydantic.Field(
         default=0.0,
-        description=r"Term proportional to s^4",
+        description="Term proportional to s^4",
     )
 
 
@@ -813,39 +813,39 @@ class ProfileFile(types.NameList):
 
     type: Literal["profile_file"] = "profile_file"
     label: str = pydantic.Field(
-        description=r"Name of the profile, which is used to refer to it in later calls of namelists",
+        description="Name of the profile, which is used to refer to it in later calls of namelists",
     )
     xdata: str = pydantic.Field(
         default="",
-        description=r"""
-        Points to a dataset in an HDF5 file to define the `s`-position for the
-        look-up table. The format is `filename/group1/.../groupn/datasetname`,
-        where the naming of groups is not required if the dataset is at root level
-        of the HDF file
-        """.strip(),
+        description=(
+            "Points to a dataset in an HDF5 file to define the `s`-position for the "
+            "look-up table. The format is `filename/group1/.../groupn/datasetname`, "
+            "where the naming of groups is not required if the dataset is at root level "
+            "of the HDF file"
+        ),
     )
     ydata: str = pydantic.Field(
         default="",
-        description=r"Same as y data but for the function values of the look-up table.",
+        description="Same as y data but for the function values of the look-up table.",
     )
     isTime: bool = pydantic.Field(
         default=False,
-        description=r"""
-        If true the `s`-position is a time variable and therefore multiplied with
-        the speed of light `c` to get the position in meters.
-        """.strip(),
+        description=(
+            "If true the `s`-position is a time variable and therefore multiplied with "
+            "the speed of light `c` to get the position in meters."
+        ),
     )
     reverse: bool = pydantic.Field(
         default=False,
-        description=r"""
-        if true the order in the look-up table is reverse. This is sometimes
-        needed because time and spatial coordinates differ sometimes by a minus
-        sign.
-        """.strip(),
+        description=(
+            "if true the order in the look-up table is reverse. This is sometimes "
+            "needed because time and spatial coordinates differ sometimes by a minus "
+            "sign."
+        ),
     )
     autoassign: bool = pydantic.Field(
         default=False,
-        description=r"use the HDF5 file from `xdata` (TODO more details).",
+        description="use the HDF5 file from `xdata` (TODO more details).",
     )
 
 
@@ -864,11 +864,11 @@ class SequenceConst(types.NameList):
 
     type: Literal["sequence_const"] = "sequence_const"
     label: str = pydantic.Field(
-        description=r"Name of the sequence, which is used to refer to it in the lattice",
+        description="Name of the sequence, which is used to refer to it in the lattice",
     )
     c0: float = pydantic.Field(
         default=0.0,
-        description=r"constant value to be used.",
+        description="constant value to be used.",
     )
 
 
@@ -895,27 +895,27 @@ class SequencePolynom(types.NameList):
 
     type: Literal["sequence_polynom"] = "sequence_polynom"
     label: str = pydantic.Field(
-        description=r"Name of the sequence, which is used to refer to it in the lattice",
+        description="Name of the sequence, which is used to refer to it in the lattice",
     )
     c0: float = pydantic.Field(
         default=0.0,
-        description=r"Constant term",
+        description="Constant term",
     )
     c1: float = pydantic.Field(
         default=0.0,
-        description=r"Term proportional to s",
+        description="Term proportional to s",
     )
     c2: float = pydantic.Field(
         default=0.0,
-        description=r"Term proportional to s^2",
+        description="Term proportional to s^2",
     )
     c3: float = pydantic.Field(
         default=0.0,
-        description=r"Term proportional to s^3",
+        description="Term proportional to s^3",
     )
     c4: float = pydantic.Field(
         default=0.0,
-        description=r"Term proportional to s^4",
+        description="Term proportional to s^4",
     )
 
 
@@ -941,26 +941,26 @@ class SequencePower(types.NameList):
 
     type: Literal["sequence_power"] = "sequence_power"
     label: str = pydantic.Field(
-        description=r"Name of the sequence, which is used to refer to it in the lattice",
+        description="Name of the sequence, which is used to refer to it in the lattice",
     )
     c0: float = pydantic.Field(
         default=0.0,
-        description=r"Constant term",
+        description="Constant term",
     )
     dc: float = pydantic.Field(
         default=0.0,
-        description=r"Term scaling the growing power series before added to the constant term",
+        description="Term scaling the growing power series before added to the constant term",
     )
     alpha: float = pydantic.Field(
         default=0.0,
-        description=r"power of the series",
+        description="power of the series",
     )
     n0: int = pydantic.Field(
         default=1,
-        description=r"""
-        starting index of power growth. Otherwise the sequence uses only the
-        constant term
-        """.strip(),
+        description=(
+            "starting index of power growth. Otherwise the sequence uses only the "
+            "constant term"
+        ),
     )
 
 
@@ -986,26 +986,26 @@ class SequenceRandom(types.NameList):
 
     type: Literal["sequence_random"] = "sequence_random"
     label: str = pydantic.Field(
-        description=r"Name of the sequence, which is used to refer to it in the lattice",
+        description="Name of the sequence, which is used to refer to it in the lattice",
     )
     c0: float = pydantic.Field(
         default=0.0,
-        description=r"Mean value",
+        description="Mean value",
     )
     dc: float = pydantic.Field(
         default=0.0,
-        description=r"""
-        Amplitude of the error, either the standard division for normal
-        distribution or the min and max value for uniform distribution.
-        """.strip(),
+        description=(
+            "Amplitude of the error, either the standard division for normal "
+            "distribution or the min and max value for uniform distribution."
+        ),
     )
     seed: int = pydantic.Field(
         default=100,
-        description=r"seed for the random number generator",
+        description="seed for the random number generator",
     )
     normal: bool = pydantic.Field(
         default=True,
-        description=r"Flag for Gaussian distribution. If set to false a uniform distribution is used.",
+        description="Flag for Gaussian distribution. If set to false a uniform distribution is used.",
     )
 
 
@@ -1063,62 +1063,62 @@ class Beam(types.NameList):
     type: Literal["beam"] = "beam"
     gamma: float | types.Reference = pydantic.Field(
         default=0.0,
-        description=r"""
-        Mean energy in units of the electron rest mass. If default value is given
-        by the reference energy from the `setup`-namelist.
-        """.strip(),
+        description=(
+            "Mean energy in units of the electron rest mass. If default value is given "
+            "by the reference energy from the `setup`-namelist."
+        ),
     )
     delgam: float | types.Reference = pydantic.Field(
         default=0.0,
-        description=r"RMS energy spread in units of the electron rest mass.",
+        description="RMS energy spread in units of the electron rest mass.",
     )
     current: float | types.Reference = pydantic.Field(
         default=1000.0,
-        description=r"Current in Amperes.",
+        description="Current in Amperes.",
     )
     ex: float | types.Reference = pydantic.Field(
         default=3e-07,
-        description=r"Normalized emittance in $x$ in units of meters",
+        description="Normalized emittance in $x$ in units of meters",
     )
     ey: float | types.Reference = pydantic.Field(
         default=3e-07,
-        description=r"Normalized emittance in $y$ in units of meters",
+        description="Normalized emittance in $y$ in units of meters",
     )
     betax: float | types.Reference = pydantic.Field(
         default=15.0,
-        description=r"""
-        Initial beta-function in $x$ in meters. If the matched command has been
-        invoked before the default values are set to the results.
-        """.strip(),
+        description=(
+            "Initial beta-function in $x$ in meters. If the matched command has been "
+            "invoked before the default values are set to the results."
+        ),
     )
     betay: float | types.Reference = pydantic.Field(
         default=15.0,
-        description=r"""
-        Initial beta-function in $y$ in meters. If the matched command has been
-        invoked before the default values are set to the results.
-        """.strip(),
+        description=(
+            "Initial beta-function in $y$ in meters. If the matched command has been "
+            "invoked before the default values are set to the results."
+        ),
     )
     alphax: float | types.Reference = pydantic.Field(
         default=0.0,
-        description=r"""
-        Initial alpha-function in $x$. If the matched command has been invoked
-        before the default values are set to the results.
-        """.strip(),
+        description=(
+            "Initial alpha-function in $x$. If the matched command has been invoked "
+            "before the default values are set to the results."
+        ),
     )
     alphay: float | types.Reference = pydantic.Field(
         default=0.0,
-        description=r"""
-        Initial alpha-function in $y$. If the matched command has been invoked
-        before the default values are set to the results.
-        """.strip(),
+        description=(
+            "Initial alpha-function in $y$. If the matched command has been invoked "
+            "before the default values are set to the results."
+        ),
     )
     xcenter: float | types.Reference = pydantic.Field(
         default=0.0,
-        description=r"Initial centroid position in $x$ in meter.",
+        description="Initial centroid position in $x$ in meter.",
     )
     ycenter: float | types.Reference = pydantic.Field(
         default=0.0,
-        description=r"Initial centroid position in $y$ in meter.",
+        description="Initial centroid position in $y$ in meter.",
     )
     pxcenter: float | types.Reference = pydantic.Field(
         default=0.0,
@@ -1130,22 +1130,22 @@ class Beam(types.NameList):
     )
     bunch: float | types.Reference = pydantic.Field(
         default=0.0,
-        description=r"Initial bunching value",
+        description="Initial bunching value",
     )
     bunchphase: float | types.Reference = pydantic.Field(
         default=0.0,
-        description=r"Initial phase of the bunching",
+        description="Initial phase of the bunching",
     )
     emod: float | types.Reference = pydantic.Field(
         default=0.0,
-        description=r"""
-        Initial energy modulation in units of the electron rest mass. This
-        modulation is on the scale of the reference wavelength
-        """.strip(),
+        description=(
+            "Initial energy modulation in units of the electron rest mass. This "
+            "modulation is on the scale of the reference wavelength"
+        ),
     )
     emodphase: float | types.Reference = pydantic.Field(
         default=0.0,
-        description=r"Initial phase of the energy modulation",
+        description="Initial phase of the energy modulation",
     )
 
 
@@ -1207,90 +1207,90 @@ class Field(types.NameList):
     type: Literal["field"] = "field"
     lambda_: float = pydantic.Field(
         default=0.0,
-        description=r"""
-        Central frequency of the radiation mode. The default value is the
-        reference wavelength from the `setup`-namelist.
-        """.strip(),
+        description=(
+            "Central frequency of the radiation mode. The default value is the "
+            "reference wavelength from the `setup`-namelist."
+        ),
         validation_alias=pydantic.AliasChoices("lambda_", "lambda"),
         serialization_alias="lambda",
     )
     power: float | types.Reference = pydantic.Field(
         default=0.0,
-        description=r"Radiation power in Watts",
+        description="Radiation power in Watts",
     )
     phase: float | types.Reference = pydantic.Field(
         default=0.0,
-        description=r"""
-        radiation phase in rads. Note that a linear profile results in a shift in
-        the radiation wavelength, which is also the method if for the variable
-        `lambda` a different value than the reference wavelength is used. In case
-        of conflicts the profile for the phase definition has priority.
-        """.strip(),
+        description=(
+            "radiation phase in rads. Note that a linear profile results in a shift in "
+            "the radiation wavelength, which is also the method if for the variable "
+            "`lambda` a different value than the reference wavelength is used. In case "
+            "of conflicts the profile for the phase definition has priority."
+        ),
     )
     waist_pos: float | types.Reference = pydantic.Field(
         default=0.0,
-        description=r"""
-        Position where the focal point is located relative to the undulator
-        entrance. Negative values place it before, resulting in a diverging
-        radiation field.
-        """.strip(),
+        description=(
+            "Position where the focal point is located relative to the undulator "
+            "entrance. Negative values place it before, resulting in a diverging "
+            "radiation field."
+        ),
     )
     waist_size: float | types.Reference = pydantic.Field(
         default=1e-07,
-        description=r"""
-        Waist size according to the definition of $w_0$ according to Siegman’s
-        ’Laser’ handbook
-        """.strip(),
+        description=(
+            "Waist size according to the definition of $w_0$ according to Siegman’s "
+            "’Laser’ handbook"
+        ),
     )
     xcenter: float = pydantic.Field(
         default=0.0,
-        description=r"Center position in $x$ in meter of the Gauss-Hermite mode",
+        description="Center position in $x$ in meter of the Gauss-Hermite mode",
     )
     ycenter: float = pydantic.Field(
         default=0.0,
-        description=r"Center position in $y$ in meter of the Gauss-Hermite mode",
+        description="Center position in $y$ in meter of the Gauss-Hermite mode",
     )
     xangle: float = pydantic.Field(
         default=0.0,
-        description=r"Injection angle in $x$ in rad of the Gauss-Hermite mode",
+        description="Injection angle in $x$ in rad of the Gauss-Hermite mode",
     )
     yangle: float = pydantic.Field(
         default=0.0,
-        description=r"Injection angle in $y$ in rad of the Gauss-Hermite mode",
+        description="Injection angle in $y$ in rad of the Gauss-Hermite mode",
     )
     dgrid: float = pydantic.Field(
         default=0.001,
-        description=r"""
-        Grid extension from the center to one edge. The whole grid is twice as
-        large with 0 as the center position
-        """.strip(),
+        description=(
+            "Grid extension from the center to one edge. The whole grid is twice as "
+            "large with 0 as the center position"
+        ),
     )
     ngrid: int = pydantic.Field(
         default=151,
-        description=r"""
-        Number of grid points in one dimension. This value should be odd to
-        enforce a grid point directly on axis. Otherwise the convergence in the
-        simulations could be worse.
-        """.strip(),
+        description=(
+            "Number of grid points in one dimension. This value should be odd to "
+            "enforce a grid point directly on axis. Otherwise the convergence in the "
+            "simulations could be worse."
+        ),
     )
     harm: int = pydantic.Field(
         default=1,
-        description=r"Harmonic number of the radiation field with respect to the reference wavelength.",
+        description="Harmonic number of the radiation field with respect to the reference wavelength.",
     )
     nx: int = pydantic.Field(
         default=0,
-        description=r"Mode number in $x$ of the Gauss-Hermite mode",
+        description="Mode number in $x$ of the Gauss-Hermite mode",
     )
     ny: int = pydantic.Field(
         default=0,
-        description=r"Mode number in $y$ of the Gauss-Hermite mode",
+        description="Mode number in $y$ of the Gauss-Hermite mode",
     )
     accumulate: bool = pydantic.Field(
         default=False,
-        description=r"""
-        If set the generated field is added to an existing field instead of
-        overwriting it.
-        """.strip(),
+        description=(
+            "If set the generated field is added to an existing field instead of "
+            "overwriting it."
+        ),
     )
 
 
@@ -1361,43 +1361,43 @@ class ImportDistribution(types.NameList):
     type: Literal["importdistribution"] = "importdistribution"
     file: str = pydantic.Field(
         default="",
-        description=r"The file name of the distribution, including possible relative directories.",
+        description="The file name of the distribution, including possible relative directories.",
     )
     charge: float = pydantic.Field(
         default=0.0,
-        description=r"""
-        Total charge of the distribution to calculate the current and individual
-        charge per macro particle.
-        """.strip(),
+        description=(
+            "Total charge of the distribution to calculate the current and individual "
+            "charge per macro particle."
+        ),
     )
     slicewidth: float = pydantic.Field(
         default=0.01,
-        description=r"""
-        the fraction in length of the distribution which is used for
-        reconstruction. E.g if the length is 10 micron and slic ewidth 0.02 then
-        the reconstruction at the positions $s= 4\,\mu m$ is using those particles
-        in the distribution, which are located in the slice from $3.9\, \mu m$ to
-        $4.1\,\mu m$.
-        """.strip(),
+        description=(
+            "the fraction in length of the distribution which is used for "
+            "reconstruction. E.g if the length is 10 micron and slic ewidth 0.02 then "
+            r"the reconstruction at the positions $s= 4\,\mu m$ is using those particles "
+            r"in the distribution, which are located in the slice from $3.9\, \mu m$ to "
+            r"$4.1\,\mu m$."
+        ),
     )
     center: bool = pydantic.Field(
         default=False,
-        description=r"""
-        If set to true the particle distribution is recentered in transverse
-        position, momenta and energy.
-        """.strip(),
+        description=(
+            "If set to true the particle distribution is recentered in transverse "
+            "position, momenta and energy."
+        ),
     )
     gamma0: float = pydantic.Field(
         default=0.0,
-        description=r"If centering is enabled, new center in energy in units of electron rest mass.",
+        description="If centering is enabled, new center in energy in units of electron rest mass.",
     )
     x0: float = pydantic.Field(
         default=0.0,
-        description=r"If centering is enabled, new center in $x$ in meter.",
+        description="If centering is enabled, new center in $x$ in meter.",
     )
     y0: float = pydantic.Field(
         default=0.0,
-        description=r"If centering is enabled, new center in $y$ in meter.",
+        description="If centering is enabled, new center in $y$ in meter.",
     )
     px0: float = pydantic.Field(
         default=0.0,
@@ -1409,50 +1409,50 @@ class ImportDistribution(types.NameList):
     )
     match: bool = pydantic.Field(
         default=False,
-        description=r"""
-        If set to `true`, the particle distribution is matched to new optical
-        function values.
-        """.strip(),
+        description=(
+            "If set to `true`, the particle distribution is matched to new optical "
+            "function values."
+        ),
     )
     betax: float = pydantic.Field(
         default=15.0,
-        description=r"If matching is enabled, new beta function in $x$ in meters.",
+        description="If matching is enabled, new beta function in $x$ in meters.",
     )
     betay: float = pydantic.Field(
         default=15.0,
-        description=r"If matching is enabled, new beta function in $y$ in meters.",
+        description="If matching is enabled, new beta function in $y$ in meters.",
     )
     alphax: float = pydantic.Field(
         default=0.0,
-        description=r"If matching is enabled, new alpha function in $x$.",
+        description="If matching is enabled, new alpha function in $x$.",
     )
     alphay: float = pydantic.Field(
         default=0.0,
-        description=r"If matching is enabled, new alpha function in $y$.",
+        description="If matching is enabled, new alpha function in $y$.",
     )
     eval_start: float = pydantic.Field(
         default=0.0,
-        description=r"evaluation start.",
+        description="evaluation start.",
     )
     eval_end: float = pydantic.Field(
         default=1.0,
-        description=r"evaluation end.",
+        description="evaluation end.",
     )
     settimewindow: bool = pydantic.Field(
         default=True,
-        description=r"set time window.",
+        description="set time window.",
     )
     align: int = pydantic.Field(
         default=0,
-        description=r"currently unused.",
+        description="currently unused.",
     )
     align_start: float = pydantic.Field(
         default=0.0,
-        description=r"currently unused.",
+        description="currently unused.",
     )
     align_end: float = pydantic.Field(
         default=1.0,
-        description=r"currently unused.",
+        description="currently unused.",
     )
 
 
@@ -1479,18 +1479,18 @@ class ImportBeam(types.NameList):
     type: Literal["importbeam"] = "importbeam"
     file: str = pydantic.Field(
         default="",
-        description=r"""
-        File name of a hdf5 complient datafile to contain the slice-wise particle
-        distribution. It has to follow the internal Genesis 1.3 syntax.
-        """.strip(),
+        description=(
+            "File name of a hdf5 complient datafile to contain the slice-wise particle "
+            "distribution. It has to follow the internal Genesis 1.3 syntax."
+        ),
     )
     time: bool = pydantic.Field(
         default=True,
-        description=r"""
-        If the time window hasn’t be defined it allows to run Genesis with the
-        imported distribution in scan mode, when set to `false`. This would
-        disable all slippage and long-range collective effects in the simulation
-        """.strip(),
+        description=(
+            "If the time window hasn’t be defined it allows to run Genesis with the "
+            "imported distribution in scan mode, when set to `false`. This would "
+            "disable all slippage and long-range collective effects in the simulation"
+        ),
     )
 
 
@@ -1520,22 +1520,22 @@ class ImportField(types.NameList):
     type: Literal["importfield"] = "importfield"
     file: str = pydantic.Field(
         default="",
-        description=r"""
-        File name of a hdf5 compliant datafile to contain the slice-wise particle
-        distribution. It has to follow the internal Genesis 1.3 syntax.
-        """.strip(),
+        description=(
+            "File name of a hdf5 compliant datafile to contain the slice-wise particle "
+            "distribution. It has to follow the internal Genesis 1.3 syntax."
+        ),
     )
     harmonic: int = pydantic.Field(
         default=1,
-        description=r"defines the harmonic for the given Genesis run.",
+        description="defines the harmonic for the given Genesis run.",
     )
     time: bool = pydantic.Field(
         default=True,
-        description=r"""
-        If the time window hasn’t be defined it allows to run Genesis with the
-        imported distribution in scan mode, when set to `false`. This would
-        disable all slippage and long-range collective effects in the simulation
-        """.strip(),
+        description=(
+            "If the time window hasn’t be defined it allows to run Genesis with the "
+            "imported distribution in scan mode, when set to `false`. This would "
+            "disable all slippage and long-range collective effects in the simulation"
+        ),
     )
 
 
@@ -1582,32 +1582,32 @@ class ImportTransformation(types.NameList):
     type: Literal["importtransformation"] = "importtransformation"
     file: str = pydantic.Field(
         default="",
-        description=r"""
-        File name of a hdf5 compliant datafile to contain the vector and matrix
-        informations
-        """.strip(),
+        description=(
+            "File name of a hdf5 compliant datafile to contain the vector and matrix "
+            "informations"
+        ),
     )
     vector: str = pydantic.Field(
         default="",
-        description=r"""
-        Name of the dataset which contains the vector information. The shape must
-        be either (6) or (n,6)
-        """.strip(),
+        description=(
+            "Name of the dataset which contains the vector information. The shape must "
+            "be either (6) or (n,6)"
+        ),
     )
     matrix: str = pydantic.Field(
         default="",
-        description=r"""
-        Name of the dataset which contains the matrix information. The shape must
-        be either (6,6) or (n,6,6)
-        """.strip(),
+        description=(
+            "Name of the dataset which contains the matrix information. The shape must "
+            "be either (6,6) or (n,6,6)"
+        ),
     )
     slen: float = pydantic.Field(
         default=0.0,
-        description=r"""
-        The length in meters between adjacent sample points (n>1), needed for the
-        interpolation. If the value is zero only a global transformation is
-        applied using the first entry.
-        """.strip(),
+        description=(
+            "The length in meters between adjacent sample points (n>1), needed for the "
+            "interpolation. If the value is zero only a global transformation is "
+            "applied using the first entry."
+        ),
     )
 
 
@@ -1647,34 +1647,34 @@ class Efield(types.NameList):
     type: Literal["efield"] = "efield"
     longrange: bool = pydantic.Field(
         default=False,
-        description=r"Flag to enable the calculation of the long range space charge field.",
+        description="Flag to enable the calculation of the long range space charge field.",
     )
     rmax: float = pydantic.Field(
         default=0.0,
-        description=r"""
-        Size of radial grid in meters. If the beam size gets larger than the grid
-        the size is automatically adjusted to the maximum radius of the electrons
-        with an additional 50% extension. When the mesh size is adjusted a message
-        will be printed on screen.
-        """.strip(),
+        description=(
+            "Size of radial grid in meters. If the beam size gets larger than the grid "
+            "the size is automatically adjusted to the maximum radius of the electrons "
+            "with an additional 50% extension. When the mesh size is adjusted a message "
+            "will be printed on screen."
+        ),
     )
     nz: int = pydantic.Field(
         default=0,
-        description=r"""
-        Number of longitudinal Fourier component of the short range space charge
-        field. Note that this should be not in conflict with the beamlet size.
-        """.strip(),
+        description=(
+            "Number of longitudinal Fourier component of the short range space charge "
+            "field. Note that this should be not in conflict with the beamlet size."
+        ),
     )
     nphi: int = pydantic.Field(
         default=0,
-        description=r"""
-        Number of azimuthal modes in the calculation of the short range space
-        charge field.
-        """.strip(),
+        description=(
+            "Number of azimuthal modes in the calculation of the short range space "
+            "charge field."
+        ),
     )
     ngrid: int = pydantic.Field(
         default=100,
-        description=r"Number of grid points of the radial grid for the short range space charge field.",
+        description="Number of grid points of the radial grid for the short range space charge field.",
     )
 
 
@@ -1701,24 +1701,24 @@ class Sponrad(types.NameList):
     type: Literal["sponrad"] = "sponrad"
     seed: int = pydantic.Field(
         default=1234,
-        description=r"""
-        Seed for random number generator to model the quantum fluctuation of hard
-        photons.
-        """.strip(),
+        description=(
+            "Seed for random number generator to model the quantum fluctuation of hard "
+            "photons."
+        ),
     )
     doLoss: bool = pydantic.Field(
         default=False,
-        description=r"""
-        If set to `true`, electrons will loose energy due to the emission of
-        spontaneous radiation within the undulator
-        """.strip(),
+        description=(
+            "If set to `true`, electrons will loose energy due to the emission of "
+            "spontaneous radiation within the undulator"
+        ),
     )
     doSpread: bool = pydantic.Field(
         default=False,
-        description=r"""
-        If set to `true`, the energy spread will increase due to the fluctuation
-        in the emission of hard photons of the spontaneous radiation.
-        """.strip(),
+        description=(
+            "If set to `true`, the energy spread will increase due to the fluctuation "
+            "in the emission of hard photons of the spontaneous radiation."
+        ),
     )
 
 
@@ -1792,96 +1792,96 @@ class Wake(types.NameList):
     type: Literal["wake"] = "wake"
     loss: float | types.Reference = pydantic.Field(
         default=0.0,
-        description=r"""
-        Loss in $eV/m$. This is a global loss function (in particular if a profile
-        is defined). Its function values V(s) remains unchanged even if the
-        current profile changes
-        """.strip(),
+        description=(
+            "Loss in $eV/m$. This is a global loss function (in particular if a profile "
+            "is defined). Its function values V(s) remains unchanged even if the "
+            "current profile changes"
+        ),
     )
     radius: float = pydantic.Field(
         default=0.0025,
-        description=r"""
-        Radius of the aperture if it is a round chanber or half the distance in
-        the case of two parallel plates.
-        """.strip(),
+        description=(
+            "Radius of the aperture if it is a round chanber or half the distance in "
+            "the case of two parallel plates."
+        ),
     )
     roundpipe: bool = pydantic.Field(
         default=True,
-        description=r"""
-        Flag to indicate the shape of the transverse cross-section of the
-        aperture. If set to `true`, a round aperture is assumed, otherwise the
-        model has two parallel plates.
-        """.strip(),
+        description=(
+            "Flag to indicate the shape of the transverse cross-section of the "
+            "aperture. If set to `true`, a round aperture is assumed, otherwise the "
+            "model has two parallel plates."
+        ),
     )
     conductivity: float = pydantic.Field(
         default=0.0,
-        description=r"Conductivity of the vacuum material for the resistive wall wakefield function",
+        description="Conductivity of the vacuum material for the resistive wall wakefield function",
     )
     relaxation: float = pydantic.Field(
         default=0.0,
-        description=r"""
-        Relaxation distance (aka the mean free path of the electron in the vacuum
-        material) for the resistive wall wakefields
-        """.strip(),
+        description=(
+            "Relaxation distance (aka the mean free path of the electron in the vacuum "
+            "material) for the resistive wall wakefields"
+        ),
     )
     material: str = pydantic.Field(
         default="",
-        description=r"""
-        String literal to define conductivity and relaxation distance for either
-        copper or aluminum by using the two character label ’CU’ or ’AL’
-        repectively. This overwrites also any explicit definition of the
-        conductivity and relaxation value.
-        """.strip(),
+        description=(
+            "String literal to define conductivity and relaxation distance for either "
+            "copper or aluminum by using the two character label ’CU’ or ’AL’ "
+            "repectively. This overwrites also any explicit definition of the "
+            "conductivity and relaxation value."
+        ),
     )
     gap: float = pydantic.Field(
         default=0.0,
-        description=r"Length in mm of a longitudinal gap in the aperture, exciting geometric wakes.",
+        description="Length in mm of a longitudinal gap in the aperture, exciting geometric wakes.",
     )
     lgap: float = pydantic.Field(
         default=1.0,
-        description=r"""
-        Effective length over which a single gap is applied. E.g. if there is a
-        periodicity of 4.5 m at which there is always the same gap in the aperture
-        for the geometrice wakes, then this value should be put to 4.5 m.
-        """.strip(),
+        description=(
+            "Effective length over which a single gap is applied. E.g. if there is a "
+            "periodicity of 4.5 m at which there is always the same gap in the aperture "
+            "for the geometrice wakes, then this value should be put to 4.5 m."
+        ),
     )
     hrough: float = pydantic.Field(
         default=0.0,
-        description=r"""
-        Amplitude in meters of a sinusoidal corrugation, modeling the effect of
-        surface roughness wakes.
-        """.strip(),
+        description=(
+            "Amplitude in meters of a sinusoidal corrugation, modeling the effect of "
+            "surface roughness wakes."
+        ),
     )
     lrough: float = pydantic.Field(
         default=1.0,
-        description=r"""
-        period lengthin meters of the sinusoidal corrugation of the surface
-        roughness model.
-        """.strip(),
+        description=(
+            "period lengthin meters of the sinusoidal corrugation of the surface "
+            "roughness model."
+        ),
     )
     transient: bool = pydantic.Field(
         default=False,
-        description=r"""
-        If set to `true`, Genesis includes the catch-up length of the origin of
-        the wakefield to the particle effects. E.g. particles do not see
-        immediatly the wake from those closer ahead of them than those further
-        away. The catch-up distance is the distance in the undulator added to the
-        starting position `ztrans`. If set to false the steady-state model is
-        used, effectively setting `ztrans` to infinity. Enabling transient
-        calculation will update the wakefield at each integration step, which can
-        slow down the calculations.
-        """.strip(),
+        description=(
+            "If set to `true`, Genesis includes the catch-up length of the origin of "
+            "the wakefield to the particle effects. E.g. particles do not see "
+            "immediatly the wake from those closer ahead of them than those further "
+            "away. The catch-up distance is the distance in the undulator added to the "
+            "starting position `ztrans`. If set to false the steady-state model is "
+            "used, effectively setting `ztrans` to infinity. Enabling transient "
+            "calculation will update the wakefield at each integration step, which can "
+            "slow down the calculations."
+        ),
     )
     ztrans: float = pydantic.Field(
         default=0.0,
-        description=r"""
-        Reference location of the first source of the wake fields. A positive
-        value means that the condition for wakes (e.g. a small aperture in the
-        vacuum chamber) has already started and there has been already some length
-        to establish the wakes. For a value of zero the source is right at the
-        undulator start, while a negative value prevents any wake, till the
-        interation position has passed that point.
-        """.strip(),
+        description=(
+            "Reference location of the first source of the wake fields. A positive "
+            "value means that the condition for wakes (e.g. a small aperture in the "
+            "vacuum chamber) has already started and there has been already some length "
+            "to establish the wakes. For a value of zero the source is right at the "
+            "undulator start, while a negative value prevents any wake, till the "
+            "interation position has passed that point."
+        ),
     )
 
 
@@ -1910,25 +1910,25 @@ class Write(types.NameList):
     type: Literal["write"] = "write"
     field: str = pydantic.Field(
         default="",
-        description=r"""
-        if a filename is defined, Genesis writes out the field distribution of all
-        harmonics. The harmonics are indicated by the suffix ’.hxxx.’ where xxx is
-        the harmonic number. The filename gets the extension.fld.h5 automatically
-        """.strip(),
+        description=(
+            "if a filename is defined, Genesis writes out the field distribution of all "
+            "harmonics. The harmonics are indicated by the suffix ’.hxxx.’ where xxx is "
+            "the harmonic number. The filename gets the extension.fld.h5 automatically"
+        ),
     )
     beam: str = pydantic.Field(
         default="",
-        description=r"""
-        if a filename is defined, Genesis writes out the particle distribution.
-        The filename gets the `extension.par.h5` automatically
-        """.strip(),
+        description=(
+            "if a filename is defined, Genesis writes out the particle distribution. "
+            "The filename gets the `extension.par.h5` automatically"
+        ),
     )
     stride: int = pydantic.Field(
         default=1,
-        description=r"""
-        For values larger than 1 the amount of particles written to the file is
-        reduced by only writing each *stride*th particle to the dump file.
-        """.strip(),
+        description=(
+            "For values larger than 1 the amount of particles written to the file is "
+            "reduced by only writing each *stride*th particle to the dump file."
+        ),
     )
 
 
@@ -1974,59 +1974,59 @@ class Track(types.NameList):
     type: Literal["track"] = "track"
     zstop: float = pydantic.Field(
         default=1000000000.0,
-        description=r"""
-        If `zstop` is shorter than the lattice length the tracking stops at the
-        specified position.
-        """.strip(),
+        description=(
+            "If `zstop` is shorter than the lattice length the tracking stops at the "
+            "specified position."
+        ),
     )
     output_step: int = pydantic.Field(
         default=1,
-        description=r"""
-        Defines the number of integration steps before the particle and field
-        distribution is analyzed for output.
-        """.strip(),
+        description=(
+            "Defines the number of integration steps before the particle and field "
+            "distribution is analyzed for output."
+        ),
     )
     field_dump_step: int = pydantic.Field(
         default=0,
-        description=r"""
-        Defines the number of integration steps before a field dump is written. Be
-        careful because for time-dependent simulation it can generate many large
-        output files.
-        """.strip(),
+        description=(
+            "Defines the number of integration steps before a field dump is written. Be "
+            "careful because for time-dependent simulation it can generate many large "
+            "output files."
+        ),
     )
     beam_dump_step: int = pydantic.Field(
         default=0,
-        description=r"""
-        Defines the number of integration steps before a particle dump is written.
-        Be careful because for time-dependent simulation it can generate many
-        large output files.
-        """.strip(),
+        description=(
+            "Defines the number of integration steps before a particle dump is written. "
+            "Be careful because for time-dependent simulation it can generate many "
+            "large output files."
+        ),
     )
     sort_step: int = pydantic.Field(
         default=0,
-        description=r"""
-        Defines the number of steps of integration before the particle
-        distribution is sorted. Works only for one-4-one simulations.
-        """.strip(),
+        description=(
+            "Defines the number of steps of integration before the particle "
+            "distribution is sorted. Works only for one-4-one simulations."
+        ),
     )
     s0: float = pydantic.Field(
         default=0.0,
-        description=r"Option to override the default time window start from the TIME module.",
+        description="Option to override the default time window start from the TIME module.",
     )
     slen: float = pydantic.Field(
         default=0.0,
-        description=r"Option to override the default time window length from the TIME module.",
+        description="Option to override the default time window length from the TIME module.",
     )
     field_dump_at_undexit: bool = pydantic.Field(
         default=False,
-        description=r"""
-        Field dumps at the exit of the undulator (one dump for each undulator in
-        the expanded lattice).
-        """.strip(),
+        description=(
+            "Field dumps at the exit of the undulator (one dump for each undulator in "
+            "the expanded lattice)."
+        ),
     )
     bunchharm: int = pydantic.Field(
         default=1,
-        description=r"Bunching harmonic output setting. Must be >= 1.",
+        description="Bunching harmonic output setting. Must be >= 1.",
     )
 
 
@@ -2056,23 +2056,23 @@ class AlterField(types.NameList):
     type: Literal["alter_field"] = "alter_field"
     harm: int = pydantic.Field(
         default=1,
-        description=r"harmonic",
+        description="harmonic",
     )
     scale_power: float = pydantic.Field(
         default=1.0,
-        description=r"power scaling factor",
+        description="power scaling factor",
     )
     spp_l: float = pydantic.Field(
         default=0.0,
-        description=r"TODO",
+        description="TODO",
     )
     spp_nsect: int = pydantic.Field(
         default=0,
-        description=r"TODO",
+        description="TODO",
     )
     spp_phi0: float = pydantic.Field(
         default=0.0,
-        description=r"TODO",
+        description="TODO",
     )
 
 
@@ -2106,39 +2106,39 @@ class ProfileFileMulti(types.NameList):
     type: Literal["profile_file_multi"] = "profile_file_multi"
     file: str = pydantic.Field(
         default="",
-        description=r"HDF5 filename.",
+        description="HDF5 filename.",
     )
     label_prefix: str = pydantic.Field(
         default="",
-        description=r"prefix for each object.",
+        description="prefix for each object.",
     )
     xdata: str = pydantic.Field(
         default="",
-        description=r"""
-        Points to a dataset in an HDF5 file to define the `s`-position for the
-        look-up table. The format is `filename/group1/.../groupn/datasetname`,
-        where the naming of groups is not required if the dataset is at root level
-        of the HDF file
-        """.strip(),
+        description=(
+            "Points to a dataset in an HDF5 file to define the `s`-position for the "
+            "look-up table. The format is `filename/group1/.../groupn/datasetname`, "
+            "where the naming of groups is not required if the dataset is at root level "
+            "of the HDF file"
+        ),
     )
     ydata: str = pydantic.Field(
         default="",
-        description=r"Same as y data but for the function values of the look-up table.",
+        description="Same as y data but for the function values of the look-up table.",
     )
     isTime: bool = pydantic.Field(
         default=False,
-        description=r"""
-        If true the `s`-position is a time variable and therefore multiplied with
-        the speed of light `c` to get the position in meters.
-        """.strip(),
+        description=(
+            "If true the `s`-position is a time variable and therefore multiplied with "
+            "the speed of light `c` to get the position in meters."
+        ),
     )
     reverse: bool = pydantic.Field(
         default=False,
-        description=r"""
-        if true the order in the look-up table is reverse. This is sometimes
-        needed because time and spatial coordinates differ sometimes by a minus
-        sign.
-        """.strip(),
+        description=(
+            "if true the order in the look-up table is reverse. This is sometimes "
+            "needed because time and spatial coordinates differ sometimes by a minus "
+            "sign."
+        ),
     )
 
 
@@ -2160,15 +2160,15 @@ class SequenceList(types.NameList):
 
     type: Literal["sequence_list"] = "sequence_list"
     label: str = pydantic.Field(
-        description=r"label for the sequence.",
+        description="label for the sequence.",
     )
     val: types.NDArray = pydantic.Field(
         default_factory=list,
-        description=r"list of values.",
+        description="list of values.",
     )
     default: float = pydantic.Field(
         default=0.0,
-        description=r"default value to use for out-of-bound indices.",
+        description="default value to use for out-of-bound indices.",
     )
 
 
@@ -2188,11 +2188,11 @@ class SequenceFilelist(types.NameList):
 
     type: Literal["sequence_filelist"] = "sequence_filelist"
     label: str = pydantic.Field(
-        description=r"label for the sequence.",
+        description="label for the sequence.",
     )
     file: str = pydantic.Field(
         default="",
-        description=r"filename to load the sequence from with one line per value.",
+        description="filename to load the sequence from with one line per value.",
     )
 
 

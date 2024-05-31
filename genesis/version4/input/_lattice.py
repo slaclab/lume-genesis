@@ -55,61 +55,61 @@ class Undulator(types.BeamlineElement):
     type: Literal["undulator"] = "undulator"
     aw: float = pydantic.Field(
         default=0.0,
-        description=r"""
-        The dimensionless rms undulator parameter. For planar undulator this value
-        is smaller by a factor $1 / \sqrt{2}$ than its K-value, while for helical
-        undulator rms and peak values are identical.
-        """.strip(),
+        description=(
+            "The dimensionless rms undulator parameter. For planar undulator this value "
+            r"is smaller by a factor $1 / \sqrt{2}$ than its K-value, while for helical "
+            "undulator rms and peak values are identical."
+        ),
     )
     lambdau: float = pydantic.Field(
         default=0.0,
-        description=r"Undulator period length in meter. Default is 0 m.",
+        description="Undulator period length in meter. Default is 0 m.",
     )
     nwig: int = pydantic.Field(
         default=0,
-        description=r"Number of periods.",
+        description="Number of periods.",
     )
     helical: bool = pydantic.Field(
         default=False,
-        description=r"""
-        Boolean flag whether the undulator is planar or helical. A planar
-        undulator has helical=`false`. Note that setting it to `true`, does not
-        change the roll-off parameters for focusing. To be consistent they have to
-        be set directly.
-        """.strip(),
+        description=(
+            "Boolean flag whether the undulator is planar or helical. A planar "
+            "undulator has helical=`false`. Note that setting it to `true`, does not "
+            "change the roll-off parameters for focusing. To be consistent they have to "
+            "be set directly."
+        ),
     )
     kx: float = pydantic.Field(
         default=0.0,
-        description=r"""
-        Roll-off parameter of the quadratic term of the undulator field in x. It
-        is normalized with respect to $k_u^2$.
-        """.strip(),
+        description=(
+            "Roll-off parameter of the quadratic term of the undulator field in x. It "
+            "is normalized with respect to $k_u^2$."
+        ),
     )
     ky: float = pydantic.Field(
         default=1.0,
-        description=r"Roll-off parameter of the quadratic term of the undulator field in y.",
+        description="Roll-off parameter of the quadratic term of the undulator field in y.",
     )
     ax: float = pydantic.Field(
         default=0.0,
-        description=r"Offset of the undulator module in $x$ in meter.",
+        description="Offset of the undulator module in $x$ in meter.",
     )
     ay: float = pydantic.Field(
         default=0.0,
-        description=r"Offset of the undulator module in $y$ in meter.",
+        description="Offset of the undulator module in $y$ in meter.",
     )
     gradx: float = pydantic.Field(
         default=0.0,
-        description=r"""
-        Relative transverse gradient of undulator field in $x$ $\equiv (1/a_w)
-        \partial a_w/\partial x$.
-        """.strip(),
+        description=(
+            r"Relative transverse gradient of undulator field in $x$ $\equiv (1/a_w) "
+            r"\partial a_w/\partial x$."
+        ),
     )
     grady: float = pydantic.Field(
         default=0.0,
-        description=r"""
-        Relative transverse gradient of undulator field in $y$ $\equiv (1/a_w)
-        \partial a_w/\partial y$.
-        """.strip(),
+        description=(
+            r"Relative transverse gradient of undulator field in $y$ $\equiv (1/a_w) "
+            r"\partial a_w/\partial y$."
+        ),
     )
     label: str = ""
 
@@ -129,7 +129,7 @@ class Drift(types.BeamlineElement):
     type: Literal["drift"] = "drift"
     L: float = pydantic.Field(
         default=0.0,
-        description=r"Length of the drift in meter.",
+        description="Length of the drift in meter.",
         validation_alias=pydantic.AliasChoices("L", "l"),
         serialization_alias="l",
     )
@@ -157,23 +157,23 @@ class Quadrupole(types.BeamlineElement):
     type: Literal["quadrupole"] = "quadrupole"
     L: float = pydantic.Field(
         default=0.0,
-        description=r"Length of the quadrupole in meter.",
+        description="Length of the quadrupole in meter.",
         validation_alias=pydantic.AliasChoices("L", "l"),
         serialization_alias="l",
     )
     k1: float = pydantic.Field(
         default=0.0,
-        description=r"Normalized focusing strength in 1/m^2.",
+        description="Normalized focusing strength in 1/m^2.",
     )
     x_offset: float = pydantic.Field(
         default=0.0,
-        description=r"Offset in $x$ in meter.",
+        description="Offset in $x$ in meter.",
         validation_alias=pydantic.AliasChoices("x_offset", "dx"),
         serialization_alias="dx",
     )
     y_offset: float = pydantic.Field(
         default=0.0,
-        description=r"Offset in $y$ in meter.",
+        description="Offset in $y$ in meter.",
         validation_alias=pydantic.AliasChoices("y_offset", "dy"),
         serialization_alias="dy",
     )
@@ -199,7 +199,7 @@ class Corrector(types.BeamlineElement):
     type: Literal["corrector"] = "corrector"
     L: float = pydantic.Field(
         default=0.0,
-        description=r"Length of the corrector in meter.",
+        description="Length of the corrector in meter.",
         validation_alias=pydantic.AliasChoices("L", "l"),
         serialization_alias="l",
     )
@@ -243,36 +243,36 @@ class Chicane(types.BeamlineElement):
     type: Literal["chicane"] = "chicane"
     L: float = pydantic.Field(
         default=0.0,
-        description=r"""
-        Length of the chicane, which consists out of 4 dipoles without focusing.
-        The first and last are placed at the beginning and end of the reserved
-        space. The inner ones are defined by the drift length in between. Any
-        remaining distance, namely the length subtracted by 4 times the dipole
-        length and twice the drift length are placed between the second and third
-        dipole.
-        """.strip(),
+        description=(
+            "Length of the chicane, which consists out of 4 dipoles without focusing. "
+            "The first and last are placed at the beginning and end of the reserved "
+            "space. The inner ones are defined by the drift length in between. Any "
+            "remaining distance, namely the length subtracted by 4 times the dipole "
+            "length and twice the drift length are placed between the second and third "
+            "dipole."
+        ),
         validation_alias=pydantic.AliasChoices("L", "l"),
         serialization_alias="l",
     )
     lb: float = pydantic.Field(
         default=0.0,
-        description=r"Length of an individual dipole in meter.",
+        description="Length of an individual dipole in meter.",
     )
     ld: float = pydantic.Field(
         default=0.0,
-        description=r"""
-        Drift between the outer and inner dipoles, projected onto the undulator
-        axis. The actual path length is longer by the factor $1/\cos\theta$, where
-        $\theta$ is the bending angle of an individual dipole.
-        """.strip(),
+        description=(
+            "Drift between the outer and inner dipoles, projected onto the undulator "
+            r"axis. The actual path length is longer by the factor $1/\cos\theta$, where "
+            r"$\theta$ is the bending angle of an individual dipole."
+        ),
     )
     delay: float = pydantic.Field(
         default=0.0,
-        description=r"""
-        Path length difference between the straight path and the actual trajectory
-        in meters. Genesis 1.3 calculates the bending angle internally starting
-        from this value. $R_{56} = 2$`delay`.
-        """.strip(),
+        description=(
+            "Path length difference between the straight path and the actual trajectory "
+            "in meters. Genesis 1.3 calculates the bending angle internally starting "
+            "from this value. $R_{56} = 2$`delay`."
+        ),
     )
     label: str = ""
 
@@ -296,17 +296,17 @@ class PhaseShifter(types.BeamlineElement):
     type: Literal["phaseshifter"] = "phaseshifter"
     L: float = pydantic.Field(
         default=0.0,
-        description=r"Length of the phase shifter in meter.",
+        description="Length of the phase shifter in meter.",
         validation_alias=pydantic.AliasChoices("L", "l"),
         serialization_alias="l",
     )
     phi: float = pydantic.Field(
         default=0.0,
-        description=r"""
-        Change in the ponderomotive phase of the electrons in units of rad. Note
-        that Genesis 1.3 is doing an autophasing, so that the electrons at
-        reference energy are not changing in ponderomotive phase in drifts.
-        """.strip(),
+        description=(
+            "Change in the ponderomotive phase of the electrons in units of rad. Note "
+            "that Genesis 1.3 is doing an autophasing, so that the electrons at "
+            "reference energy are not changing in ponderomotive phase in drifts."
+        ),
     )
     label: str = ""
 
@@ -336,29 +336,29 @@ class Marker(types.BeamlineElement):
     type: Literal["marker"] = "marker"
     dumpfield: int = pydantic.Field(
         default=0,
-        description=r"""
-        A non-zero value enforces the dump of the field distribution of this zero
-        length element.
-        """.strip(),
+        description=(
+            "A non-zero value enforces the dump of the field distribution of this zero "
+            "length element."
+        ),
     )
     dumpbeam: int = pydantic.Field(
         default=0,
-        description=r"A non-zero value enforces the dump of the particle distribution.",
+        description="A non-zero value enforces the dump of the particle distribution.",
     )
     sort: int = pydantic.Field(
         default=0,
-        description=r"""
-        A non-zero value enforces the sorting of particles, if one-for-one
-        simulations are enabled.
-        """.strip(),
+        description=(
+            "A non-zero value enforces the sorting of particles, if one-for-one "
+            "simulations are enabled."
+        ),
     )
     stop: int = pydantic.Field(
         default=0,
-        description=r"""
-        A non-zero value stops the execution of the tracking module. Note that the
-        output file still contains the full length with zeros as output for those
-        integration steps which are no further calculated.
-        """.strip(),
+        description=(
+            "A non-zero value stops the execution of the tracking module. Note that the "
+            "output file still contains the full length with zeros as output for those "
+            "integration steps which are no further calculated."
+        ),
     )
     label: str = ""
 

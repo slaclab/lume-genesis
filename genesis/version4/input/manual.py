@@ -281,9 +281,16 @@ def make_dataclasses_from_manual(
             f"to identify the correct page. Saw: {manual['elements']}"
         )
 
+    def maybe_raw_string(value: str) -> str:
+        if "\\" in value:
+            return "r"
+        return ""
+
     env = jinja2.Environment()
     env.filters["repr"] = _custom_repr
     env.filters["to_class_name"] = functools.partial(_to_class_name, base_class)
+    env.filters["maybe_raw_string"] = maybe_raw_string
+    env.filters["splitlines"] = str.splitlines
     tpl = env.from_string(template)
 
     return tpl.render(
