@@ -550,6 +550,25 @@ class Genesis4(CommandWrapper):
             smear=smear,
         )
 
+    def load_raw_h5_output(self) -> h5py.File:
+        """
+        Load the unprocessed Genesis 4 HDF5 file from the last run.
+
+        Returns
+        -------
+        h5py.File
+        """
+        if self.path is None:
+            raise ValueError(
+                "Cannot load the output if path is not set. "
+                "Did you forget to run `.configure()`?"
+            )
+        filename = Genesis4Output.get_output_filename(
+            self.input,
+            workdir=pathlib.Path(self.path),
+        )
+        return h5py.File(filename)
+
     @override
     def plot(
         self,

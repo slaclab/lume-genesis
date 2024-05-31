@@ -166,6 +166,19 @@ def test_ensure_units(
     assert units is not None
 
 
+def test_load_raw_output_smoke(
+    genesis4: Genesis4,
+    output: Genesis4Output,
+) -> None:
+    h5 = genesis4.load_raw_h5_output()
+    try:
+        summary = output.to_hdf_summary()
+        for key in summary:
+            h5[key]
+    finally:
+        h5.close()
+
+
 def test_hdf_summary_smoke(
     output: Genesis4Output,
 ) -> None:

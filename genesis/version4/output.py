@@ -761,17 +761,17 @@ class OutputMetaDumps(_OutputBase):
 
     filenames: Dict[str, str] = pydantic.Field(default_factory=dict)
     intstep: NDArray = pydantic.Field(default_factory=_empty_ndarray)
-    ndumps: int = 0
+    ndumps: int = pydantic.Field(default=0, description="Number of dumps")
 
 
 class OutputMetaVersion(_OutputBase):
     """Version information from Genesis 4 output. (HDF5 ``/Meta/Version``)"""
 
-    beta: float = 0.0
-    build_info: str = ""
-    major: float = 0.0
-    minor: float = 0.0
-    revision: float = 0.0
+    beta: bool = pydantic.Field(default=False, description="Beta version flag")
+    build_info: str = pydantic.Field(default="", description="Build information string")
+    major: float = pydantic.Field(default=0.0, description="Major version number")
+    minor: float = pydantic.Field(default=0.0, description="Minor version number")
+    revision: float = pydantic.Field(default=0.0, description="Revision numbr")
 
 
 class OutputMeta(_OutputBase):
@@ -779,14 +779,23 @@ class OutputMeta(_OutputBase):
 
     beamdumps: OutputMetaDumps = pydantic.Field(default_factory=OutputMetaDumps)
     fielddumps: OutputMetaDumps = pydantic.Field(default_factory=OutputMetaDumps)
-    host: str = ""
-    input_file: str = ""
-    lattice_file: str = ""
-    time_stamp: str = ""
-    user: str = ""
+    host: str = pydantic.Field(
+        default="",
+        description="Hostname where simulation was run",
+    )
+    input_file: str = pydantic.Field(default="", description="Input filename")
+    lattice_file: str = pydantic.Field(default="", description="Lattice filename")
+    time_stamp: str = pydantic.Field(
+        default="",
+        description="Timestamp when data was written",
+    )
+    user: str = pydantic.Field(default="", description="User who ran the simulation")
     version: OutputMetaVersion = pydantic.Field(default_factory=OutputMetaVersion)
-    cwd: str = ""
-    mpisize: float = 0.0
+    cwd: str = pydantic.Field(
+        default="",
+        description="Working directory for the simulation",
+    )
+    mpisize: float = pydantic.Field(default=0.0, description="Number of MPI processes")
 
 
 class OutputGlobal(_OutputBase):
@@ -798,7 +807,7 @@ class OutputGlobal(_OutputBase):
     )
     gamma0: float = pydantic.Field(
         default=0.0,
-        description="Reference energy in unites of the electron rest mass.",
+        description="Reference energy in units of the electron rest mass",
     )
     lambdaref: float = pydantic.Field(
         default=0.0,
@@ -919,7 +928,10 @@ class OutputField(_OutputBase):
         default_factory=_empty_ndarray,
         description="Field intensity in the near field [arb units]",
     )
-    ngrid: int = 0
+    ngrid: int = pydantic.Field(
+        default=0,
+        description="Number of grid points per dimension",
+    )
     phase_farfield: NDArray = pydantic.Field(
         default_factory=_empty_ndarray, description="Far field phase [rad]"
     )
@@ -1066,17 +1078,30 @@ def _hdf_summary(
         else:
             units = obj.units.get(attr, None)
 
+        desc = fld.description or ""
+
+        path_to_remove = f"({full_key})"
+        desc = desc.replace(path_to_remove, "")
+
+        units_to_remove = f"[{str(units)}]"
+        desc = desc.replace(units_to_remove, "")
+        if units_to_remove == "[m_ec^2]":
+            desc = desc.replace("[mc^2]", "")
+            units = "mc^2"
+
         res[full_key] = {
             "python_attr": full_attr,
             "hdf_key": full_key,
             "units": units,
-            "description": fld.description or "",
+            "description": desc.strip(),
         }
 
         value = getattr(obj, attr)
         if isinstance(value, _OutputBase):
             for sub_key, info in _hdf_summary(
-                value, base_attr=full_attr, base_key=full_key
+                value,
+                base_attr=full_attr,
+                base_key=full_key,
             ).items():
                 res[sub_key] = info
     return res
@@ -1109,11 +1134,11 @@ class Genesis4Output(Mapping, BaseModel, arbitrary_types_allowed=True):
     )
     lattice: OutputLattice = pydantic.Field(
         default_factory=OutputLattice,
-        description="Genesis 4 output metadata (/Lattice)",
+        description="Genesis 4 output lattice information (/Lattice)",
     )
     global_: OutputGlobal = pydantic.Field(
         default_factory=OutputGlobal,
-        description="Genesis 4 output metadata (/Global)",
+        description="Genesis 4 output global information (/Global)",
     )
     meta: OutputMeta = pydantic.Field(
         default_factory=OutputMeta,
@@ -1339,6 +1364,7 @@ class Genesis4Output(Mapping, BaseModel, arbitrary_types_allowed=True):
             global_=global_,
             version=version,
             extra=extra,
+            meta=meta,
             alias={},
             field_files={field.key: field for field in fields},
             particle_files={particle.key: particle for particle in particles},
