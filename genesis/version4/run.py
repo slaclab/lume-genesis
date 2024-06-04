@@ -441,27 +441,37 @@ class Genesis4(CommandWrapper):
 
         return runscript
 
-    def write_run_script(self) -> pathlib.Path:
+    def write_run_script(self, path: Optional[AnyPath] = None) -> pathlib.Path:
         """
         Write the 'run' script which can be used in a terminal to launch Genesis.
 
         This is also performed automatically in `write_input` and
         `get_run_script`.
 
+        Parameters
+        -------
+        path : pathlib.Path or str
+            Where to write the run script.  Defaults to `{self.path}/run`.
+
         Returns
         -------
         pathlib.Path
             The run script location.
         """
-        if self.path is None:
-            raise ValueError("path (base_path) not yet set")
+        path = path or self.path
+        if path is None:
+            raise ValueError("path (base_path) not yet set and no path specified")
 
-        run_script = pathlib.Path(self.path) / "run"
+        path = pathlib.Path(path)
+        if path.is_dir():
+            path = path / "run"
+
         self.input.write_run_script(
-            run_script,
+            path,
             command_prefix=self.get_run_prefix(),
         )
-        return run_script
+        logger.debug("Wrote run script to %s", path)
+        return path
 
     @override
     def write_input(
@@ -486,7 +496,7 @@ class Genesis4(CommandWrapper):
         path = pathlib.Path(path)
         self.input.write(workdir=path)
         if write_run_script:
-            self.write_run_script()
+            self.write_run_script(path)
 
     def _archive(self, h5: h5py.Group):
         self.input.archive(h5.create_group("input"))
