@@ -12,6 +12,7 @@ from typing import Any, ClassVar, Dict, Optional, Sequence, Tuple, Union
 
 import h5py
 import psutil
+from pmd_beamphysics import ParticleGroup
 from lume import tools as lume_tools
 from lume.base import CommandWrapper
 from pmd_beamphysics.units import pmd_unit
@@ -19,7 +20,7 @@ from typing_extensions import override
 
 from .. import tools
 from . import parsers
-from .input import Genesis4Input, Lattice, MainInput
+from .input import Genesis4Input, InitialParticles, Lattice, MainInput
 from .output import Genesis4Output, RunInfo
 from .types import AnyPath
 
@@ -490,6 +491,16 @@ class Genesis4(CommandWrapper):
             self.output = Genesis4Output.from_archive(h5["output"])
         else:
             self.output = None
+
+    @property
+    @override
+    def initial_particles(self) -> InitialParticles:
+        """Initial particles, if defined.  Property is alias for `.input.main.initial_particles`."""
+        return self.input.main.initial_particles
+
+    @initial_particles.setter
+    def initial_particles(self, value: Union[ParticleGroup, InitialParticles]) -> None:
+        self.input.main.initial_particles = value
 
     @override
     def load_archive(self, arch: Union[AnyPath, h5py.Group]) -> None:
