@@ -414,7 +414,7 @@ class Genesis4(CommandWrapper):
         return exe
 
     @override
-    def get_run_script(self) -> str:
+    def get_run_script(self, write_to_path: bool = True) -> str:
         """
         Assembles the run script using self.mpi_run string of the form:
             'mpirun -n {n} {command_mpi}'
@@ -428,12 +428,20 @@ class Genesis4(CommandWrapper):
         if self.path is None:
             raise ValueError("path (base_path) not yet set")
 
-        runscript = [
-            *shlex.split(self.get_run_prefix()),
-            *self.input.arguments,
-        ]
+        runscript = shlex.join(
+            [
+                *shlex.split(self.get_run_prefix()),
+                *self.input.arguments,
+            ]
+        )
 
-        return shlex.join(runscript)
+        if write_to_path:
+            self.input.write_run_script(
+                pathlib.Path(self.path) / "run",
+                command_prefix=self.get_run_prefix(),
+            )
+
+        return runscript
 
     @override
     def write_input(self, path: Optional[AnyPath] = None):
@@ -453,7 +461,6 @@ class Genesis4(CommandWrapper):
 
         path = pathlib.Path(path)
         self.input.write(workdir=path)
-        self.input.write_run_script(path / "run", command_prefix=self.get_run_prefix())
 
     def _archive(self, h5: h5py.Group):
         self.input.archive(h5.create_group("input"))
