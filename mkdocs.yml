@@ -18,6 +18,7 @@ nav:
           - examples/genesis4/intro-2-MainInput.ipynb
           - examples/genesis4/intro-3-Lattice.ipynb
           - examples/genesis4/intro-4-Running.ipynb
+          - examples/genesis4/intro-5-Migrating.ipynb
       - Sven's examples:
           - examples/genesis4/Example1.ipynb
           - examples/genesis4/Example2.ipynb

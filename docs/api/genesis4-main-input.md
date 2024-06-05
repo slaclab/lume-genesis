@@ -1,4 +1,4 @@
-# Main Input
+# Genesis 4 Main Input
 
 ::: genesis.version4.MainInput
 
@@ -20,7 +20,6 @@
 ::: genesis.version4.ImportDistribution
 ::: genesis.version4.ImportField
 ::: genesis.version4.ImportTransformation
-::: genesis.version4.InitialParticles
 ::: genesis.version4.LatticeNamelist
 ::: genesis.version4.ProfileArray
 ::: genesis.version4.ProfileConst
