@@ -4,7 +4,6 @@ import time
 from typing import Union
 
 import h5py
-import numpy as np
 import pytest
 from pydantic import BaseModel
 
@@ -21,7 +20,6 @@ from ...version4 import (
     ImportDistribution,
     ImportField,
     ImportTransformation,
-    InitialParticles,
     Lattice,
     Line,
     Marker,
@@ -96,27 +94,6 @@ def hdf5_filename(
         pytest.param(
             ProfileArray(label="label", xdata=[0.0], ydata=[0.0]), id="ProfileArray"
         ),
-        pytest.param(
-            InitialParticles(
-                data={
-                    "x": np.asarray([0.0]),
-                    "y": np.asarray([0.0]),
-                    "z": np.asarray([0.0]),
-                    "px": np.asarray([0.0]),
-                    "py": np.asarray([0.0]),
-                    "pz": np.asarray([0.0]),
-                    "t": np.asarray([0.0]),
-                    "status": np.asarray([0.0]),
-                    "weight": np.asarray([0.0]),
-                    "species": "species",
-                }
-            ),
-            id="InitialParticles-data",
-        ),
-        # pytest.param(
-        #     InitialParticles(filename=pathlib.Path("test.h5")),
-        #     id="InitialParticles-file",
-        # ),
     ],
 )
 def test_round_trip_json(

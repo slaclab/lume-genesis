@@ -756,7 +756,6 @@ def test_genesis4_particles(_shorten_zstop, tmp_path: pathlib.Path):
     from genesis.version4.input import (
         Beam,
         Drift,
-        Genesis4Input,
         Lattice,
         Line,
         MainInput,
@@ -868,11 +867,6 @@ def test_genesis4_particles(_shorten_zstop, tmp_path: pathlib.Path):
     P1r.pz[0 : len(P1) // 2] *= 1.1
     P1r.plot("t", "energy")
 
-    DIST_FILE = tmp_path / "genesis4_distribution.h5"
-    P1r.write_genesis4_distribution(str(DIST_FILE), verbose=True)
-    from genesis.version4.input import InitialParticles
-
-    initial_particles = InitialParticles(particles=P1r)
     main = MainInput(
         namelists=[
             Setup(
@@ -885,17 +879,14 @@ def test_genesis4_particles(_shorten_zstop, tmp_path: pathlib.Path):
                 seed=123456,
                 npart=512,
             ),
-            Time(slen=initial_particles.slen),
-            initial_particles,
+            Time(),
             Track(zstop=1),
             Write(beam="end"),
         ],
     )
-    input = Genesis4Input(
-        main=main,
-        lattice=lattice,
-    )
-    G1 = Genesis4(input=input, verbose=True)
+    G1 = Genesis4(main, lattice, verbose=True, initial_particles=P1r)
+    assert G1.input.main.import_distribution.file
+
     output = G1.run()
     pprint.pprint(output.run)
     print(output.run.output_log)
@@ -908,3 +899,8 @@ def test_genesis4_particles(_shorten_zstop, tmp_path: pathlib.Path):
     P2.plot("weight", bins=100)
     list(output.beam)
     G1.input
+
+    G1.archive(tmp_path / "archive.h5")
+    loaded = Genesis4.from_archive(tmp_path / "archive.h5")
+    assert loaded.initial_particles is not None
+    assert np.isclose(loaded.initial_particles.charge, P1r.charge)

@@ -42,7 +42,6 @@ from .core import (
     AnyNameList,
     DuplicatedLineItem,
     Genesis4Input,
-    InitialParticles,
     Lattice,
     Line,
     LineItem,
@@ -70,7 +69,6 @@ __all__ = [
     "Undulator",
     # Main:
     "Genesis4Input",
-    "InitialParticles",
     "MainInput",
     "Setup",
     "AlterField",

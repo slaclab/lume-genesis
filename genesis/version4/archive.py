@@ -8,6 +8,7 @@ from typing import Any, Dict, Optional, Tuple, Union
 import h5py
 import numpy as np
 import pydantic
+from pmd_beamphysics import ParticleGroup
 from pmd_beamphysics.units import pmd_unit
 
 from .. import tools
@@ -76,6 +77,17 @@ def _hdf5_dictify(data, encoding: str):
     if isinstance(data, pmd_unit):
         adapter = pydantic.TypeAdapter(PydanticPmdUnit)
         return _hdf5_dictify(adapter.dump_python(data, mode="json"), encoding=encoding)
+    if isinstance(data, ParticleGroup):
+        print(
+            {
+                "__python_class_name__": "ParticleGroup",
+                **_hdf5_dictify({"data": data.data}, encoding=encoding),
+            }
+        )
+        return {
+            "__python_class_name__": "ParticleGroup",
+            **_hdf5_dictify({"data": data.data}, encoding=encoding),
+        }
 
     raise NotImplementedError(type(data))
 
@@ -223,6 +235,15 @@ def _hdf5_restore_dict(
     if python_class_name == "bytes":
         return item.attrs["value"]
 
+    if python_class_name == "ParticleGroup":
+        return ParticleGroup(
+            data=_hdf5_restore_dict(
+                item["data"],
+                encoding=encoding,
+                depth=depth + 1,
+            )
+        )
+
     if python_class_name in ("list", "tuple"):
         data = dict(item)
         data.update(item.attrs)
@@ -312,7 +333,7 @@ def restore_from_hdf5_file(
         else:
             workdir = pathlib.Path(".")
 
-    logger.debug(f"Dictifying data to restore from h5 group: {h5}")
+    logger.debug(f"Restoring h5 group as a dictionary: {h5}")
     data = _hdf5_restore_dict(h5, encoding=encoding)
     assert isinstance(data, dict)
     for key in _reserved_h5_attrs:

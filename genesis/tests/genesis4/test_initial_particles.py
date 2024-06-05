@@ -1,10 +1,9 @@
 from typing import Optional
 
 import numpy as np
-import pytest
 from pmd_beamphysics import ParticleGroup
 
-from ...version4 import MainInput
+from ...version4 import Genesis4Input, Lattice, MainInput
 
 
 def gaussian_data(
@@ -69,11 +68,24 @@ def gaussian_data(
 
 
 def test_set_particles(main_input: MainInput) -> None:
-    with pytest.raises(ValueError):
-        main_input.initial_particles
+    input = Genesis4Input(main=main_input, lattice=Lattice())
+    assert input.initial_particles is None
 
     main_input.time.slen = 0.0
     group = ParticleGroup(data=gaussian_data())
-    main_input.initial_particles = group
-    assert main_input.initial_particles.particles == group
-    assert main_input.time.slen != 0.0
+
+    input.initial_particles = group
+    input.initial_particles = group
+    assert input.initial_particles == group
+    assert input.main.time.slen != 0.0
+
+
+def test_archive_particles(main_input: MainInput) -> None:
+    input = Genesis4Input(main=main_input, lattice=Lattice())
+    assert input.initial_particles is None
+
+    group = ParticleGroup(data=gaussian_data())
+
+    input.initial_particles = group
+    assert input.initial_particles == group
+    assert input.main.time.slen != 0.0

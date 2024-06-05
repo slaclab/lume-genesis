@@ -7,6 +7,7 @@ from typing import Any, Dict, Iterable, Optional, Sequence, Tuple, Type, Union
 import numpy as np
 import pydantic
 import pydantic_core
+from pmd_beamphysics import ParticleGroup
 from pmd_beamphysics.units import pmd_unit
 
 from .. import tools
@@ -156,6 +157,40 @@ class BaseModel(pydantic.BaseModel, extra="forbid", validate_assignment=True):
         return [
             attr for attr in full if not attr.startswith("_") and attr not in base_model
         ]
+
+
+class _PydanticParticleGroup(pydantic.BaseModel):
+    data: ParticleData
+
+    @staticmethod
+    def _from_dict(data: ParticleData) -> ParticleGroup:
+        return ParticleGroup(data=data)
+
+    def _as_dict(self) -> ParticleData:
+        return self.data
+
+    @classmethod
+    def __get_pydantic_core_schema__(
+        cls,
+        source: Type[Any],
+        handler: pydantic.GetCoreSchemaHandler,
+    ) -> pydantic_core.core_schema.CoreSchema:
+        return pydantic_core.core_schema.no_info_plain_validator_function(
+            cls._pydantic_validate,
+            serialization=pydantic_core.core_schema.plain_serializer_function_ser_schema(
+                cls._as_dict, when_used="json-unless-none"
+            ),
+        )
+
+    @classmethod
+    def _pydantic_validate(
+        cls, value: Union[ParticleData, ParticleGroup]
+    ) -> ParticleGroup:
+        if isinstance(value, ParticleGroup):
+            return value
+        if isinstance(value, dict):
+            return cls._from_dict(value)
+        raise ValueError(f"No conversion from {value!r} to ParticleGroup")  # type: ignore[unreachable]
 
 
 class _PydanticPmdUnit(BaseModel):
@@ -355,6 +390,7 @@ class BeamlineElement(BaseModel, abc.ABC):
 AnyPath = Union[pathlib.Path, str]
 ValueType = Union[int, float, bool, str, Reference]
 PydanticPmdUnit = Annotated[pmd_unit, _PydanticPmdUnit]
+PydanticParticleGroup = Annotated[ParticleGroup, _PydanticParticleGroup]
 NDArray = Annotated[np.ndarray, _PydanticNDArray]
 
 

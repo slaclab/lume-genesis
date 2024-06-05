@@ -15,7 +15,6 @@ from .input import (
     ImportDistribution,
     ImportField,
     ImportTransformation,
-    InitialParticles,
     Lattice,
     LatticeNamelist,
     Line,
@@ -76,7 +75,6 @@ __all__ = [
     "Undulator",
     # Main:
     "Genesis4Input",
-    "InitialParticles",
     "MainInput",
     "Setup",
     "AlterField",

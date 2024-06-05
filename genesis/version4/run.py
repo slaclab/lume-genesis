@@ -20,7 +20,7 @@ from typing_extensions import override
 
 from .. import tools
 from . import parsers
-from .input import Genesis4Input, InitialParticles, Lattice, MainInput
+from .input import Genesis4Input, Lattice, MainInput
 from .output import Genesis4Output, RunInfo
 from .types import AnyPath
 
@@ -163,6 +163,9 @@ class Genesis4(CommandWrapper):
         Whether or not to produce verbose output.
     timeout : float, default=None
         The timeout in seconds to be used when running Genesis.
+    initial_particles : ParticleGroup, optional
+        Initial particles to use in the simulation, using the
+        OpenPMD-beamphysics standard.
     """
 
     COMMAND: ClassVar[str] = "genesis4"
@@ -194,6 +197,7 @@ class Genesis4(CommandWrapper):
         use_temp_dir: bool = True,
         verbose: bool = tools.global_display_options.verbose >= 1,
         timeout: Optional[float] = None,
+        initial_particles: Optional[ParticleGroup] = None,
         **kwargs: Any,
     ):
         super().__init__(
@@ -209,7 +213,11 @@ class Genesis4(CommandWrapper):
         )
 
         if input is None:
-            input = Genesis4Input(main=MainInput(), lattice=Lattice())
+            input = Genesis4Input(
+                main=MainInput(),
+                lattice=Lattice(),
+                initial_particles=initial_particles,
+            )
         elif isinstance(input, MainInput):
             input = Genesis4Input.from_main_input(
                 main=input,
@@ -223,6 +231,10 @@ class Genesis4(CommandWrapper):
                 lattice,
                 source_path=workdir,
             )
+
+        assert isinstance(input, Genesis4Input)
+        if input.initial_particles is not initial_particles:
+            input.initial_particles = initial_particles
 
         if workdir is None:
             workdir = pathlib.Path(".")
@@ -498,6 +510,16 @@ class Genesis4(CommandWrapper):
         if write_run_script:
             self.write_run_script(path)
 
+    @property
+    @override
+    def initial_particles(self) -> Optional[ParticleGroup]:
+        """Initial particles, if defined.  Property is alias for `.input.main.initial_particles`."""
+        return self.input.initial_particles
+
+    @initial_particles.setter
+    def initial_particles(self, value: Optional[ParticleGroup]) -> None:
+        self.input.initial_particles = value
+
     def _archive(self, h5: h5py.Group):
         self.input.archive(h5.create_group("input"))
         if self.output is not None:
@@ -526,16 +548,6 @@ class Genesis4(CommandWrapper):
             self.output = Genesis4Output.from_archive(h5["output"])
         else:
             self.output = None
-
-    @property
-    @override
-    def initial_particles(self) -> InitialParticles:
-        """Initial particles, if defined.  Property is alias for `.input.main.initial_particles`."""
-        return self.input.main.initial_particles
-
-    @initial_particles.setter
-    def initial_particles(self, value: Union[ParticleGroup, InitialParticles]) -> None:
-        self.input.main.initial_particles = value
 
     @override
     def load_archive(self, arch: Union[AnyPath, h5py.Group]) -> None:

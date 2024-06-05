@@ -12,7 +12,6 @@ from ...version4 import Genesis4, Genesis4Input, Lattice, MainInput, Reference
 from ...version4.input import (
     Beam,
     Drift,
-    InitialParticles,
     Line,
     ProfileArray,
     ProfileGauss,
@@ -175,11 +174,6 @@ def test_profile_array(
     P1r.write_genesis4_distribution(str(dist_file), verbose=True)
 
     # Use this file as the input to a new simulation.
-    #
-    # When using the lume-genesis-specific `InitialParticles` namelist, the
-    # appropriate input will be written automatically. Be sure to add it before
-    # the first "Track" or "Write" namelist in the main input.
-    initial_particles = InitialParticles(particles=P1r)
 
     main = MainInput(
         namelists=[
@@ -193,8 +187,7 @@ def test_profile_array(
                 seed=123456,
                 npart=512,
             ),
-            Time(slen=initial_particles.slen),
-            initial_particles,
+            Time(),
             Track(zstop=1),
             Write(beam="end"),
         ],
@@ -204,7 +197,15 @@ def test_profile_array(
         main=main,
         lattice=lattice,
     )
-    G1 = Genesis4(input=input, verbose=True, workdir=tmp_path, use_temp_dir=False)
+    G1 = Genesis4(
+        input=input,
+        verbose=True,
+        workdir=tmp_path,
+        use_temp_dir=False,
+        initial_particles=P1r,
+    )
+
+    assert G1.input.main.import_distribution is not None
     output = G1.run(raise_on_error=True)
     print(output.run.output_log)
 
@@ -230,8 +231,10 @@ def test_profile_array(
     t2 = time.monotonic()
     print("Took", t1 - t0, "s to archive")
     print("Took", t2 - t1, "s to restore")
-    for key, value in loaded_g1.input.main.initial_particles.data.items():
+
+    assert loaded_g1.input.initial_particles is not None
+    for key, value in loaded_g1.input.initial_particles.data.items():
         if isinstance(value, np.ndarray):
-            np.testing.assert_allclose(value, initial_particles.data[key])
+            np.testing.assert_allclose(value, P1r.data[key])
         else:
-            assert value == initial_particles.data[key]
+            assert value == P1r.data[key]

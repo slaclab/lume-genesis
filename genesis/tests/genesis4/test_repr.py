@@ -1,7 +1,6 @@
 import textwrap
 from typing import Generator, Union
 
-import numpy as np
 import pytest
 
 from ... import tools
@@ -18,7 +17,6 @@ from ...version4.input import (
     ImportDistribution,
     ImportField,
     ImportTransformation,
-    InitialParticles,
     Lattice,
     Line,
     Marker,
@@ -112,28 +110,10 @@ def display_options(
         pytest.param(Track(), id="Track"),
         pytest.param(Wake(), id="Wake"),
         pytest.param(Write(), id="Write"),
-        # pytest.param(InitialParticles(filename='...'), id="InitialParticles-File"),
         pytest.param(Lattice(), id="Lattice"),
         pytest.param(Line(), id="Line"),
         pytest.param(
             ProfileArray(label="label", xdata=[0], ydata=[0]), id="ProfileArray"
-        ),
-        pytest.param(
-            InitialParticles(
-                data={
-                    "x": np.asarray([0.0]),
-                    "y": np.asarray([0.0]),
-                    "z": np.asarray([0.0]),
-                    "px": np.asarray([0.0]),
-                    "py": np.asarray([0.0]),
-                    "pz": np.asarray([0.0]),
-                    "t": np.asarray([0.0]),
-                    "status": np.asarray([0.0]),
-                    "weight": np.asarray([0.0]),
-                    "species": "species",
-                }
-            ),
-            id="InitialParticles-data",
         ),
     ],
 )

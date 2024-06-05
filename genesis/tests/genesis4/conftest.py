@@ -19,7 +19,6 @@ from ...version4.input import (
     Corrector,
     Drift,
     Field,
-    InitialParticles,
     Lattice,
     Line,
     MainInput,
@@ -410,23 +409,8 @@ def get_namelists() -> Sequence[AnyNameList]:
         auto_main.Track(),
         auto_main.Wake(),
         auto_main.Write(),
-        # InitialParticles(filename='...'),
         auto_main.LatticeNamelist(),
         ProfileArray(label="label", xdata=[0.0], ydata=[0.0]),
-        InitialParticles(
-            data={
-                "x": np.asarray([0.0]),
-                "y": np.asarray([0.0]),
-                "z": np.asarray([0.0]),
-                "px": np.asarray([0.0]),
-                "py": np.asarray([0.0]),
-                "pz": np.asarray([0.0]),
-                "t": np.asarray([0.0]),
-                "status": np.asarray([0.0]),
-                "weight": np.asarray([0.0]),
-                "species": "species",
-            }
-        ),
     ]
 
 
