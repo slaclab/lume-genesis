@@ -481,7 +481,7 @@ def html_table_repr(
         annotation = html.escape(_clean_annotation(annotation))
         if display_options.include_description:
             description = html.escape(description or "")
-            description = f"<td>{description}</td>"
+            description = f'<td style="text-align: left;">{description}</td>'
         else:
             description = ""
 
@@ -498,7 +498,7 @@ def html_table_repr(
     return "\n".join(
         [
             copy_to_clipboard,
-            "<table>",
+            '<table style="table td:nth-child(3) { text-align: start; }">',
             " <tr>",
             f"  <th>{headers[0]}</th>",
             f"  <th>{headers[1]}</th>",
