@@ -499,6 +499,9 @@ class Genesis4(CommandWrapper):
         path : str, optional
             The directory to write the input parameters
         """
+        if not self.configured:
+            self.configure()
+
         if path is None:
             path = self.path
 
