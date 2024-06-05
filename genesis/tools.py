@@ -451,17 +451,6 @@ def html_table_repr(
 
     include_description = display_options.include_description and headers[-1]
 
-    # For the "copy to clipboard" functionality below:
-    ascii_table = str(
-        ascii_table_repr(
-            obj,
-            descriptions=descriptions,
-            annotations=annotations,
-            seen=list(seen),
-            headers=headers,
-        )
-    )
-
     seen.append(id(obj))
     rows = []
     fields, descriptions, annotations = _get_table_fields(
@@ -503,7 +492,7 @@ def html_table_repr(
             f"</tr>"
         )
 
-    copy_to_clipboard = _copy_to_clipboard_html(ascii_table)
+    copy_to_clipboard = _copy_to_clipboard_html(pretty_repr(obj))
     return "\n".join(
         [
             copy_to_clipboard,
