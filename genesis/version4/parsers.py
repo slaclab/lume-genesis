@@ -2,7 +2,7 @@ import keyword
 import os
 import re
 import warnings
-
+from typing import Union
 
 import h5py
 import numpy as np
@@ -98,21 +98,22 @@ def parse_genesis4_h5filegroup(filegroup, path=None):
     return file, dataset
 
 
-def try_pmd_unit(unit_str):
+def try_pmd_unit(unit_str: str) -> Union[pmd_unit, str, None]:
     """
     Form a pmd_unit from a unit string
     """
     s = unit_str.strip()
     if s == "":
         return None
-    elif s == "mc^2":
+
+    if s == "mc^2":
         s = "mec2"  # electrons here
+
     try:
-        u = unit(s)
+        return unit(s)
     except Exception:
         warnings.warn(f"unknown unit '{s}'")
-        u = None
-    return u
+        return None
 
 
 EXTRA_UNITS = {

@@ -25,7 +25,7 @@ import numpy as np
 import pydantic
 import pydantic.alias_generators
 from pmd_beamphysics import ParticleGroup
-from pmd_beamphysics.units import c_light, pmd_unit, unit
+from pmd_beamphysics.units import c_light, pmd_unit
 from typing_extensions import override
 
 from .. import tools
@@ -199,6 +199,16 @@ class _OutputBase(BaseModel):
     @classmethod
     def from_hdf5_data(cls, dct: Dict[str, OutputDataType], **kwargs: Any):
         dct = cls._fix_scalar_data(dct)
+        try:
+            units: Dict[str, PydanticPmdUnit] = dct["units"]
+        except KeyError:
+            pass
+        else:
+            for key, unit_ in list(units.items()):
+                if unit_ == parsers.known_unit["mec2"]:
+                    if isinstance(dct[key], (float, np.ndarray, int)):
+                        dct[key] = dct[key] * parsers.mec2
+                        units[key] = parsers.known_unit["eV"]
         return cls(**dct, **kwargs)
 
     @classmethod
@@ -517,7 +527,7 @@ class OutputBeamStat(_OutputBase):
         units = dict(beam.units)
         units["sigma_x"] = pmd_unit("m")
         units["sigma_y"] = pmd_unit("m")
-        units["sigma_energy"] = unit("mec2")
+        units["sigma_energy"] = pmd_unit("eV")
         return OutputBeamStat(
             units=units,
             sigma_x=cls.calculate_projected_sigma(
@@ -597,11 +607,18 @@ class OutputBeam(_OutputBase):
     )
     energy: NDArray = pydantic.Field(
         default_factory=_empty_ndarray,
-        description="Evaluated at each integration step. [mc^2]",
+        description=(
+            "Evaluated at each integration step. "
+            "Genesis4 mc^2 units are automatically converted to eV in LUME-Genesis."
+        ),
+        # Genesis 4 units: mc^2; LUME-Genesis units: eV
     )
     energyspread: NDArray = pydantic.Field(
         default_factory=_empty_ndarray,
-        description="Evaluated at each integration step. [mc^2]",
+        description=(
+            "Evaluated at each integration step. "
+            "Genesis4 mc^2 units are automatically converted to eV in LUME-Genesis."
+        ),
     )
 
     xsize: NDArray = pydantic.Field(
@@ -628,11 +645,17 @@ class OutputBeam(_OutputBase):
 
     emin: NDArray = pydantic.Field(
         default_factory=_empty_ndarray,
-        description="Particle energy minimum. [mc^2]",
+        description=(
+            "Particle energy minimum. "
+            "Genesis4 mc^2 units are automatically converted to eV in LUME-Genesis."
+        ),
     )
     emax: NDArray = pydantic.Field(
         default_factory=_empty_ndarray,
-        description="Particle energy maximum. [mc^2]",
+        description=(
+            "Particle energy maximum. "
+            "Genesis4 mc^2 units are automatically converted to eV in LUME-Genesis."
+        ),
     )
 
     pxmin: NDArray = pydantic.Field(
