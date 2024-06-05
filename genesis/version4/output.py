@@ -13,6 +13,7 @@ from typing import (
     NamedTuple,
     Optional,
     Sequence,
+    Tuple,
     Type,
     TypeVar,
     Union,
@@ -1025,6 +1026,8 @@ class _ArrayInfo(NamedTuple):
     array_attr: str
     units: Optional[PydanticPmdUnit]
     field: Union[pydantic.fields.FieldInfo, pydantic.fields.ComputedFieldInfo]
+    value: Optional[np.ndarray]
+    shape: Optional[Tuple[int, ...]]
 
 
 def get_key_from_filename(fn: str) -> FileKey:
@@ -1618,11 +1621,22 @@ class Genesis4Output(Mapping, BaseModel, arbitrary_types_allowed=True):
             field = parent.model_fields[array_attr]
         except KeyError:
             field = parent.model_computed_fields[array_attr]
+
+        try:
+            value = getattr(parent, array_attr)
+        except Exception:
+            value = None
+            shape = None
+        else:
+            shape = getattr(value, "shape", None)
+
         return _ArrayInfo(
             parent=parent,
             array_attr=array_attr,
             units=parent.units.get(array_attr, None),
             field=field,
+            value=value,
+            shape=shape,
         )
 
     def info(self):
@@ -1630,6 +1644,9 @@ class Genesis4Output(Mapping, BaseModel, arbitrary_types_allowed=True):
         Get information about available string keys for the output.
         """
         array_info = {key: self._get_array_info(key) for key in sorted(self.keys())}
+        shapes = {
+            key: str(array_info.shape or "") for key, array_info in array_info.items()
+        }
         annotations = {
             key: array_info.field.description for key, array_info in array_info.items()
         }
@@ -1637,9 +1654,10 @@ class Genesis4Output(Mapping, BaseModel, arbitrary_types_allowed=True):
             key: str(array_info.units or "") for key, array_info in array_info.items()
         }
         return tools.table_output(
-            table,
-            annotations=annotations,
-            headers=["Key", "Units", "Description", ""],
+            table,  # column 0 (key) and 1 (units)
+            annotations=shapes,  # column 2 (description) -> shape
+            descriptions=annotations,  # column 3 (type/annotation) -> description
+            headers=["Key", "Units", "Shape", "Description"],
         )
 
     def stat(self, key: str) -> np.ndarray:

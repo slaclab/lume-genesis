@@ -446,6 +446,8 @@ def html_table_repr(
     str
         HTML table representation.
     """
+    # TODO: generalize these tables; callers have a confusing mapping if they
+    # change the headers
     headers = headers or ["Attribute", "Value", "Type", "Description"]
     assert len(headers) == 4
 
