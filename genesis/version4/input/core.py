@@ -285,7 +285,9 @@ class Lattice(BaseModel):
         The filename from which this lattice was loaded.
     """
 
-    elements: Dict[str, AnyBeamlineElement] = pydantic.Field(default_factory=dict)
+    elements: Dict[str, AnyBeamlineElement] = pydantic.Field(
+        default_factory=dict,
+    )
     filename: Optional[pathlib.Path] = None
 
     def __init__(

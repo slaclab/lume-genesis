@@ -653,6 +653,14 @@ def read_if_path(
         return path.absolute(), fp.read()
 
 
+# TODO: some metadata on a per-field basis instead?
+_attr_sort_disable = {
+    # Don't sort elements by name; the user probably wants them in
+    # the order they've listed.
+    "elements",
+}
+
+
 def pretty_repr(
     obj,
     skip_defaults: bool = True,
@@ -742,11 +750,17 @@ def pretty_repr(
                 continue
 
         if isinstance(value, (pydantic.BaseModel, dict, list, tuple, pathlib.Path)):
+            if attr in _attr_sort_disable:
+                sort_keys_for_value = False
+            else:
+                sort_keys_for_value = sort_keys
+
             field_repr = pretty_repr(
                 value,
                 skip_defaults=skip_defaults,
                 newline_threshold=newline_threshold - indent,
                 seen=seen,
+                sort_keys=sort_keys_for_value,
             )
         elif isinstance(value, np.ndarray):
             field_repr = repr(value)
