@@ -10,7 +10,7 @@ import numpy as np
 from lume.parsers.namelist import namelist_lines
 from scipy.constants import Planck, elementary_charge, speed_of_light
 
-from genesis.writers import dim_m, pmd_init
+from ..writers import dim_m, pmd_init
 
 # ------------------
 # openPMD-wavefront

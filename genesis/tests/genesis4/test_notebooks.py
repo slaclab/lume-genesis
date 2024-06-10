@@ -21,15 +21,11 @@ import numpy as np
 import pytest
 from pmd_beamphysics import ParticleGroup
 
-from genesis.version4.input import Lattice, MainInput, Track, Write
-from genesis.version4.output import FieldFile
-
 from ... import version4 as g4
-from ...version4 import Genesis4
+from ...version4 import Genesis4, Lattice, MainInput, Track, Write
+from ...version4.output import FieldFile
 from ...version4.types import Reference
-from ..conftest import genesis4_examples
-
-example_data = genesis4_examples / "data"
+from ..conftest import genesis4_examples, genesis4_example1_path, genesis4_example2_path
 
 
 @pytest.fixture(scope="function")
@@ -63,8 +59,7 @@ def _shorten_zstop(
 
 
 def test_example1(_shorten_zstop) -> None:
-    workdir = example_data / "example1-steadystate"
-    G = Genesis4(workdir / "Example1.in")
+    G = Genesis4(genesis4_example1_path / "Example1.in")
     G.verbose = True
     output = G.run(raise_on_error=True)
     G.plot(["beam_xsize", "beam_ysize", "field_xsize", "field_ysize"])
@@ -119,7 +114,7 @@ def test_example1(_shorten_zstop) -> None:
 
 
 def test_example2() -> None:
-    G = Genesis4(example_data / "example2-dumps" / "Example2.in")
+    G = Genesis4(genesis4_example2_path / "Example2.in")
     output = G.run(raise_on_error=True)
     G.plot(["beam_xsize", "beam_ysize", "field_xsize", "field_ysize"])
 
@@ -341,8 +336,6 @@ def test_fodo_scan_model(_shorten_zstop, tmp_path: pathlib.Path) -> None:
 
     import matplotlib.pyplot as plt
     import numpy as np
-
-    from genesis.version4 import Genesis4, MainInput
 
     def make_fodo(
         Lcell=9.5,
@@ -753,7 +746,7 @@ def test_genesis4_particles(_shorten_zstop, tmp_path: pathlib.Path):
     import numpy as np
     from scipy.constants import c
 
-    from genesis.version4.input import (
+    from ...version4 import (
         Beam,
         Drift,
         Lattice,
