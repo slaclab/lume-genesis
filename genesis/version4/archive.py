@@ -112,12 +112,13 @@ def _hdf5_make_key_map(data) -> Tuple[Dict[str, str], Dict[str, str]]:
             key_to_h5_key[key] = str(key)
             h5_key_to_key[str(key)] = key
             continue
-        elif not key.isascii() or "/" in key:
-            prefix = "".join(ch for ch in key if ch.isascii() and ch not in "/")
-        else:
+        elif key.isascii() and "/" not in key:
             # No mapping required
+            h5_key_to_key[key] = key
+            key_to_h5_key[key] = key
             continue
 
+        prefix = "".join(ch for ch in key if ch.isascii() and ch not in "/")
         newkey = key_format.format(prefix=prefix, idx=idx)
         while newkey in h5_key_to_key or newkey in data:
             newkey += "_"
@@ -270,36 +271,31 @@ def _hdf5_restore_dict(
             raise NotImplementedError(python_class_name)
 
     logger.debug(f"{depth * ' '}| Restoring dictionary group with keys:")
-    res = {}
+    res_by_hdf5_key = {}
 
-    key_map_json = item.attrs.get("__python_key_map__", None)
-    key_map = json.loads(key_map_json) if key_map_json else {}
+    for key, group in item.items():
+        logger.debug(f"{depth * ' '}|- {key}")
+        res_by_hdf5_key[key] = _hdf5_restore_dict(
+            group, encoding=encoding, depth=depth + 1
+        )
 
-    for h5_key, group in item.items():
-        key = key_map.get(h5_key, h5_key)
-        if h5_key != key:
-            logger.debug(f"{depth * ' '}|- {key} (h5 key was: {h5_key})")
-        else:
-            logger.debug(f"{depth * ' '}|- {key}")
-
-        res[key] = _hdf5_restore_dict(group, encoding=encoding, depth=depth + 1)
-
-    for h5_key, value in item.attrs.items():
-        if h5_key in _reserved_h5_attrs:
-            continue
-
-        key = key_map.get(h5_key, h5_key)
-        if h5_key != key:
-            logger.debug(f"{depth * ' '}|- {key} (h5 key was: {h5_key})")
-        else:
-            logger.debug(f"{depth * ' '}|- {key}")
+    for key, value in item.attrs.items():
+        logger.debug(f"{depth * ' '}|- {key}")
 
         if hasattr(value, "tolist"):
             # Get the native type from a numpy scalar
             value = value.tolist()
-        res[key] = value
+        res_by_hdf5_key[key] = value
 
-    return res
+    key_map_json = item.attrs.get("__python_key_map__", None)
+    key_map = json.loads(key_map_json) if key_map_json else {}
+    if not key_map:
+        return res_by_hdf5_key
+
+    return {
+        python_key: res_by_hdf5_key[hdf5_key]
+        for hdf5_key, python_key in key_map.items()
+    }
 
 
 def restore_from_hdf5_file(
