@@ -388,6 +388,7 @@ class BeamlineElement(BaseModel, abc.ABC):
 
 
 AnyPath = Union[pathlib.Path, str]
+FileKey = Union[str, int]
 ValueType = Union[int, float, bool, str, Reference]
 PydanticPmdUnit = Annotated[pmd_unit, _PydanticPmdUnit]
 PydanticParticleGroup = Annotated[ParticleGroup, _PydanticParticleGroup]
@@ -421,14 +422,14 @@ class FieldFileParams(BaseModel, extra="allow"):
     __pydantic_extra__: Dict[str, Union[int, float, str, bool]]
 
     #  number of gridpoints in one transverse dimension equal to nx and ny above
-    gridpoints: int
+    gridpoints: int = 0
     # gridpoint spacing (meter)
-    gridsize: float
+    gridsize: float = 0.0
     # starting position (meter)
-    refposition: float
+    refposition: float = 0.0
     # radiation wavelength (meter)
-    wavelength: float
+    wavelength: float = 0.0
     # number of slices
-    slicecount: int
+    slicecount: int = 0
     # slice spacing (meter)
-    slicespacing: float
+    slicespacing: float = 0.0

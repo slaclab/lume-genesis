@@ -12,14 +12,16 @@ from typing import Any, ClassVar, Dict, Optional, Sequence, Tuple, Union
 
 import h5py
 import psutil
-from pmd_beamphysics import ParticleGroup
 from lume import tools as lume_tools
 from lume.base import CommandWrapper
+from pmd_beamphysics import ParticleGroup
 from pmd_beamphysics.units import pmd_unit
 from typing_extensions import override
 
 from .. import tools
+from ..errors import Genesis4RunFailure
 from . import parsers
+from .field import FieldFile
 from .input import Genesis4Input, Lattice, MainInput
 from .output import Genesis4Output, RunInfo
 from .types import AnyPath
@@ -125,9 +127,6 @@ def _make_genesis4_input(
     )
 
 
-class Genesis4RunFailure(Exception): ...
-
-
 class Genesis4(CommandWrapper):
     """
     Genesis 4 command wrapper for Python-defined configurations and lattices.
@@ -198,6 +197,7 @@ class Genesis4(CommandWrapper):
         verbose: bool = tools.global_display_options.verbose >= 1,
         timeout: Optional[float] = None,
         initial_particles: Optional[ParticleGroup] = None,
+        initial_field: Optional[FieldFile] = None,
         **kwargs: Any,
     ):
         super().__init__(
@@ -232,9 +232,11 @@ class Genesis4(CommandWrapper):
                 source_path=workdir,
             )
 
-        assert isinstance(input, Genesis4Input)
         if input.initial_particles is not initial_particles:
             input.initial_particles = initial_particles
+
+        if input.initial_field is not initial_field:
+            input.initial_field = initial_field
 
         if workdir is None:
             workdir = pathlib.Path(".")
@@ -522,6 +524,16 @@ class Genesis4(CommandWrapper):
     @initial_particles.setter
     def initial_particles(self, value: Optional[ParticleGroup]) -> None:
         self.input.initial_particles = value
+
+    @property
+    @override
+    def initial_field(self) -> Optional[FieldFile]:
+        """Initial field, if defined.  Property is alias for `.input.main.initial_field`."""
+        return self.input.initial_field
+
+    @initial_field.setter
+    def initial_field(self, value: Optional[FieldFile]) -> None:
+        self.input.initial_field = value
 
     def _archive(self, h5: h5py.Group):
         self.input.archive(h5.create_group("input"))

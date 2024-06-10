@@ -32,7 +32,9 @@ from pmd_beamphysics.units import c_light
 from typing_extensions import override
 
 from ... import tools
+from ...errors import MultipleNamelistsError, NamelistAccessError, NoSuchNamelistError
 from .. import archive as _archive
+from ..field import FieldFile
 from ..types import (
     AnyPath,
     BaseModel,
@@ -623,9 +625,11 @@ class MainInput(BaseModel):
         """Get the required setup namelist."""
         setups = self.by_namelist.get(Setup, [])
         if len(setups) == 0:
-            raise ValueError("Setup is not defined in the input.")
+            raise NoSuchNamelistError("Setup is not defined in the input.")
         if len(setups) > 1:
-            raise ValueError("Multiple setup namelists were defined in the input.")
+            raise MultipleNamelistsError(
+                "Multiple setup namelists were defined in the input."
+            )
         return setups[0]
 
     def to_dicts(
@@ -853,7 +857,6 @@ class MainInput(BaseModel):
         to_remove: List[AnyNameList]
         if isinstance(item_or_class, NameList):
             to_remove = [item_or_class]
-            self.namelists.remove(item_or_class)
         elif isclass(item_or_class):
             to_remove = [
                 obj for obj in list(self.namelists) if isinstance(obj, item_or_class)
@@ -865,25 +868,70 @@ class MainInput(BaseModel):
             self.namelists.remove(obj)
         return to_remove
 
+    def insert_initial_field(
+        self,
+        field: FieldFile,
+        harmonic: int = 1,
+        time: bool = True,
+    ) -> int:
+        """Insert a FieldFile instance as as an initial field with importfield."""
+        to_insert = ImportField(
+            file="initial_field.h5",
+            harmonic=harmonic,
+            time=time,
+        )
+
+        try:
+            previous = self.import_field
+        except NamelistAccessError:
+            if self.fields:
+                insert_pos = self.namelists.index(self.fields[0])
+            elif self.times:
+                insert_pos = self.namelists.index(self.times[-1]) + 1
+            else:
+                logger.warning(
+                    "Unable to determine where to insert the importfield; "
+                    "placing it after 'setup'"
+                )
+                insert_pos = self.namelists.index(self.setup)
+        else:
+            insert_pos = self.namelists.index(previous)
+            self.remove(previous)
+
+        self.namelists.insert(insert_pos, to_insert)
+        return insert_pos
+
     def insert_initial_particles(
         self,
         particles: ParticleGroup,
         update_slen: bool,
     ) -> int:
+        """Insert a ParticleGroup instance as as an initial particle distribution."""
         to_insert = ImportDistribution(
             file="initial_particles.h5",
             charge=particles.charge,
         )
 
         try:
-            dist = self.import_distribution
-        except ValueError:
-            pass
+            previous = self.import_distribution
+        except NamelistAccessError:
+            # No previous import_distribution
+            if self.tracks:
+                insert_pos = self.namelists.index(self.tracks[0])
+            elif self.writes:
+                insert_pos = self.namelists.index(self.writes[0])
+            elif self.times:
+                insert_pos = self.namelists.index(self.times[0]) + 1
+            else:
+                logger.warning(
+                    "Unable to determine where to insert the importdistribution; "
+                    "placing it at the end"
+                )
+                insert_pos = len(self.namelists)
         else:
-            if dist.file == to_insert.file:
-                return self.namelists.index(dist)
+            insert_pos = self.namelists.index(previous)
+            self.remove(previous)
 
-        self.remove(ImportDistribution)
         if update_slen:
             for time_ in self.times:
                 was = time_.slen
@@ -894,18 +942,6 @@ class MainInput(BaseModel):
                         time_.slen,
                         was,
                     )
-        if self.tracks:
-            insert_pos = self.namelists.index(self.tracks[0])
-        elif self.writes:
-            insert_pos = self.namelists.index(self.writes[0])
-        elif self.times:
-            insert_pos = self.namelists.index(self.times[0]) + 1
-        else:
-            logger.warning(
-                "Unable to determine where to insert the import distribution; "
-                "placing it at the end"
-            )
-            insert_pos = len(self.namelists)
 
         self.namelists.insert(insert_pos, to_insert)
         return insert_pos
@@ -1053,7 +1089,7 @@ class MainInput(BaseModel):
     def _get_only_one(self, cls: Type[T_NameList]) -> T_NameList:
         items = self.by_namelist.get(cls, [])
         if len(items) == 0:
-            raise ValueError(f"{cls.__name__} is not defined in the input.")
+            raise NoSuchNamelistError(f"{cls.__name__} is not defined in the input.")
         if len(items) > 1:
             plural_fix = {
                 "profile_gauss": "profile_gausses",
@@ -1061,7 +1097,7 @@ class MainInput(BaseModel):
             }
             plural = pydantic.alias_generators.to_snake(cls.__name__)
             plural = plural_fix.get(plural, f"{plural}s")
-            raise ValueError(
+            raise MultipleNamelistsError(
                 f"Multiple {cls.__name__} namelists were defined in the input. "
                 f"Please use .{plural}"
             )
@@ -1279,6 +1315,10 @@ class Genesis4Input(BaseModel):
         should not need to worry about this as Genesis4Input will handle it for
         you.
     initial_particles : ParticleGroup, optional
+        OpenPMD ParticleGroup to use as the initial Genesis 4 particle
+        distribution.  If set, this acts as a shortcut for automatically adding
+        an ``importdistribution`` namelist and writing the corresponding HDF5
+        file for Genesis.
     """
 
     main: MainInput
@@ -1290,14 +1330,27 @@ class Genesis4Input(BaseModel):
     output_path: Optional[AnyPath] = None
     input_filename: str = "genesis4.in"
     initial_particles: Optional[PydanticParticleGroup] = None
+    initial_field: Optional[FieldFile] = None
+    # initial_wavefront: Optional[PmdWavefront] = None
 
     @pydantic.model_validator(mode="after")
     def _validate_initial_particles(self, info: pydantic.ValidationInfo):
         if self.initial_particles is None:
-            # Should we remove the importdistribution?
-            ...
+            logger.warning(
+                "initial_particles cleared; removing ImportDistribution namelist."
+            )
+            self.main.remove(ImportDistribution)
         else:
             self.main.insert_initial_particles(self.initial_particles, update_slen=True)
+        return self
+
+    @pydantic.model_validator(mode="after")
+    def _validate_initial_field(self, info: pydantic.ValidationInfo):
+        if self.initial_field is None:
+            logger.warning("initial_field cleared; removing ImportField namelist.")
+            self.main.remove(ImportField)
+        else:
+            self.main.insert_initial_field(self.initial_field)
         return self
 
     def to_genesis(self) -> str:
@@ -1384,10 +1437,13 @@ class Genesis4Input(BaseModel):
         path.mkdir(parents=True, mode=0o755, exist_ok=True)
 
         extra_paths = []
+        # Write the particle and field files prior to MainInput, as it will
+        # check to ensure that they exist
         if self.initial_particles is not None:
-            # Write the particle file prior to MainInput, as it will check to ensure
-            # that
             extra_paths.append(self.write_initial_particles(path))
+
+        if self.initial_field is not None:
+            extra_paths.append(self.write_initial_field(path))
 
         main_paths = self.main.write_files(
             path,
@@ -1402,11 +1458,28 @@ class Genesis4Input(BaseModel):
         self.lattice.to_file(filename=lattice_path)
         return [path / self.input_filename, lattice_path, *extra_paths]
 
+    def write_initial_field(self, workdir: AnyPath) -> pathlib.Path:
+        """Write the initial field file."""
+        if self.initial_field is None:
+            raise ValueError("initial_field was not set")
+
+        workdir = pathlib.Path(workdir)
+        if not workdir.is_dir():
+            raise ValueError("Provided path is not a directory: {}")
+
+        import_field = self.main.import_field
+        if not import_field.file:
+            raise ValueError("import_field filename (.file) unset")
+
+        filename = workdir / import_field.file
+        self.initial_field.write_genesis4(filename)
+        return filename
+
     def write_initial_particles(self, workdir: AnyPath) -> pathlib.Path:
+        """Write the initial particles file."""
         if self.initial_particles is None:
             raise ValueError("initial_particles was not set")
-        # Write the particle file prior to MainInput, as it will check to ensure
-        # that
+
         workdir = pathlib.Path(workdir)
         if not workdir.is_dir():
             raise ValueError("Provided path is not a directory: {}")
@@ -1497,7 +1570,7 @@ class Genesis4Input(BaseModel):
             if lattice_path is not None:
                 try:
                     setup = main.setup
-                except ValueError:
+                except NoSuchNamelistError:
                     # No setup yet; skip for now
                     pass
                 else:
