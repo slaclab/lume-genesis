@@ -1336,10 +1336,11 @@ class Genesis4Input(BaseModel):
     @pydantic.model_validator(mode="after")
     def _validate_initial_particles(self, info: pydantic.ValidationInfo):
         if self.initial_particles is None:
-            logger.warning(
-                "initial_particles cleared; removing ImportDistribution namelist."
-            )
-            self.main.remove(ImportDistribution)
+            if ImportDistribution in self.main.by_namelist:
+                logger.warning(
+                    "initial_particles cleared; removing ImportDistribution namelist."
+                )
+                self.main.remove(ImportDistribution)
         else:
             self.main.insert_initial_particles(self.initial_particles, update_slen=True)
         return self
@@ -1347,8 +1348,9 @@ class Genesis4Input(BaseModel):
     @pydantic.model_validator(mode="after")
     def _validate_initial_field(self, info: pydantic.ValidationInfo):
         if self.initial_field is None:
-            logger.warning("initial_field cleared; removing ImportField namelist.")
-            self.main.remove(ImportField)
+            if ImportField in self.main.by_namelist:
+                logger.warning("initial_field cleared; removing ImportField namelist.")
+                self.main.remove(ImportField)
         else:
             self.main.insert_initial_field(self.initial_field)
         return self
