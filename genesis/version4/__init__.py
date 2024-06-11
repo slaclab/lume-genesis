@@ -1,3 +1,4 @@
+from .field import FieldFile
 from .input import (
     AlterField,
     AlterSetup,
@@ -60,6 +61,8 @@ __all__ = [
     "AnyPath",
     "AnyBeamlineElement",
     "AnyNameList",
+    # Fields
+    "FieldFile",
     # Lattice:
     "Chicane",
     "Corrector",
