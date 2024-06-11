@@ -1360,7 +1360,7 @@ class Genesis4Input(BaseModel):
                 self.main.to_genesis(),
                 "",
                 "# Lattice",
-                self.main.to_genesis(),
+                self.lattice.to_genesis(),
             )
         )
 
