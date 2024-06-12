@@ -113,6 +113,11 @@ class Undulator(types.BeamlineElement):
     )
     label: str = ""
 
+    @property
+    def L(self) -> float:
+        """Calculated undulator length."""
+        return self.lambdau * self.nwig
+
 
 class Drift(types.BeamlineElement):
     r"""

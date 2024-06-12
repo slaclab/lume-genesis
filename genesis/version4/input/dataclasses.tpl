@@ -78,6 +78,9 @@ class {{ name | to_class_name }}(types.{{ base_class }}):
     {%- if base_class == "BeamlineElement" %}
     label: str = ""
     {%- endif %}
+    {%- if name in extra_code_by_class %}
+    {{ extra_code_by_class[name] }}
+    {%- endif %}
 {%- endif %}
 {%- endfor %}
 

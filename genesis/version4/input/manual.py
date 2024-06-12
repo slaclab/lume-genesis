@@ -249,6 +249,16 @@ def _custom_repr(obj) -> str:
     return result.replace("'", '"')
 
 
+extra_code_by_class = {
+    "undulator": '''
+    @property
+    def L(self) -> float:
+        """Calculated undulator length."""
+        return self.lambdau * self.nwig
+    '''
+}
+
+
 def make_dataclasses_from_manual(
     path: AnyPath,
     *,
@@ -312,6 +322,7 @@ def make_dataclasses_from_manual(
             "line": "Lattice beamline element: line.",
             # Main input:
         },
+        extra_code_by_class=extra_code_by_class,
         base_class=base_class,
     ).strip()
 
