@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import copy
 import logging
 import os
 import pathlib
@@ -13,6 +14,7 @@ from typing import (
     Dict,
     Generator,
     List,
+    NamedTuple,
     Optional,
     Sequence,
     Tuple,
@@ -23,6 +25,9 @@ from typing import (
 
 import h5py
 import lark
+import matplotlib
+import matplotlib.axes
+import matplotlib.pyplot as plt
 import numpy as np
 import pydantic
 import pydantic.alias_generators
@@ -188,7 +193,7 @@ class Line(BeamlineElement):
         self.elements = [_fix_line_item(item) for item in self.elements]
 
     @property
-    def _string_elements(self) -> List[str]:
+    def names(self) -> List[str]:
         return [
             elem.label if isinstance(elem, BeamlineElement) else str(elem)
             for elem in self.elements
@@ -196,7 +201,7 @@ class Line(BeamlineElement):
 
     @override
     def to_genesis(self) -> str:
-        elements = ", ".join(self._string_elements)
+        elements = ", ".join(self.names)
         return "".join(
             (
                 self.label,
@@ -275,6 +280,11 @@ def lattice_elements_from_list(
     return res
 
 
+class ZElement(NamedTuple):
+    zend: float
+    element: AnyBeamlineElement
+
+
 class Lattice(BaseModel):
     """
     A Genesis 4 beamline Lattice configuration.
@@ -305,6 +315,258 @@ class Lattice(BaseModel):
         if not isinstance(elements, dict):
             elements = lattice_elements_from_list(elements)
         super().__init__(elements=elements, filename=filename)
+
+    def taper_custom(
+        self,
+        beamline: str,
+        *,
+        aw0: float,
+        zstart: float,
+        zend: float,
+    ) -> List[ZElement]:
+        """
+        Get a list of undulators to perform a custom taper on.
+
+        Only elements that fit within the range [zstart, zend] will be
+        included.
+
+        Parameters
+        ----------
+        beamline : str
+            The beamline containing the undulators.
+        aw0 : float
+            The starting undulator strength.
+        zstart : float
+            The starting Z position, relative to the first element on the line.
+        zend : float
+            The ending Z position, relative to the first element on the line.
+
+        Returns
+        -------
+        list of ZElement
+            List of ZElement instances, which contain a normalized Z location
+            (zstart=0.0, zend=1.0) and an Undulator element.
+        """
+        if not self.is_flat(beamline):
+            raise ValueError(
+                f"The beamline {beamline!r} is not flat: it contains reused "
+                f"elements.  Before performing a linear taper, first flatten "
+                f"the beamline with `.flatten_line()`"
+            )
+
+        assert zend > zstart
+
+        undulators = self.by_z_location(beamline, limit_to=auto_lattice.Undulator)
+        norm_z = []
+        for zelem in undulators:
+            und = zelem.element
+            assert isinstance(und, auto_lattice.Undulator)
+            und_zstart = zelem.zend - und.L
+            if und_zstart >= zstart and zelem.zend <= zend:
+                norm_z.append(
+                    ZElement(
+                        zend=(zelem.zend - zstart) / (zend - zstart),
+                        element=und,
+                    )
+                )
+            else:
+                und.aw = aw0
+
+        return norm_z
+
+    def taper_linear(
+        self,
+        beamline: str,
+        *,
+        aw0: float,
+        zstart: float,
+        zend: float,
+        taper_start: float,
+        taper_end: float,
+    ) -> List[float]:
+        """
+        Perform a linear taper on undulators in the given beamline.
+
+        Only elements that fit within the range [zstart, zend] will be
+        included.
+
+        Parameters
+        ----------
+        beamline : str
+            The beamline containing the undulators.
+        aw0 : float
+            The starting undulator strength.
+        zstart : float
+            The starting Z position, relative to the first element on the line.
+        zend : float
+            The ending Z position, relative to the first element on the line.
+        taper_start : float
+            The starting taper multiplier (applied to `aw0`) at `zstart`.
+        taper_end : float
+            The final taper multiplier (applied to `aw0`) at `zend`.
+
+        Returns
+        -------
+        list of float
+            List of undulator strengths.
+        """
+        # taper_custom will give normalized Z values for [zstart, zend] -> [0, 1]
+        undulators = self.taper_custom(beamline, aw0=aw0, zstart=zstart, zend=zend)
+        slope = aw0 * (taper_end - taper_start) / (1.0 - 0.0)  # / (zend - zstart)
+        for norm_z, und in undulators:
+            assert isinstance(und, auto_lattice.Undulator)
+            und.aw = aw0 + slope * norm_z
+
+        return [zelem.element.aw for zelem in undulators]
+
+    def plot_beamline_taper(
+        self,
+        beamline: str,
+        *,
+        ax: Optional[matplotlib.axes.Axes] = None,
+        show: bool = True,
+    ):
+        undulators = self.by_z_location(beamline, limit_to=auto_lattice.Undulator)
+        zs = [zelem.zend for zelem in undulators]
+        aws = [zelem.element.aw for zelem in undulators]
+        if ax is None:
+            _, ax = plt.subplots()
+        assert ax is not None
+        ax.plot(zs, aws, marker="o")
+        for zelem in undulators:
+            annotation = ax.annotate(
+                zelem.element.label,
+                xy=(zelem.zend, zelem.element.aw),
+            )
+            annotation.set_rotation(90)
+            annotation.set_fontsize("xx-small")
+        ax.set_xlabel("Z [m]")
+        ax.set_ylabel("Undulator strength")
+        ax.set_title(f"{beamline} Taper")
+        if show:
+            plt.show()
+
+    def is_flat(self, beamline: str) -> bool:
+        """Checks if the given `beamline` does not reuse elements."""
+        names = self.inspect_line_by_name(beamline)
+        return len(set(names)) == len(names)
+
+    def inspect_line_by_name(self, beamline: str) -> List[str]:
+        """
+        Returns a list of all element names in the given beamline.
+
+        This recursively inspects any LINEs inside the beamline.
+
+        Returns
+        -------
+        list of str
+            List of names.
+        """
+        self.fix_labels()
+
+        def _inspect(name: str):
+            element = self.elements[name]
+            if isinstance(element, Line):
+                for el in element.names:
+                    yield from _inspect(el)
+            else:
+                yield element.label
+
+        return list(_inspect(beamline))
+
+    def inspect_line(self, beamline: str) -> List[AnyBeamlineElement]:
+        """
+        Returns a list of all elements in the given beamline.
+
+        This recursively inspects any LINEs inside the beamline.
+
+        Returns
+        -------
+        list of BeamlineElement
+            List of beamline element instances.
+        """
+        return [self.elements[el] for el in self.inspect_line_by_name(beamline)]
+
+    def flatten_line(
+        self,
+        beamline: str,
+        *,
+        count: int,
+        start: int = 0,
+        format: str = "L{index}_{name}",
+        in_place: bool = True,
+        new_beamline: str = "",
+    ):
+        to_duplicate = self.inspect_line_by_name(beamline)
+        new_elements = {}
+        sections = []
+        for index in range(start, start + count):
+            section = []
+            for name in to_duplicate:
+                new_name = format.format(
+                    name=name,
+                    index=index,
+                    start=start,
+                    count=count,
+                    beamline=beamline,
+                )
+                new_element = copy.deepcopy(self.elements[name])
+                new_element.label = new_name
+                new_elements[new_name] = new_element
+                section.append(new_element)
+            sections.append(section)
+
+        if in_place:
+            for name in to_duplicate:
+                self.elements.pop(name)
+
+        self.elements[new_beamline or beamline] = Line(elements=list(new_elements))
+        self.elements.update(new_elements)
+        return sections
+
+    def by_z_location(
+        self,
+        beamline: str,
+        limit_to: Union[
+            Type[BeamlineElement],
+            Tuple[Type[BeamlineElement], ...],
+            None,
+        ] = None,
+    ) -> List[ZElement]:
+        """
+        Get all (flattened) beamline elements by Z location.
+
+        Returns
+        -------
+        list of (zend, element)
+            Each list item is a ZElement, a namedtuple which has `.zend` and
+            `.element` that is also usable as a normal tuple.
+        """
+        z = 0.0
+        by_z = []
+        for el in self.inspect_line(beamline):
+            if isinstance(
+                el,
+                (
+                    auto_lattice.Drift,
+                    auto_lattice.Quadrupole,
+                    auto_lattice.Corrector,
+                    auto_lattice.Chicane,
+                    auto_lattice.PhaseShifter,
+                    auto_lattice.Undulator,
+                ),
+            ):
+                z += el.L
+            elif isinstance(el, auto_lattice.Marker):
+                ...
+            else:
+                assert not isinstance(el, Line), "Line should be expanded"
+                raise NotImplementedError(type(el))
+
+            if limit_to is None or isinstance(el, limit_to):
+                by_z.append(ZElement(zend=z, element=el))
+
+        return by_z
 
     @override
     def _repr_table_data_(self) -> ReprTableData:
