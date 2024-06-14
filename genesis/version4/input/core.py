@@ -33,6 +33,7 @@ import pydantic
 import pydantic.alias_generators
 from lume import tools as lume_tools
 from pmd_beamphysics import ParticleGroup
+from pmd_beamphysics.units import nice_array
 from pmd_beamphysics.units import c_light
 from typing_extensions import override
 
@@ -97,6 +98,30 @@ LATTICE_GRAMMAR = pathlib.Path("version4") / "input" / "lattice.lark"
 MAIN_INPUT_GRAMMAR = pathlib.Path("version4") / "input" / "main_input.lark"
 
 logger = logging.getLogger(__name__)
+
+
+class ZElement(NamedTuple):
+    """A tuple of a Z position and its corresponding beamline element."""
+
+    zend: float
+    element: AnyBeamlineElement
+
+
+class ElementPlotSettings(NamedTuple):
+    color: str
+    width: float
+    alpha: float = 1.0
+
+
+plot_settings_by_element = {
+    auto_lattice.Undulator: ElementPlotSettings(color="orange", width=0.2),
+    auto_lattice.Drift: ElementPlotSettings(color="black", width=0.05, alpha=0.5),
+    auto_lattice.Quadrupole: ElementPlotSettings(color="blue", width=0.1),
+    auto_lattice.Corrector: ElementPlotSettings(color="green", width=0.3),
+    auto_lattice.PhaseShifter: ElementPlotSettings(color="red", width=0.2),
+    auto_lattice.Chicane: ElementPlotSettings(color="grey", width=0.4),
+    auto_lattice.Marker: ElementPlotSettings(color="gray", width=0.2),
+}
 
 
 class DuplicatedLineItem(BaseModel):
@@ -286,11 +311,6 @@ def lattice_elements_from_list(
     return res
 
 
-class ZElement(NamedTuple):
-    zend: float
-    element: AnyBeamlineElement
-
-
 class Lattice(BaseModel):
     """
     A Genesis 4 beamline Lattice configuration.
@@ -447,7 +467,36 @@ class Lattice(BaseModel):
 
         return [zelem.element.aw for zelem in undulators]
 
-    def plot_beamline_taper(
+    def plot(
+        self,
+        beamline: str,
+        *,
+        show_labels: bool = True,
+        show_legend: bool = True,
+        show: bool = True,
+    ):
+        _, (ax1, ax2) = plt.subplots(nrows=2, ncols=1)
+
+        ax1: matplotlib.axes.Axes
+        ax2: matplotlib.axes.Axes
+        self.plot_layout(beamline, ax=ax1, show=False, show_labels=show_labels)
+        self.plot_strengths(
+            beamline,
+            ax=ax2,
+            show=False,
+            show_labels=show_labels,
+            show_legend=show_legend,
+        )
+        for label in ax1.get_xticklabels() + ax1.get_yticklabels():
+            label.set_visible(False)
+        ax1.set_title("")
+        ax1.set_xlabel("")
+        ax2.set_title("")
+        plt.suptitle(f"Beamline '{beamline}'")
+        if show:
+            plt.show()
+
+    def plot_layout(
         self,
         beamline: str,
         *,
@@ -455,8 +504,52 @@ class Lattice(BaseModel):
         show_labels: bool = True,
         show: bool = True,
     ):
+        elements = self.by_z_location(beamline)
+        if ax is None:
+            _, ax = plt.subplots()
+        assert ax is not None
+        default = ElementPlotSettings(color="black", width=0.2)
+        for zend, elem in elements:
+            settings = plot_settings_by_element.get(type(elem), default)
+            if isinstance(elem, (auto_lattice.Drift, Line)):
+                continue
+            elif isinstance(elem, auto_lattice.Marker):
+                zstart = zend
+            else:
+                zstart = zend - elem.L
+                ax.fill_between(
+                    (zstart, zend),
+                    -settings.width,
+                    settings.width,
+                    color=settings.color,
+                    label=elem.label,
+                    alpha=settings.alpha,
+                )
+
+            zmid = (zend + zstart) / 2.0
+            annotation = ax.annotate(
+                elem.label,
+                xy=(zmid, 0.0),
+            )
+            annotation.set_rotation(90)
+            annotation.set_fontsize("x-small")
+
+        ax.set_xlabel("$z$ (m)")
+        ax.set_title(f"{beamline} Layout")
+        if show:
+            plt.show()
+
+    def plot_strengths(
+        self,
+        beamline: str,
+        *,
+        ax: Optional[matplotlib.axes.Axes] = None,
+        show_labels: bool = True,
+        show_legend: bool = True,
+        show: bool = True,
+    ):
         """
-        Plot the taper of the given beamline.
+        Plot the layout of the given beamline.
 
         Parameters
         ----------
@@ -469,24 +562,80 @@ class Lattice(BaseModel):
         show : bool
             Show the plot.
         """
-        undulators = self.by_z_location(beamline, limit_to=auto_lattice.Undulator)
-        zs = [zelem.zend for zelem in undulators]
-        aws = [zelem.element.aw for zelem in undulators]
+        elements = self.by_z_location(beamline)
+        undulators = [
+            (elem.zend, elem.element)
+            for elem in elements
+            if isinstance(elem.element, auto_lattice.Undulator)
+        ]
+        quads = [
+            (elem.zend, elem.element)
+            for elem in elements
+            if isinstance(elem.element, auto_lattice.Quadrupole)
+        ]
         if ax is None:
             _, ax = plt.subplots()
         assert ax is not None
-        ax.plot(zs, aws, marker="o")
+
+        def nice_plot(
+            ax: matplotlib.axes.Axes,
+            zs: Sequence[float],
+            values: Sequence[float],
+            units: str,
+            marker: str,
+            color=None,
+            label=None,
+        ):
+            y, _factor, prefix = nice_array(values)
+            ylabel = f"{label} ({prefix}{units})"
+            ax.set_ylabel(ylabel)
+            ax.plot(
+                zs,
+                y,
+                color=color,
+                label=label,
+                alpha=0.5,
+                marker=marker,
+                markersize=2.0,
+            )
+            return ax.fill_between(zs, y, color=color, label=label, alpha=0.15)
+
+        lines = [
+            nice_plot(
+                ax,
+                [z for z, _ in undulators],
+                [und.aw for _, und in undulators],
+                units="1",
+                marker="o",
+                label="$aw$",
+                color="red",
+            ),
+            nice_plot(
+                ax.twinx(),
+                [z for z, _ in quads],
+                [quad.k1 for _, quad in quads],
+                units="$1/m^2$",
+                marker="o",
+                label="Quad $k$",
+                color="blue",
+            ),
+        ]
+
+        if show_legend:
+            labels = [str(line.get_label() or "") for line in lines]
+            ax.legend(lines, labels)
+
         if show_labels:
-            for zelem in undulators:
+            for z, und in undulators:
                 annotation = ax.annotate(
-                    zelem.element.label,
-                    xy=(zelem.zend, zelem.element.aw),
+                    und.label,
+                    xy=(z, 1.01 * und.aw),
                 )
                 annotation.set_rotation(90)
                 annotation.set_fontsize("xx-small")
-        ax.set_xlabel("Z [m]")
-        ax.set_ylabel("Undulator strength")
-        ax.set_title(f"{beamline} Taper")
+
+        ax.set_xlabel("$z$ (m)")
+        ax.set_title(f"{beamline} Layout")
         if show:
             plt.show()
 
