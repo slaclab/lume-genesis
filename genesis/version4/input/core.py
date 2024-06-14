@@ -452,8 +452,23 @@ class Lattice(BaseModel):
         beamline: str,
         *,
         ax: Optional[matplotlib.axes.Axes] = None,
+        show_labels: bool = True,
         show: bool = True,
     ):
+        """
+        Plot the taper of the given beamline.
+
+        Parameters
+        ----------
+        beamline : str
+            The name of the beamline.
+        ax : matplotlib.axes.Axes or None
+            Plot on the given axis, or create a new one.
+        show_labels : bool
+            Show labels for each undulator.
+        show : bool
+            Show the plot.
+        """
         undulators = self.by_z_location(beamline, limit_to=auto_lattice.Undulator)
         zs = [zelem.zend for zelem in undulators]
         aws = [zelem.element.aw for zelem in undulators]
@@ -461,13 +476,14 @@ class Lattice(BaseModel):
             _, ax = plt.subplots()
         assert ax is not None
         ax.plot(zs, aws, marker="o")
-        for zelem in undulators:
-            annotation = ax.annotate(
-                zelem.element.label,
-                xy=(zelem.zend, zelem.element.aw),
-            )
-            annotation.set_rotation(90)
-            annotation.set_fontsize("xx-small")
+        if show_labels:
+            for zelem in undulators:
+                annotation = ax.annotate(
+                    zelem.element.label,
+                    xy=(zelem.zend, zelem.element.aw),
+                )
+                annotation.set_rotation(90)
+                annotation.set_fontsize("xx-small")
         ax.set_xlabel("Z [m]")
         ax.set_ylabel("Undulator strength")
         ax.set_title(f"{beamline} Taper")

@@ -1,8 +1,22 @@
+import matplotlib.pyplot as plt
 import numpy as np
 import pytest
 
+from ..conftest import test_artifacts
 from ...errors import NotFlatError, RecursiveLineError
 from ...version4 import Lattice, Undulator, Line
+
+
+@pytest.fixture
+def flat_line():
+    return Lattice(
+        elements={
+            "U1": Undulator(lambdau=0.1, nwig=1),
+            "U2": Undulator(lambdau=0.1, nwig=1),
+            "U3": Undulator(lambdau=0.1, nwig=1),
+            "LN": Line(elements=["U1", "U2", "U3"]),
+        }
+    )
 
 
 @pytest.fixture
@@ -150,3 +164,8 @@ def test_is_flat_recursive() -> None:
 )
 def test_is_flat(lattice: Lattice, is_flat: bool) -> None:
     assert lattice.is_flat("LN") == is_flat
+
+
+def test_plot_taper(flat_line: Lattice) -> None:
+    flat_line.plot_beamline_taper("LN", show=False)
+    plt.savefig(test_artifacts / "test_plot_taper.png")
