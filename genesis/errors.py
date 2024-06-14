@@ -16,3 +16,11 @@ class MultipleNamelistsError(NamelistAccessError):
 
     Access is ambiguous.
     """
+
+
+class NotFlatError(Exception):
+    """The beamline uses named elements more than once; it is not flat."""
+
+
+class RecursiveLineError(Exception):
+    """The beamline uses named elements recursively in lines."""

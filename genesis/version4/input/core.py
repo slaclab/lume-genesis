@@ -37,7 +37,13 @@ from pmd_beamphysics.units import c_light
 from typing_extensions import override
 
 from ... import tools
-from ...errors import MultipleNamelistsError, NamelistAccessError, NoSuchNamelistError
+from ...errors import (
+    MultipleNamelistsError,
+    NamelistAccessError,
+    NoSuchNamelistError,
+    NotFlatError,
+    RecursiveLineError,
+)
 from .. import archive as _archive
 from ..field import FieldFile
 from ..types import (
@@ -348,9 +354,9 @@ class Lattice(BaseModel):
             (zstart=0.0, zend=1.0) and an Undulator element.
         """
         if not self.is_flat(beamline):
-            raise ValueError(
+            raise NotFlatError(
                 f"The beamline {beamline!r} is not flat: it contains reused "
-                f"elements.  Before performing a linear taper, first flatten "
+                f"elements.  Before performing a taper operation, first flatten "
                 f"the beamline with `.flatten_line()`"
             )
 
@@ -361,8 +367,7 @@ class Lattice(BaseModel):
         for zelem in undulators:
             und = zelem.element
             assert isinstance(und, auto_lattice.Undulator)
-            und_zstart = zelem.zend - und.L
-            if und_zstart >= zstart and zelem.zend <= zend:
+            if zstart <= zelem.zend <= zend:
                 norm_z.append(
                     ZElement(
                         zend=(zelem.zend - zstart) / (zend - zstart),
@@ -373,6 +378,29 @@ class Lattice(BaseModel):
                 und.aw = aw0
 
         return norm_z
+
+    def taper_array(
+        self,
+        beamline: str,
+        aws: Sequence[float],
+    ) -> None:
+        if not self.is_flat(beamline):
+            raise NotFlatError(
+                f"The beamline {beamline!r} is not flat: it contains reused "
+                f"elements.  Before performing a taper operation, first flatten "
+                f"the beamline with `.flatten_line()`"
+            )
+
+        undulators = self.by_z_location(beamline, limit_to=auto_lattice.Undulator)
+        aws = list(aws)
+        if len(aws) != len(undulators):
+            raise ValueError(
+                f"The number of undulators ({len(undulators)}) is not equal to "
+                f"the number of aw parameters provided ({len(aws)})"
+            )
+        for aw, (_z, und) in zip(aws, undulators):
+            und = typing.cast(auto_lattice.Undulator, und)
+            und.aw = aw
 
     def taper_linear(
         self,
@@ -463,14 +491,26 @@ class Lattice(BaseModel):
             List of names.
         """
         self.fix_labels()
+        stack = []
 
         def _inspect(name: str):
+            if name in stack:
+                raise RecursiveLineError(
+                    f"Recursion of beamline elements in line {beamline} detected: {name}"
+                )
+            stack.append(name)
             element = self.elements[name]
             if isinstance(element, Line):
                 for el in element.names:
                     yield from _inspect(el)
+            elif isinstance(element, DuplicatedLineItem):
+                for _ in range(element.count):
+                    yield from _inspect(element.label)
+            elif isinstance(element, PositionedLineItem):
+                yield element.label
             else:
                 yield element.label
+            stack.pop(-1)
 
         return list(_inspect(beamline))
 
