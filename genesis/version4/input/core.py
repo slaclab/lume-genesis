@@ -107,6 +107,14 @@ class ZElement(NamedTuple):
     element: AnyBeamlineElement
 
 
+class _InspectElement(NamedTuple):
+    """A tuple of a Z position and its corresponding beamline element."""
+
+    z: Optional[float]
+    context: List[LineItem]
+    element: AnyBeamlineElement
+
+
 class ElementPlotSettings(NamedTuple):
     color: str
     width: float
@@ -222,6 +230,21 @@ class Line(BeamlineElement):
     @override
     def model_post_init(self, __context: Any) -> None:
         self.elements = [_fix_line_item(item) for item in self.elements]
+
+    @property
+    def flattened(self) -> List[Tuple[Optional[float], str]]:
+        """Flattened elements by name, including Z location if available."""
+        res = []
+        for item in self.names:
+            item = _fix_line_item(item)
+            if isinstance(item, PositionedLineItem):
+                res.append((item.position, item.label))
+            elif isinstance(item, DuplicatedLineItem):
+                for _ in range(item.count):
+                    res.append((None, item.label))
+            else:
+                res.append((None, str(item)))
+        return res
 
     @property
     def names(self) -> List[str]:
@@ -380,7 +403,8 @@ class Lattice(BaseModel):
                 f"the beamline with `.flatten_line()`"
             )
 
-        assert zend > zstart
+        if zend < zstart:
+            zstart, zend = zend, zstart
 
         undulators = self.by_z_location(beamline, limit_to=auto_lattice.Undulator)
         norm_z = []
@@ -404,6 +428,17 @@ class Lattice(BaseModel):
         beamline: str,
         aws: Sequence[float],
     ) -> None:
+        """
+        Apply a list of undulator strengths to set the taper.
+
+        Parameters
+        ----------
+        beamline : str
+            The beamline name.
+        aws : list of floats (or equivalent, np.ndarray)
+            The undulator strengths, one for each undulator in the beamline.
+            Undulators are sorted based on Z position.
+        """
         if not self.is_flat(beamline):
             raise NotFlatError(
                 f"The beamline {beamline!r} is not flat: it contains reused "
@@ -471,78 +506,6 @@ class Lattice(BaseModel):
         self,
         beamline: str,
         *,
-        show_labels: bool = True,
-        show_legend: bool = True,
-        show: bool = True,
-    ):
-        _, (ax1, ax2) = plt.subplots(nrows=2, ncols=1)
-
-        ax1: matplotlib.axes.Axes
-        ax2: matplotlib.axes.Axes
-        self.plot_layout(beamline, ax=ax1, show=False, show_labels=show_labels)
-        self.plot_strengths(
-            beamline,
-            ax=ax2,
-            show=False,
-            show_labels=show_labels,
-            show_legend=show_legend,
-        )
-        for label in ax1.get_xticklabels() + ax1.get_yticklabels():
-            label.set_visible(False)
-        ax1.set_title("")
-        ax1.set_xlabel("")
-        ax2.set_title("")
-        plt.suptitle(f"Beamline '{beamline}'")
-        if show:
-            plt.show()
-
-    def plot_layout(
-        self,
-        beamline: str,
-        *,
-        ax: Optional[matplotlib.axes.Axes] = None,
-        show_labels: bool = True,
-        show: bool = True,
-    ):
-        elements = self.by_z_location(beamline)
-        if ax is None:
-            _, ax = plt.subplots()
-        assert ax is not None
-        default = ElementPlotSettings(color="black", width=0.2)
-        for zend, elem in elements:
-            settings = plot_settings_by_element.get(type(elem), default)
-            if isinstance(elem, (auto_lattice.Drift, Line)):
-                continue
-            elif isinstance(elem, auto_lattice.Marker):
-                zstart = zend
-            else:
-                zstart = zend - elem.L
-                ax.fill_between(
-                    (zstart, zend),
-                    -settings.width,
-                    settings.width,
-                    color=settings.color,
-                    label=elem.label,
-                    alpha=settings.alpha,
-                )
-
-            zmid = (zend + zstart) / 2.0
-            annotation = ax.annotate(
-                elem.label,
-                xy=(zmid, 0.0),
-            )
-            annotation.set_rotation(90)
-            annotation.set_fontsize("x-small")
-
-        ax.set_xlabel("$z$ (m)")
-        ax.set_title(f"{beamline} Layout")
-        if show:
-            plt.show()
-
-    def plot_strengths(
-        self,
-        beamline: str,
-        *,
         ax: Optional[matplotlib.axes.Axes] = None,
         show_labels: bool = True,
         show_legend: bool = True,
@@ -586,6 +549,8 @@ class Lattice(BaseModel):
             color=None,
             label=None,
         ):
+            if not values:
+                return None
             y, _factor, prefix = nice_array(values)
             ylabel = f"{label} ({prefix}{units})"
             ax.set_ylabel(ylabel)
@@ -622,7 +587,7 @@ class Lattice(BaseModel):
         ]
 
         if show_legend:
-            labels = [str(line.get_label() or "") for line in lines]
+            labels = [str(line.get_label() or "") for line in lines if line is not None]
             ax.legend(lines, labels)
 
         if show_labels:
@@ -644,6 +609,44 @@ class Lattice(BaseModel):
         names = self.inspect_line_by_name(beamline)
         return len(set(names)) == len(names)
 
+    def _inspect(self, beamline: str) -> List[_InspectElement]:
+        """
+        This recursively inspects any LINEs inside the beamline.
+
+        Returns
+        -------
+        list of _InspectElement
+            List of names.
+        """
+        self.fix_labels()
+        stack = []
+
+        def _inspect(name: str) -> Generator[_InspectElement, None, None]:
+            if name in stack:
+                raise RecursiveLineError(
+                    f"Recursion of beamline elements in line {beamline} detected: {name}"
+                )
+            stack.append(name)
+            element = self.elements[name]
+            if isinstance(element, Line):
+                yield _InspectElement(
+                    z=None,
+                    context=[name],
+                    element=element,
+                )
+                for z, el in element.flattened:
+                    for inner in _inspect(el):
+                        yield _InspectElement(
+                            z=inner.z if inner.z is not None else z,
+                            context=[name] + inner.context,
+                            element=inner.element,
+                        )
+            else:
+                yield _InspectElement(z=None, context=[], element=element)
+            stack.pop(-1)
+
+        return list(_inspect(beamline))
+
     def inspect_line_by_name(self, beamline: str) -> List[str]:
         """
         Returns a list of all element names in the given beamline.
@@ -656,28 +659,11 @@ class Lattice(BaseModel):
             List of names.
         """
         self.fix_labels()
-        stack = []
-
-        def _inspect(name: str):
-            if name in stack:
-                raise RecursiveLineError(
-                    f"Recursion of beamline elements in line {beamline} detected: {name}"
-                )
-            stack.append(name)
-            element = self.elements[name]
-            if isinstance(element, Line):
-                for el in element.names:
-                    yield from _inspect(el)
-            elif isinstance(element, DuplicatedLineItem):
-                for _ in range(element.count):
-                    yield from _inspect(element.label)
-            elif isinstance(element, PositionedLineItem):
-                yield element.label
-            else:
-                yield element.label
-            stack.pop(-1)
-
-        return list(_inspect(beamline))
+        return [
+            insp.element.label
+            for insp in self._inspect(beamline)
+            if not isinstance(insp.element, Line)
+        ]
 
     def inspect_line(self, beamline: str) -> List[AnyBeamlineElement]:
         """
@@ -690,18 +676,55 @@ class Lattice(BaseModel):
         list of BeamlineElement
             List of beamline element instances.
         """
-        return [self.elements[el] for el in self.inspect_line_by_name(beamline)]
+        return [
+            insp.element
+            for insp in self._inspect(beamline)
+            if not isinstance(insp.element, Line)
+        ]
 
     def flatten_line(
         self,
         beamline: str,
         *,
-        count: int,
+        count: int = 1,
         start: int = 0,
         format: str = "L{index}_{name}",
         in_place: bool = True,
         new_beamline: str = "",
     ):
+        """
+        Flatten a beamline such that any nested beamlines are made into distinct elements.
+
+        For example, take a beamline ``LN`` which contains 2 nested beamlines
+        "L1" (containing UND) and "L2" (containing QUAD).
+        Flattening this with the default format of ``L{index}_{name}``
+        would result with replacing ``LN`` with:
+        * ``L0_UND`` and ``L0_QUAD`` (wtih start=0, count=1)
+        * ``L1_UND``, ``L1_QUAD``, ``L2_UND``, ``L2_QUAD`` (with start=1, count=2)
+
+        Parameters
+        ----------
+        beamline : str
+            The beamline name to flatten.
+        count : int, default=1
+            The number of times to duplicate the flattened beamline.
+        start : int, default=0
+            The starting index for relabeling elements.
+        format : str, default="L{index}_{name}"
+            The string format to use for renaming beamline elements.
+        in_place : bool, default=True
+            Perform the flattening in-place.  Remove unused elements and add
+            the new elements directly to the lattice.
+        new_beamline : str
+            For in-place mode, use this as the name for the new beamline.
+
+        Returns
+        -------
+        [segment(start), segment(start+1), ... segment(start+count-1)]
+            Each segment corresponds to a single index of the flattened line,
+            from ``start`` to ``start + count - 1``. Each segment is a list of
+            created elements based on that index.
+        """
         to_duplicate = self.inspect_line_by_name(beamline)
         new_elements = {}
         sections = []
@@ -717,16 +740,25 @@ class Lattice(BaseModel):
                 )
                 new_element = copy.deepcopy(self.elements[name])
                 new_element.label = new_name
+
+                if new_name in new_elements:
+                    raise ValueError(
+                        f"Name for element conflicts with another new element: {new_name}"
+                    )
                 new_elements[new_name] = new_element
                 section.append(new_element)
             sections.append(section)
 
         if in_place:
             for name in to_duplicate:
-                self.elements.pop(name)
+                if name not in new_elements:
+                    self.elements.pop(name, None)
+            if new_beamline != beamline and beamline not in new_elements:
+                self.elements.pop(beamline, None)
 
-        self.elements[new_beamline or beamline] = Line(elements=list(new_elements))
-        self.elements.update(new_elements)
+            self.elements[new_beamline or beamline] = Line(elements=list(new_elements))
+            self.elements.update(new_elements)
+
         return sections
 
     def by_z_location(
@@ -749,9 +781,19 @@ class Lattice(BaseModel):
         """
         z = 0.0
         by_z = []
-        for el in self.inspect_line(beamline):
+        for insp in self._inspect(beamline):
+            if isinstance(insp.element, Line):
+                # Line is already expanded
+                continue
+
+            if insp.z is not None:
+                # A located lattice element has a user-specified, explicit
+                # location and is exempt from our element-by-element counting:
+                by_z.append(ZElement(zend=insp.z, element=insp.element))
+                continue
+
             if isinstance(
-                el,
+                insp.element,
                 (
                     auto_lattice.Drift,
                     auto_lattice.Quadrupole,
@@ -761,17 +803,19 @@ class Lattice(BaseModel):
                     auto_lattice.Undulator,
                 ),
             ):
-                z += el.L
-            elif isinstance(el, auto_lattice.Marker):
+                z += insp.element.L
+            elif isinstance(insp.element, auto_lattice.Marker):
                 ...
             else:
-                assert not isinstance(el, Line), "Line should be expanded"
-                raise NotImplementedError(type(el))
+                raise NotImplementedError(type(insp.element))
 
-            if limit_to is None or isinstance(el, limit_to):
-                by_z.append(ZElement(zend=z, element=el))
+            if limit_to is None or isinstance(insp.element, limit_to):
+                by_z.append(ZElement(zend=z, element=insp.element))
 
-        return by_z
+        def sort_z(item: ZElement):
+            return item.zend
+
+        return sorted(by_z, key=sort_z)
 
     @override
     def _repr_table_data_(self) -> ReprTableData:
@@ -791,10 +835,12 @@ class Lattice(BaseModel):
         return f"<pre>{repr_}</pre>"
 
     def to_genesis(self) -> str:
+        """Generate a Genesis 4-compatible lattice input string."""
         self.fix_labels()
         return "\n".join(element.to_genesis() for element in self.elements.values())
 
     def fix_labels(self) -> None:
+        """Fix labels of elements based on their dictionary key in `.elements`."""
         for label, element in self.elements.items():
             if element.label != label:
                 if element.label:
@@ -909,6 +955,36 @@ class Lattice(BaseModel):
         with open(filename) as fp:
             contents = fp.read()
         return cls.from_contents(contents, filename=filename)
+
+    @classmethod
+    def from_elements(
+        cls, elements: Sequence[AnyBeamlineElement], filename: Optional[AnyPath] = None
+    ) -> Lattice:
+        """
+        Create a Lattice from a list of labeled elements.
+
+        Parameters
+        ----------
+        elements : list of BeamlineElement
+            Elements of the beamline.  These must have a label set.
+        filename : AnyPath or None, optional
+            The filename of the lattice, if applicable.
+
+        Returns
+        -------
+        Lattice
+        """
+        elements = list(elements)
+        for el in elements:
+            if not el.label:
+                raise ValueError(f"Beamline element is missing a label: {el}")
+        elements_by_name = {el.label: el for el in elements}
+        if len(elements_by_name) != len(elements):
+            raise ValueError("One or more duplicate labels exist in the input")
+        return cls(
+            elements_by_name,
+            filename=pathlib.Path(filename) if filename else None,
+        )
 
     def to_file(
         self,
