@@ -121,15 +121,13 @@ class ElementPlotSettings(NamedTuple):
     alpha: float = 1.0
 
 
-plot_settings_by_element = {
-    auto_lattice.Undulator: ElementPlotSettings(color="orange", width=0.2),
-    auto_lattice.Drift: ElementPlotSettings(color="black", width=0.05, alpha=0.5),
-    auto_lattice.Quadrupole: ElementPlotSettings(color="blue", width=0.1),
-    auto_lattice.Corrector: ElementPlotSettings(color="green", width=0.3),
-    auto_lattice.PhaseShifter: ElementPlotSettings(color="red", width=0.2),
-    auto_lattice.Chicane: ElementPlotSettings(color="grey", width=0.4),
-    auto_lattice.Marker: ElementPlotSettings(color="gray", width=0.2),
-}
+class _BarPlotBar(NamedTuple):
+    x: float
+    width: float
+    height: float
+    color: str
+    edgecolor: str
+    element: Union[auto_lattice.Undulator, auto_lattice.Quadrupole]
 
 
 class DuplicatedLineItem(BaseModel):
@@ -332,6 +330,40 @@ def lattice_elements_from_list(
             )
         res[label] = element
     return res
+
+
+def _nice_bar_plot(
+    ax: matplotlib.axes.Axes,
+    bars: Sequence[_BarPlotBar],
+    units: str,
+    label: str,
+    alpha: float = 1.0,
+    show_labels: bool = True,
+):
+    if not bars:
+        return None
+    values = [bar.height for bar in bars]
+    y, _, prefix = nice_array(values)
+    ylabel = f"{label} ({prefix}{units})"
+    ax.bar(
+        x=[bar.x + bar.width / 2 for bar in bars],
+        height=y,
+        width=[bar.width for bar in bars],
+        edgecolor=[bar.edgecolor for bar in bars],
+        alpha=alpha,
+    )
+    ax.set_ylabel(ylabel)
+
+    if not show_labels:
+        return
+    for bar in bars:
+        mid = bar.x + (bar.width / 2.0)
+        annotation = ax.annotate(
+            bar.element.label,
+            xy=(mid, 0.0),
+        )
+        annotation.set_rotation(90)
+        annotation.set_fontsize("x-small")
 
 
 class Lattice(BaseModel):
@@ -540,64 +572,31 @@ class Lattice(BaseModel):
             _, ax = plt.subplots()
         assert ax is not None
 
-        def nice_plot(
-            ax: matplotlib.axes.Axes,
-            zs: Sequence[float],
-            values: Sequence[float],
-            units: str,
-            marker: str,
-            color=None,
-            label=None,
-        ):
-            if not values:
-                return None
-            y, _factor, prefix = nice_array(values)
-            ylabel = f"{label} ({prefix}{units})"
-            ax.set_ylabel(ylabel)
-            ax.plot(
-                zs,
-                y,
-                color=color,
-                label=label,
-                alpha=0.5,
-                marker=marker,
-                markersize=2.0,
-            )
-            return ax.fill_between(zs, y, color=color, label=label, alpha=0.15)
-
-        lines = [
-            nice_plot(
-                ax,
-                [z for z, _ in undulators],
-                [und.aw for _, und in undulators],
-                units="1",
-                marker="o",
-                label="$aw$",
+        bars = [
+            _BarPlotBar(
+                x=zend - und.L,
+                width=und.L,
+                height=und.aw,
                 color="red",
-            ),
-            nice_plot(
-                ax.twinx(),
-                [z for z, _ in quads],
-                [quad.k1 for _, quad in quads],
-                units="$1/m^2$",
-                marker="o",
-                label="Quad $k$",
-                color="blue",
-            ),
+                edgecolor="black",
+                element=und,
+            )
+            for zend, und in undulators
         ]
+        _nice_bar_plot(ax, bars, units="1", alpha=1.0, label="$aw$")
 
-        if show_legend:
-            labels = [str(line.get_label() or "") for line in lines if line is not None]
-            ax.legend(lines, labels)
-
-        if show_labels:
-            for z, und in undulators:
-                annotation = ax.annotate(
-                    und.label,
-                    xy=(z, 1.01 * und.aw),
-                )
-                annotation.set_rotation(90)
-                annotation.set_fontsize("xx-small")
+        bars = [
+            _BarPlotBar(
+                x=zend - quad.L,
+                width=quad.L,
+                height=quad.k1,
+                color="blue",
+                edgecolor="blue",
+                element=quad,
+            )
+            for zend, quad in quads
+        ]
+        _nice_bar_plot(ax.twinx(), bars, units="$1/m^2$", alpha=1.0, label="Quad $k$")
 
         ax.set_xlabel("$z$ (m)")
         ax.set_title(f"{beamline} Layout")
