@@ -499,8 +499,8 @@ class Lattice(BaseModel):
         *,
         ax: Optional[matplotlib.axes.Axes] = None,
         show_labels: bool = True,
-        show_legend: bool = True,
         show: bool = True,
+        normalize_aw: bool = False,
     ):
         """
         Plot the layout of the given beamline.
@@ -515,6 +515,9 @@ class Lattice(BaseModel):
             Show labels for each undulator.
         show : bool
             Show the plot.
+        normalize_aw : bool, default=False
+            Normalize undulator strengths with respect to the first undulator
+            ($aw0$): $aw / aw0 - 1$
         """
         elements = self.by_z_location(beamline)
         undulators = [
@@ -531,18 +534,30 @@ class Lattice(BaseModel):
             _, ax = plt.subplots()
         assert ax is not None
 
+        aw0 = undulators[0][1].aw if undulators else 1.0
+        if aw0 == 0.0:
+            # Avoid dividing by zero when the strengths aren't yet set
+            normalize_aw = False
+
         bars = [
             _BarPlotBar(
                 x=zend - und.L,
                 width=und.L,
-                height=und.aw,
+                height=und.aw / aw0 - 1 if normalize_aw else und.aw,
                 color="red",
                 edgecolor="black",
                 element=und,
             )
             for zend, und in undulators
         ]
-        _nice_bar_plot(ax, bars, units="1", alpha=1.0, label="$aw$")
+        _nice_bar_plot(
+            ax,
+            bars,
+            units="1",
+            alpha=1.0,
+            label="$aw/aw0 - 1$" if normalize_aw else "$aw$",
+            show_labels=show_labels,
+        )
 
         bars = [
             _BarPlotBar(
@@ -555,7 +570,14 @@ class Lattice(BaseModel):
             )
             for zend, quad in quads
         ]
-        _nice_bar_plot(ax.twinx(), bars, units="$1/m^2$", alpha=1.0, label="Quad $k$")
+        _nice_bar_plot(
+            ax.twinx(),
+            bars,
+            units="$1/m^2$",
+            alpha=1.0,
+            label="Quad $k$",
+            show_labels=show_labels,
+        )
 
         ax.set_xlabel("$z$ (m)")
         ax.set_title(f"{beamline} Layout")

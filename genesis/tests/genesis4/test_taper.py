@@ -11,9 +11,9 @@ from ...version4 import Lattice, Undulator, Line, Quadrupole
 def flat_line():
     return Lattice(
         elements={
-            "U1": Undulator(lambdau=0.1, nwig=1, aw=0.3),
+            "U1": Undulator(lambdau=0.1, nwig=1, aw=0.1),
             "U2": Undulator(lambdau=0.2, nwig=1, aw=0.2),
-            "U3": Undulator(lambdau=0.3, nwig=1, aw=0.1),
+            "U3": Undulator(lambdau=0.3, nwig=1, aw=0.3),
             "LN": Line(elements=["U1", "U2", "U3"]),
         }
     )
@@ -223,9 +223,28 @@ def test_is_flat(lattice: Lattice, is_flat: bool) -> None:
     assert lattice.is_flat("LN") == is_flat
 
 
-def test_plot(flat_line: Lattice) -> None:
-    flat_line.plot("LN", show=False)
-    plt.savefig(test_artifacts / "test_plot.png")
+@pytest.mark.parametrize(
+    ("show_labels", "normalize_aw"),
+    [
+        (True, True),
+        (True, False),
+        (False, True),
+        (False, False),
+    ],
+)
+def test_plot(
+    request: pytest.FixtureRequest,
+    flat_line: Lattice,
+    show_labels: bool,
+    normalize_aw: bool,
+) -> None:
+    flat_line.plot(
+        "LN",
+        show=False,
+        show_labels=show_labels,
+        normalize_aw=normalize_aw,
+    )
+    plt.savefig(test_artifacts / f"{request.node.name}.png")
 
 
 def test_flatten_example() -> None:
