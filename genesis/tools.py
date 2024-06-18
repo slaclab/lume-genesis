@@ -13,6 +13,7 @@ import subprocess
 import sys
 import textwrap
 import traceback
+import typing
 import uuid
 from numbers import Number
 from typing import Any, Dict, Generator, Mapping, Optional, Sequence, Tuple, Union
@@ -26,6 +27,14 @@ try:
     from typing import Literal
 except ImportError:
     from typing_extensions import Literal
+
+try:
+    from types import UnionType
+except ImportError:
+    # Python < 3.10
+    union_types = {Union}
+else:
+    union_types = {UnionType, Union}
 
 
 logger = logging.getLogger(__name__)
@@ -897,3 +906,41 @@ def make_dotted_aliases(
         return alias.replace("__", "_")
 
     return {clean(alias): attr for alias, attr in aliases.items()}
+
+
+def field_allows_reference(field: pydantic.fields.FieldInfo) -> bool:
+    """Check if a field allows for a Reference type."""
+    # A lazy method rather than full inspection of the annotated type. This
+    # should work well enough assuming our type hints don't become extremely
+    # complicated.
+    return "Reference" in str(field.annotation)
+
+
+def get_primary_type_for_field(field: pydantic.fields.FieldInfo) -> type:
+    """
+    Get the primary Python type for a given pydantic field (FieldInfo).
+
+    For example, if a field annotation accepts both floating point values and a
+    Reference the primary type would be `float`.
+    """
+
+    def is_model(typ: object):
+        return inspect.isclass(typ) and issubclass(typ, pydantic.BaseModel)
+
+    def check_type(typ: type) -> type:
+        if is_model(typ):
+            return typ
+        if typ in {float, int, bool, str}:
+            return typ
+        if typing.get_origin(typ) in union_types:
+            for subtype in typing.get_args(typ):
+                if is_model(subtype):
+                    if subtype.__name__ == "Reference":
+                        continue
+                    return subtype
+                # TODO: throwing away anything beyond a union of 2
+                return check_type(subtype)
+        raise TypeError(f"Unhandled type: {typ}")
+
+    assert field.annotation is not None
+    return check_type(field.annotation)

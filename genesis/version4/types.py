@@ -12,14 +12,6 @@ from pmd_beamphysics.units import pmd_unit
 
 from .. import tools
 
-try:
-    from types import UnionType
-except ImportError:
-    # Python < 3.10
-    union_types = {Union}
-else:
-    union_types = {UnionType, Union}
-
 from typing_extensions import Annotated, Literal, NotRequired, TypedDict, override
 
 

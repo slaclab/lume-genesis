@@ -38,16 +38,18 @@ from ._main import (
     Write,
 )
 from .core import (
-    AnyBeamlineElement,
     AnyNameList,
-    DuplicatedLineItem,
     Genesis4Input,
+    MainInput,
+    ProfileArray,
+)
+from .lattice import (
+    AnyBeamlineElement,
+    DuplicatedLineItem,
     Lattice,
     Line,
     LineItem,
-    MainInput,
     PositionedLineItem,
-    ProfileArray,
 )
 
 __all__ = [

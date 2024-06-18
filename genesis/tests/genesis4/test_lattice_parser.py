@@ -5,7 +5,7 @@ import lark
 import pytest
 
 from ...version4 import Genesis4, Lattice
-from ...version4.input.core import new_lattice_parser
+from ...version4.input.parsers import new_lattice_parser
 
 test_v4_root = pathlib.Path(__file__).resolve().parent
 genesis4_lattices = tuple(test_v4_root.glob("*.lat"))

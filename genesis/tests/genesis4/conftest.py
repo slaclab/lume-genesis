@@ -32,7 +32,7 @@ from ...version4.input import (
     Undulator,
 )
 from ...version4.input import _main as auto_main
-from ...version4.input.core import AnyBeamlineElement, AnyNameList
+from ...version4.input import AnyBeamlineElement, AnyNameList
 from ...version4.types import Reference
 from ..conftest import test_artifacts, test_root
 

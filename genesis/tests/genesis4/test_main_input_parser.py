@@ -5,7 +5,7 @@ import lark
 import pytest
 
 from ...version4 import Genesis4, MainInput
-from ...version4.input.core import new_main_input_parser
+from ...version4.input.parsers import new_main_input_parser
 
 test_v4_root = pathlib.Path(__file__).resolve().parent
 genesis4_input_files = tuple(test_v4_root.glob("*.in"))
