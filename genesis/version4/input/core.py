@@ -182,8 +182,8 @@ def get_particles_slen(particles: ParticleGroup) -> float:
     from this initial particle distribution.
     """
     return max(
-        c_light * particles.t.ptp(),
-        particles.z.ptp(),
+        c_light * np.ptp(particles.t),
+        np.ptp(particles.z),
     )
 
 
