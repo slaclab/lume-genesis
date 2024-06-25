@@ -530,13 +530,19 @@ class MainInput(BaseModel):
     ) -> int:
         """Insert a ParticleGroup instance as as an initial particle distribution."""
 
-        to_insert = ImportDistribution(
-            file="initial_particles.h5",
-            charge=particles.charge if isinstance(particles, ParticleGroup) else 0.0,
-        )
+        if isinstance(particles, ParticleGroup):
+            to_insert = ImportDistribution(
+                file="initial_particles.h5",
+                charge=particles.charge,
+            )
+        else:
+            to_insert = ImportBeam(file="initial_particles.h5")
 
         try:
-            previous = self.import_distribution
+            if isinstance(to_insert, ImportDistribution):
+                previous = self.import_distribution
+            else:
+                previous = self.import_beam
         except NamelistAccessError:
             # No previous import_distribution
             if self.tracks:
@@ -547,8 +553,8 @@ class MainInput(BaseModel):
                 insert_pos = self.namelists.index(self.times[0]) + 1
             else:
                 logger.warning(
-                    "Unable to determine where to insert the importdistribution; "
-                    "placing it at the end"
+                    f"Unable to determine where to insert the {type(to_insert).__name__}; "
+                    f"placing it at the end"
                 )
                 insert_pos = len(self.namelists)
         else:
@@ -966,6 +972,11 @@ class Genesis4Input(BaseModel):
                     "initial_particles cleared; removing ImportDistribution namelist."
                 )
                 self.main.remove(ImportDistribution)
+            if ImportBeam in self.main.by_namelist:
+                logger.warning(
+                    "initial_particles cleared; removing ImportBeam namelist."
+                )
+                self.main.remove(ImportBeam)
         else:
             self.main.insert_initial_particles(self.initial_particles, update_slen=True)
         return self
