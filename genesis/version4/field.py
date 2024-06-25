@@ -104,18 +104,18 @@ class FieldFile(BaseModel):
         ----------
         h5 : h5py.File
         """
+        _nx, _ny, nz = self.dfl.shape
         h5["gridpoints"] = np.asarray([self.param.gridpoints])
         h5["gridsize"] = np.asarray([self.param.gridsize])
         h5["refposition"] = np.asarray([self.param.refposition])
         h5["wavelength"] = np.asarray([self.param.wavelength])
-        h5["slicecount"] = np.asarray([self.param.slicecount])
+        h5["slicecount"] = np.asarray([nz])
         h5["slicespacing"] = np.asarray([self.param.slicespacing])
         for key, value in (self.param.model_extra or {}).items():
             if not isinstance(value, np.ndarray):
                 value = np.asarray([value])
             h5[key] = value
 
-        _nx, _ny, nz = self.dfl.shape
         # Note from Sven:
         #   The order of the 1D array of the wavefront is with the x
         #   coordinates as the inner loop.
@@ -123,7 +123,8 @@ class FieldFile(BaseModel):
         #   This is done in the routine getLLGridpoint in the field class.
         # Therefore the transpose is needed below
         for z in range(nz):
-            slice_group = h5.create_group(f"slice{z:06}")
+            slice_index = z + 1
+            slice_group = h5.create_group(f"slice{slice_index:06}")
             slice_group["field-real"] = self.dfl[:, :, z].real.T.flatten()
             slice_group["field-imag"] = self.dfl[:, :, z].imag.T.flatten()
 
