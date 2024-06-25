@@ -1122,10 +1122,12 @@ class Genesis4Input(BaseModel):
         if not workdir.is_dir():
             raise ValueError("Provided path is not a directory: {}")
 
-        dist = self.main.import_distribution
-        particle_file = pathlib.Path(workdir) / dist.file
-
-        if isinstance(self.initial_particles, ParticleGroup):
+        if isinstance(self.initial_particles, Genesis4ParticleData):
+            beam = self.main.import_beam
+            particle_file = pathlib.Path(workdir) / beam.file
+        elif isinstance(self.initial_particles, ParticleGroup):
+            dist = self.main.import_distribution
+            particle_file = pathlib.Path(workdir) / dist.file
             if dist.charge != self.initial_particles.charge:
                 logger.warning(
                     f"Updating distribution charge: was={dist.charge} "
@@ -1139,6 +1141,10 @@ class Genesis4Input(BaseModel):
                     logger.warning(
                         f"Updating time namelist slen: was={was} now {time_.slen}",
                     )
+        else:
+            raise ValueError(
+                f"Initial particles type unexpected: {type(self.initial_particles).__name__}"
+            )
 
         self.initial_particles.write_genesis4_distribution(
             str(particle_file),
