@@ -33,6 +33,7 @@ from . import archive as _archive
 from . import parsers
 from .field import FieldFile, get_key_from_filename
 from .loadable import LoadableFieldH5File, LoadableParticleGroupH5File
+from .particles import Genesis4ParticleData
 from .plot import PlotLimits, PlotMaybeLimits, plot_stats_with_layout
 from .types import (
     AnyPath,
@@ -1331,8 +1332,8 @@ class Genesis4Output(Mapping, BaseModel, arbitrary_types_allowed=True):
         -------
         FieldFile
         """
-        lazy = self.field_files[key]
-        field = lazy.load()
+        loadable = self.field_files[key]
+        field = loadable.load()
         assert isinstance(field, FieldFile)
         self.field[key] = field
         logger.info(f"Loaded field data: '{key}'")
@@ -1353,8 +1354,8 @@ class Genesis4Output(Mapping, BaseModel, arbitrary_types_allowed=True):
             If set, will smear the phase over the sample (skipped) slices,
             preserving the modulus.
         """
-        lazy = self.particle_files[key]
-        group = lazy.load(smear=smear)
+        loadable = self.particle_files[key]
+        group = loadable.load(smear=smear)
         assert isinstance(group, ParticleGroup)
         self.particles[key] = group
         logger.info(
@@ -1362,6 +1363,23 @@ class Genesis4Output(Mapping, BaseModel, arbitrary_types_allowed=True):
             f"{len(group)} particles"
         )
         return group
+
+    def load_raw_particles_by_key(self, key: FileKey) -> Genesis4ParticleData:
+        """
+        Loads a single particle file into a raw Genesis4ParticleData object.
+
+        Parameters
+        ----------
+        key : str or int
+            The label of the particles (e.g., "end" of "end.par.h5"), or the
+            integer integration step.
+        """
+        loadable = self.particle_files[key]
+        particles = Genesis4ParticleData.from_filename(loadable.filename)
+        logger.info(
+            f"Loaded raw particle data: '{key}' with {len(particles.slices)} slices"
+        )
+        return particles
 
     def load_particles(self, smear: bool = True) -> List[FileKey]:
         """

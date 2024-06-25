@@ -24,6 +24,7 @@ from . import parsers
 from .field import FieldFile
 from .input import Genesis4Input, Lattice, MainInput
 from .output import Genesis4Output, RunInfo
+from .particles import Genesis4ParticleData
 from .types import AnyPath
 
 logger = logging.getLogger(__name__)
@@ -162,7 +163,7 @@ class Genesis4(CommandWrapper):
         Whether or not to produce verbose output.
     timeout : float, default=None
         The timeout in seconds to be used when running Genesis.
-    initial_particles : ParticleGroup, optional
+    initial_particles : ParticleGroup or Genesis4ParticleData, optional
         Initial particles to use in the simulation, using the
         OpenPMD-beamphysics standard.
     """
@@ -196,7 +197,7 @@ class Genesis4(CommandWrapper):
         use_temp_dir: bool = True,
         verbose: bool = tools.global_display_options.verbose >= 1,
         timeout: Optional[float] = None,
-        initial_particles: Optional[ParticleGroup] = None,
+        initial_particles: Optional[Union[ParticleGroup, Genesis4ParticleData]] = None,
         initial_field: Optional[FieldFile] = None,
         **kwargs: Any,
     ):
@@ -517,12 +518,15 @@ class Genesis4(CommandWrapper):
 
     @property
     @override
-    def initial_particles(self) -> Optional[ParticleGroup]:
+    def initial_particles(self) -> Optional[Union[ParticleGroup, Genesis4ParticleData]]:
         """Initial particles, if defined.  Property is alias for `.input.main.initial_particles`."""
         return self.input.initial_particles
 
     @initial_particles.setter
-    def initial_particles(self, value: Optional[ParticleGroup]) -> None:
+    def initial_particles(
+        self,
+        value: Optional[Union[ParticleGroup, Genesis4ParticleData]],
+    ) -> None:
         self.input.initial_particles = value
 
     @property

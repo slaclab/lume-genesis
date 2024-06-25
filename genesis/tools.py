@@ -179,8 +179,7 @@ def fstr(s):
     """
     Makes a fixed string for h5 files
     """
-    # NOTE: this is back-compat for numpy.string_ which implicitly uses ASCII
-    return s.encode("ascii")
+    return np.bytes_(s)
 
 
 def native_type(value):

@@ -39,6 +39,7 @@ from ...errors import (
 )
 from .. import archive as _archive
 from ..field import FieldFile
+from ..particles import Genesis4ParticleData
 from ..types import (
     AnyPath,
     BaseModel,
@@ -50,7 +51,7 @@ from ..types import (
     ValueType,
 )
 from . import _main as auto_main
-from . import util
+from . import parsers, util
 from ._main import (
     ImportBeam,
     ImportDistribution,
@@ -61,7 +62,6 @@ from ._main import (
     SequenceFilelist,
     Setup,
 )
-from . import parsers
 
 try:
     from typing import Literal
@@ -502,6 +502,7 @@ class MainInput(BaseModel):
             time=time,
         )
 
+        logger.debug("Inserting initial field file: %s", field)
         try:
             previous = self.import_field
         except NamelistAccessError:
@@ -524,13 +525,14 @@ class MainInput(BaseModel):
 
     def insert_initial_particles(
         self,
-        particles: ParticleGroup,
+        particles: Union[ParticleGroup, Genesis4ParticleData],
         update_slen: bool,
     ) -> int:
         """Insert a ParticleGroup instance as as an initial particle distribution."""
+
         to_insert = ImportDistribution(
             file="initial_particles.h5",
-            charge=particles.charge,
+            charge=particles.charge if isinstance(particles, ParticleGroup) else 0.0,
         )
 
         try:
@@ -553,7 +555,7 @@ class MainInput(BaseModel):
             insert_pos = self.namelists.index(previous)
             self.remove(previous)
 
-        if update_slen:
+        if update_slen and isinstance(particles, ParticleGroup):
             for time_ in self.times:
                 was = time_.slen
                 time_.slen = get_particles_slen(particles)
@@ -950,7 +952,9 @@ class Genesis4Input(BaseModel):
     source_path: pathlib.Path = pathlib.Path(".")
     output_path: Optional[AnyPath] = None
     input_filename: str = "genesis4.in"
-    initial_particles: Optional[PydanticParticleGroup] = None
+    initial_particles: Optional[Union[PydanticParticleGroup, Genesis4ParticleData]] = (
+        None
+    )
     initial_field: Optional[FieldFile] = None
     # initial_wavefront: Optional[PmdWavefront] = None
 
@@ -1109,19 +1113,22 @@ class Genesis4Input(BaseModel):
 
         dist = self.main.import_distribution
         particle_file = pathlib.Path(workdir) / dist.file
-        if dist.charge != self.initial_particles.charge:
-            logger.warning(
-                f"Updating distribution charge: was={dist.charge} "
-                f"now={self.initial_particles.charge}"
-            )
-            dist.charge = self.initial_particles.charge
-        for time_ in self.main.times:
-            was = time_.slen
-            time_.slen = get_particles_slen(self.initial_particles)
-            if time_.slen != was:
+
+        if isinstance(self.initial_particles, ParticleGroup):
+            if dist.charge != self.initial_particles.charge:
                 logger.warning(
-                    f"Updating time namelist slen: was={was} now {time_.slen}",
+                    f"Updating distribution charge: was={dist.charge} "
+                    f"now={self.initial_particles.charge}"
                 )
+                dist.charge = self.initial_particles.charge
+            for time_ in self.main.times:
+                was = time_.slen
+                time_.slen = get_particles_slen(self.initial_particles)
+                if time_.slen != was:
+                    logger.warning(
+                        f"Updating time namelist slen: was={was} now {time_.slen}",
+                    )
+
         self.initial_particles.write_genesis4_distribution(
             str(particle_file),
             verbose=True,
