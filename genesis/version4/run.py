@@ -159,8 +159,11 @@ class Genesis4(CommandWrapper):
         Whether or not to use a temporary directory to run the process.
     workdir : path-like, default=None
         The work directory to be used.
-    verbose : bool, default=False
+    verbose : bool, optional
         Whether or not to produce verbose output.
+        Defaults to `global_display_options.verbose`, which is tied to the
+        `LUME_VERBOSE` environment variable.
+        When the variable is unset, `verbose` is `False` by default.
     timeout : float, default=None
         The timeout in seconds to be used when running Genesis.
     initial_particles : ParticleGroup or Genesis4ParticleData, optional

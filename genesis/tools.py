@@ -62,7 +62,7 @@ class DisplayOptions(
         Filter out unimportant details (pydantic methods and such) from
         Genesis4 classes.
         Environment variable: LUME_FILTER_TAB_COMPLETION.
-    verbose : int, default=1
+    verbose : int, default=0
         At level 0, hide Genesis4 output during `run()` by default.
         At level 1, show Genesis4 output during `run()` by default.
         Equivalent to configuring the default setting of `Genesis4.verbose` to
@@ -74,7 +74,7 @@ class DisplayOptions(
     console_render_mode: Literal["markdown", "genesis", "repr"] = "repr"
     include_description: bool = True
     ascii_table_type: int = prettytable.MARKDOWN
-    verbose: int = 1
+    verbose: int = 0
     filter_tab_completion: bool = True
 
 
