@@ -63,7 +63,14 @@ def add_layout_to_axes(
 
         y, _factor, prefix = nice_array(fz)
 
-        ax1.fill_between(zlist / xfactor, y, color=color, label=label, alpha=0.5)
+        ax1.fill_between(
+            zlist / xfactor,
+            y,
+            color=color,
+            label=label,
+            alpha=0.5,
+            step="mid",
+        )
 
         ylabel = f"{label} ({prefix}{units})"
         ax1.set_ylabel(ylabel)
