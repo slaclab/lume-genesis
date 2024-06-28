@@ -493,9 +493,32 @@ class Lattice(BaseModel):
 
         return [zelem.element.aw for zelem in undulators]
 
+    def _check_beamline_name(self, name: Optional[str] = None) -> str:
+        self.fix_labels()
+        options = ", ".join(line.label for line in self.lines)
+        if name is not None:
+            el = self.elements.get(name, None)
+            if el is None:
+                raise ValueError(
+                    f"{name!r} is not a valid beamline.  Options are: {options}"
+                )
+            if not isinstance(el, Line):
+                raise ValueError(
+                    f"{name!r} is not a valid beamline.  It's a {type(el).__name__}"
+                )
+
+            return name
+
+        if len(self.lines) == 1:
+            return self.lines[0].label
+
+        raise ValueError(
+            f"You must specify a beamline to plot.  Options are: {options}"
+        )
+
     def plot(
         self,
-        beamline: str,
+        beamline: Optional[str] = None,
         *,
         ax: Optional[matplotlib.axes.Axes] = None,
         show_labels: bool = True,
@@ -519,6 +542,7 @@ class Lattice(BaseModel):
             Normalize undulator strengths with respect to the first undulator
             ($aw0$): $aw / aw0 - 1$
         """
+        beamline = self._check_beamline_name(beamline)
         elements = self.by_z_location(beamline)
         undulators = [
             (elem.zend, elem.element)
