@@ -524,6 +524,9 @@ class Lattice(BaseModel):
         show_labels: bool = True,
         show: bool = True,
         normalize_aw: bool = False,
+        figsize: Optional[Tuple[float, float]] = None,
+        xlim: Optional[Tuple[float, float]] = None,
+        ylim: Optional[Tuple[float, float]] = None,
     ):
         """
         Plot the layout of the given beamline.
@@ -541,6 +544,12 @@ class Lattice(BaseModel):
         normalize_aw : bool, default=False
             Normalize undulator strengths with respect to the first undulator
             ($aw0$): $aw / aw0 - 1$
+        figsize : Tuple[float, float], optional
+            The figure size to create.  Used if ``ax`` is not provided.
+        xlim : Tuple[float, float], optional
+            X axis limits for the plot.
+        ylim : Tuple[float, float], optional
+            Y axis limits for the plot.
         """
         beamline = self._check_beamline_name(beamline)
         elements = self.by_z_location(beamline)
@@ -555,7 +564,7 @@ class Lattice(BaseModel):
             if isinstance(elem.element, auto_lattice.Quadrupole)
         ]
         if ax is None:
-            _, ax = plt.subplots()
+            _, ax = plt.subplots(figsize=figsize)
         assert ax is not None
 
         aw0 = undulators[0][1].aw if undulators else 1.0
@@ -605,6 +614,10 @@ class Lattice(BaseModel):
 
         ax.set_xlabel("$z$ (m)")
         ax.set_title(f"{beamline} Layout")
+        if xlim is not None:
+            ax.set_xlim(xlim)
+        if ylim is not None:
+            ax.set_xlim(ylim)
         if show:
             plt.show()
 
