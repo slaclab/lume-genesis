@@ -110,6 +110,16 @@ def test_plot_smoke(
     fig.savefig(test_root / "test_output_plot_smoke.png")
 
 
+def test_lattice_plot_smoke(
+    output: Genesis4Output,
+) -> None:
+    ax = output.lattice.plot()
+    assert ax is not None
+    fig = ax.get_figure()
+    assert fig is not None
+    fig.savefig(test_root / "test_output_lattice_plot_smoke.png")
+
+
 def test_mock_load_failure(
     genesis4: Genesis4,
     monkeypatch: pytest.MonkeyPatch,

@@ -20,7 +20,9 @@ from typing import (
 )
 
 import h5py
+import matplotlib.axes
 import matplotlib.figure
+import matplotlib.pyplot as plt
 import numpy as np
 import pydantic
 import pydantic.alias_generators
@@ -293,6 +295,40 @@ class OutputLattice(_OutputBase):
             "in case Genesis 4 changes and LUME-Genesis is not yet ready for it."
         ),
     )
+
+    def plot(self, ax: Optional[matplotlib.axes.Axes] = None) -> matplotlib.axes.Axes:
+        """
+        Plot the lattice $aw$ and $qf$ versus $z$.
+
+        Parameters
+        ----------
+        ax : matplotlib.axes.Axes, optional
+            The axes to insert the plot.  If not specified, a new plot will be
+            generated.
+
+        Returns
+        -------
+        matplotlib.axes.Axes
+        """
+
+        if ax is None:
+            _, ax = plt.subplots()
+
+        assert ax is not None
+
+        aw_color = "tab:red"
+        ax.set_xlabel(r"$z$ (m)")
+        ax.set_ylabel(r"$a_w$", color=aw_color)
+        ax.tick_params(axis="y", labelcolor=aw_color)
+        ax.step(self.z, self.aw, color=aw_color, where="post")
+
+        ax2 = ax.twinx()
+        qf_color = "tab:blue"
+        ax2.set_ylabel(r"$k_1$ (m$^{-2}$)", color=qf_color)
+        ax2.tick_params(axis="y", labelcolor=qf_color)
+        ax2.step(self.z, self.qf, color=qf_color, where="post")
+        plt.show()
+        return ax
 
 
 class OutputBeamStat(_OutputBase):
