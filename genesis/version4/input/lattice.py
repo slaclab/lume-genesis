@@ -308,6 +308,7 @@ def _nice_bar_plot(
         x=[bar.x + bar.width / 2 for bar in bars],
         height=y,
         width=[bar.width for bar in bars],
+        color=[bar.color for bar in bars],
         edgecolor=[bar.edgecolor for bar in bars],
         alpha=alpha,
     )
@@ -578,7 +579,7 @@ class Lattice(BaseModel):
                 width=und.L,
                 height=und.aw / aw0 - 1 if normalize_aw else und.aw,
                 color="red",
-                edgecolor="black",
+                edgecolor="red",
                 element=und,
             )
             for zend, und in undulators
@@ -587,7 +588,7 @@ class Lattice(BaseModel):
             ax,
             bars,
             units="1",
-            alpha=1.0,
+            alpha=0.5,
             label="$aw/aw0 - 1$" if normalize_aw else "$aw$",
             show_labels=show_labels,
         )
@@ -607,7 +608,7 @@ class Lattice(BaseModel):
             ax.twinx(),
             bars,
             units="$1/m^2$",
-            alpha=1.0,
+            alpha=0.5,
             label="Quad $k$",
             show_labels=show_labels,
         )
