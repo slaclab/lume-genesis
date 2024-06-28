@@ -69,7 +69,7 @@ def add_layout_to_axes(
             color=color,
             label=label,
             alpha=0.5,
-            step="mid",
+            step="post",
         )
 
         ylabel = f"{label} ({prefix}{units})"
