@@ -10,9 +10,7 @@ dependencies:
   - genesis4 >=4.6.6=mpi_openmpi*
   - jinja2
   - lark
-  # NOTE: pinning back numpy to 1.x for now until dependencies
-  # (openpmd-beamphysics and maybe others) get updated.
-  - numpy <2
+  - numpy
   - prettytable
   - psutil
   - pydantic >2
