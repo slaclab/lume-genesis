@@ -25,7 +25,11 @@ from ... import version4 as g4
 from ...version4 import Genesis4, Lattice, MainInput, Track, Write
 from ...version4.output import FieldFile
 from ...version4.types import Reference
-from ..conftest import genesis4_examples, genesis4_example1_path, genesis4_example2_path
+from ..conftest import (
+    genesis4_examples,
+    genesis4_example1_path,
+    genesis4_example2_path,
+)
 
 
 @pytest.fixture(scope="function")
@@ -897,3 +901,18 @@ def test_genesis4_particles(_shorten_zstop, tmp_path: pathlib.Path):
     loaded = Genesis4.from_archive(tmp_path / "archive.h5")
     assert loaded.initial_particles is not None
     assert np.isclose(loaded.initial_particles.charge, P1r.charge)
+
+
+def test_example1_lattice_plot() -> None:
+    G = Genesis4(genesis4_example1_path / "Example1.in")
+    with pytest.raises(ValueError):
+        G.input.lattice.plot()  # need to specify beamline name
+    with pytest.raises(ValueError):
+        G.input.lattice.plot("invalid_beamline_name")
+    with pytest.raises(ValueError):
+        G.input.lattice.plot("QF")  # quadrupole, not line
+    G.input.lattice.plot("FODO")
+    G.input.lattice.plot("FEL")
+
+    G.input.lattice.elements.pop("FEL")
+    G.input.lattice.plot()  # only a single beamline now, plot it
