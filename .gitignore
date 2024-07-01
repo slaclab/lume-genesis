@@ -108,3 +108,7 @@ venv.bak/
 .DS_Store
 
 /genesis/_version.py
+docs/examples/genesis4/tmp*
+
+# Don't include animations
+*.mp4

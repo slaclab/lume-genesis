@@ -1,6 +1,7 @@
 import numpy as np
 
 from scipy.constants import Planck, speed_of_light, elementary_charge
+from .tools import fstr
 
 
 def write_beam_file(fname, beam_columns, verbose=False):
@@ -41,13 +42,6 @@ def write_beam_file(fname, beam_columns, verbose=False):
 
 
 dim_m = (1, 0, 0, 0, 0, 0, 0)
-
-
-def fstr(s):
-    """
-    Makes a fixed string for h5 files
-    """
-    return np.string_(s)
 
 
 def pmd_init(h5, basePath="/data/%T/", meshesPath="meshes/", version=None):

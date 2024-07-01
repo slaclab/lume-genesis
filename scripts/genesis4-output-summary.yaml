@@ -1,0 +1,233 @@
+/Beam:
+  description: Genesis 4 output beam information
+/Beam/LSCfield:
+  description: Longitudinal space charge
+  units: eV/m
+/Beam/SSCfield:
+  description: Short-range space charge
+  units: eV/m
+/Beam/alphax:
+  description: Twiss alpha horizontal. Evaluated only at the beginning.
+  units: rad
+/Beam/alphay:
+  description: Twiss alpha vertical. Evaluated only at the beginning.
+  units: rad
+/Beam/betax:
+  description: Twiss beta horizontal. Evaluated only at the beginning.
+  units: m
+/Beam/betay:
+  description: Twiss beta vertical. Evaluated only at the beginning.
+  units: m
+/Beam/bunching:
+  description: Evaluated at each integration step. [unitless]
+/Beam/bunchingphase:
+  description: Evaluated at each integration step.
+  units: rad
+/Beam/current:
+  description: Beam current. Evaluated only at the beginning.
+  units: A
+/Beam/efield:
+  description: Efield, internally eloss+longESC
+  units: eV/m
+/Beam/emax:
+  description: Particle energy maximum.
+  units: mc^2
+/Beam/emin:
+  description: Particle energy minimum.
+  units: mc^2
+/Beam/emitx:
+  description: Beam horizontal emittance. Evaluated only at the beginning.
+  units: m
+/Beam/emity:
+  description: Beam vertical emittance. Evaluated only at the beginning.
+  units: m
+/Beam/energy:
+  description: Evaluated at each integration step.
+  units: mc^2
+/Beam/energyspread:
+  description: Evaluated at each integration step.
+  units: mc^2
+/Beam/pxmax:
+  description: Particle horizontal maximum momentum
+  units: rad
+/Beam/pxmin:
+  description: Particle horizontal minimum momentum
+  units: rad
+/Beam/pxposition:
+  description: Particle horizontal position in momentum space
+  units: rad
+/Beam/pymax:
+  description: Particle vertical maximum momentum
+  units: rad
+/Beam/pymin:
+  description: Particle vertical minimum momentum
+  units: rad
+/Beam/pyposition:
+  description: Particle vertical position in momentum space
+  units: rad
+/Beam/wakefield:
+  description: Wakefield, internally the energy loss.
+  units: eV/m
+/Beam/xmax:
+  description: Particle horizontal maximum position
+  units: m
+/Beam/xmin:
+  description: Particle horizontal minimum position
+  units: m
+/Beam/xposition:
+  description: Partical horizontal position
+  units: m
+/Beam/xsize:
+  description: Beam horizontal sigma.
+  units: m
+/Beam/ymax:
+  description: Particle vertical maximum position
+  units: m
+/Beam/ymin:
+  description: Particle vertical minimum position
+  units: m
+/Beam/yposition:
+  description: Partical vertical position
+  units: m
+/Beam/ysize:
+  description: Beam horizontal sigma.
+  units: m
+/Field:
+  description: Loaded field data, keyed by filename base (e.g., 'end' of 'end.fld.h5').
+/Global:
+  description: Genesis 4 output global information
+/Global/frequency:
+  description: Frequency
+  units: eV
+/Global/gamma0:
+  description: Reference energy in units of the electron rest mass
+  units: mc^2
+/Global/lambdaref:
+  description: Reference wavelength
+  units: m
+/Global/one4one:
+  description: Flag to enable or disable simulation to resolve each electron in the
+    simulation.
+/Global/s:
+  description: Longitudinal position
+  units: m
+/Global/sample:
+  description: Sample rate in units of the reference wavelength from the setup namelist,
+    so that the number of slices is given by SLEN / LAMBDA0/SAMPLE after SLEN has
+    been adjusted to fit the cluster size.
+/Global/scan:
+  description: ''
+/Global/slen:
+  description: Slice length
+  units: m
+/Global/time:
+  description: ''
+/Lattice:
+  description: Genesis 4 output lattice information
+/Lattice/aw:
+  description: The dimensionless rms undulator parameter. For planar undulator this
+    value is smaller by a factor $1 / \sqrt{2}$ than its K-value, while for helical
+    undulator rms and peak values are identical.
+/Lattice/ax:
+  description: Offset of the undulator module in $x$ in meter.
+  units: m
+/Lattice/ay:
+  description: Offset of the undulator module in $y$ in meter.
+  units: m
+/Lattice/chic_angle:
+  description: ''
+  units: degree
+/Lattice/chic_lb:
+  description: Length of an individual dipole in meter.
+  units: m
+/Lattice/chic_ld:
+  description: Drift between the outer and inner dipoles, projected onto the undulator
+    axis. The actual path length is longer by the factor $1/\cos\theta$, where $\theta$
+    is the bending angle of an individual dipole.
+  units: m
+/Lattice/chic_lt:
+  description: ''
+  units: m
+/Lattice/cx:
+  description: Kick angle in $x$ in units of $\gamma \beta_x$.
+  units: rad
+/Lattice/cy:
+  description: Kick angle in $y$ in units of $\gamma \beta_y$.
+  units: rad
+/Lattice/dz:
+  description: Step length
+  units: m
+/Lattice/gradx:
+  description: Relative transverse gradient of undulator field in $x$ $\equiv (1/a_w)
+    \partial a_w/\partial x$.
+  units: 1/m
+/Lattice/grady:
+  description: Relative transverse gradient of undulator field in $y$ $\equiv (1/a_w)
+    \partial a_w/\partial y$.
+  units: 1/m
+/Lattice/ku:
+  description: ''
+  units: 1/m
+/Lattice/kx:
+  description: Roll-off parameter of the quadratic term of the undulator field in
+    x. It is normalized with respect to $k_u^2$.
+/Lattice/ky:
+  description: Roll-off parameter of the quadratic term of the undulator field in
+    y.
+/Lattice/phaseshift:
+  description: Phase shift in radians.
+  units: rad
+/Lattice/qf:
+  description: Quadrupole focusing strength in $1/m^2$
+  units: 1/m^2
+/Lattice/qx:
+  description: Quadrupole offset in $x$ in meters.
+  units: m
+/Lattice/qy:
+  description: Quadrupole offset in $y$ in meters.
+  units: m
+/Lattice/slippage:
+  description: Lattice slippage.
+/Lattice/z:
+  description: Step Z position in m.  The same length and describes the lattice quantities
+    from the position ``.z[i]`` to ``.z[i]+.dz[i]`` of the i-th integration step.
+  units: m
+/Lattice/zplot:
+  description: For plotting the beam or field parameters along the undulator.
+  units: m
+/Meta:
+  description: Genesis 4 output metadata
+/Meta/Beamdumps:
+  description: ''
+/Meta/Beamdumps/ndumps:
+  description: Number of dumps
+/Meta/Fielddumps:
+  description: ''
+/Meta/Fielddumps/ndumps:
+  description: Number of dumps
+/Meta/HOST:
+  description: Hostname where simulation was run
+/Meta/InputFile:
+  description: Input filename
+/Meta/LatticeFile:
+  description: Lattice filename
+/Meta/TimeStamp:
+  description: Timestamp when data was written
+/Meta/User:
+  description: User who ran the simulation
+/Meta/Version:
+  description: ''
+/Meta/Version/Beta:
+  description: Beta version flag
+/Meta/Version/Build_Info:
+  description: Build information string
+/Meta/Version/Major:
+  description: Major version number
+/Meta/Version/Minor:
+  description: Minor version number
+/Meta/Version/Revision:
+  description: Revision numbr
+/Meta/cwd:
+  description: Working directory for the simulation
+/Meta/mpisize:
+  description: Number of MPI processes

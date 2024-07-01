@@ -1,63 +1,52 @@
 # lume-genesis
-Genesis tools for use in LUME
 
+Genesis tools for use in [LUME](http://lume.science/).
 
-## Installation
+## Installing lume-genesis from conda-forge
 
-Installing lume-genesis via conda-forge
-=======================
-
-Installing `lume-genesis` from the `conda-forge` channel can be achieved by adding `conda-forge` to your channels with:
+### OpenMPI (recommended for parallel calculations)
 
 ```
-conda config --add channels conda-forge
+conda install -c conda-forge lume-genesis genesis2=*=mpi_openmpi* genesis4=*=mpi_openmpi*
 ```
 
-Once the `conda-forge` channel has been enabled, `lume-genesis` can be installed with:
+### MPICH (alternative for parallel calculations)
 
 ```
-conda install lume-genesis
+conda install -c conda-forge lume-genesis genesis2=*=mpi_mpich* genesis4=*=mpi_mpich*
 ```
 
-It is possible to list all of the versions of `lume-genesis` available on your platform with:
+### Non-MPI (non-parallel, single core calculations only)
+
+```
+conda install -c conda-forge lume-genesis
+```
+
+## List all `lume-genesis` versions available
 
 ```
 conda search lume-genesis --channel conda-forge
 ```
 
-Installing Genesis 1.3 version 2 Executables
-============================================
-See: https://github.com/slaclab/Genesis-1.3-Version2
+## Development environment
 
+A conda environment file is provided in this repository and may be used for a
+development environment.
 
+To create a new conda environment using this file, do the following:
 
-
-## Old Genesis 1.3 v2.0 Installation
-Go to <http://genesis.web.psi.ch/download.html> and download:
-<http://genesis.web.psi.ch/download/source/genesis_source_2.0_120629.tar.gz>
-
-Untar, and replace one of the source files with one provided in this repository (cloned at <ROOT>):
+```bash
+git clone https://github.com/slaclab/lume-genesis
+cd lume-genesis
+conda env create -n lume-genesis-dev -f environment.yml
+conda activate lume-genesis-dev
 ```
-  tar -xzvf genesis_source_2.0_120629.tar
-  cd  Genesis_Current
-  cp <ROOT>/lume-genesis/extra/fix_genesis_input/input.f .
-   
-```
-Edit Makefile to point to your compile, and type:
-```
-make
-```
-This should build the  `genesis` binary.
-
-
 
 ## Related Publications
 
 The lume-genesis package was used in the following publications:
 
-*Very high brightness and power LCLS-II hard X-ray pulses*\
+_Very high brightness and power LCLS-II hard X-ray pulses_\
 Aliaksei Halavanau, Franz-Josef Decker, Claudio Emma, Jackson Sheppard, and Claudio Pellegrini\
 J. Synchrotron Rad. (2019). 26\
-https://doi.org/10.1107/S1600577519002492
-
-
+<https://doi.org/10.1107/S1600577519002492>

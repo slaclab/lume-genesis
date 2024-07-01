@@ -1,7 +1,5 @@
 from .tools import fstr, isotime, native_type
 
-import numpy as np
-
 
 # ----------------------------
 # Basic archive metadata
@@ -28,7 +26,7 @@ def genesis_init(h5, version=None):
         h5.attrs[k] = fstr(v)
 
 
-def is_genesis_archive(h5, key="dataType", value=np.string_("lume-genesis")):
+def is_genesis_archive(h5, key="dataType", value=b"lume-genesis"):
     """
     Checks if an h5 handle is a lume-genesis archive
     """

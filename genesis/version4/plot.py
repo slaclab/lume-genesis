@@ -1,78 +1,76 @@
-from pmd_beamphysics.units import nice_array, nice_scale_prefix
-from pmd_beamphysics.labels import mathlabel
+from __future__ import annotations
 
-import numpy as np
+import typing
+from typing import Any, Optional, Sequence, Tuple, Union
 
+import matplotlib.axes
+import matplotlib.figure
 import matplotlib.pyplot as plt
+import numpy as np
+from pmd_beamphysics.labels import mathlabel
+from pmd_beamphysics.units import nice_array, nice_scale_prefix
+
+if typing.TYPE_CHECKING:
+    from .output import Genesis4Output
 
 
-def plot_stats(genesis4_object, keys=["beam_xsize", "beam_ysize"], tex=False, **kwargs):
-    """
-    Plots stats
-
-    """
-    nplots = len(keys)
-
-    fig, axs = plt.subplots(nplots, **kwargs)
-
-    # Make RHS axis for the solenoid field.
-    xdat = genesis4_object.stat("zplot")
-    xmin = min(xdat)
-    xmax = max(xdat)
-    for i, key in enumerate(keys):
-        ax = axs[i]
-
-        ydat = genesis4_object.stat(key)
-        ydat = np.mean(ydat, axis=1)  # Average over slices
-
-        ndat, factor, prefix = nice_array(ydat)
-        unit = genesis4_object.units(key)
-        units = f"{prefix}{unit}"
-        # Hangle label
-        ylabel = mathlabel(key, units=units, tex=tex)
-        ax.set_ylabel(ylabel)
-        ax.set_xlim(xmin, xmax)
-        ax.plot(xdat, ndat)
-    ax.set_xlabel("z (m)")
+PlotMaybeLimits = Tuple[Optional[float], Optional[float]]
+PlotLimits = Tuple[float, float]
 
 
 def add_layout_to_axes(
-    genesis4_object,
+    output: Genesis4Output,
+    ax: matplotlib.axes.Axes,
     *,
-    ax=None,
-    bounds=None,
-    xfactor=1,
-    add_legend=False,
-):
+    bounds: Optional[PlotLimits] = None,
+    xfactor: float = 1,
+    add_legend: bool = False,
+) -> None:
     """
     Adds undulator layout to an axes.
 
+    Parameters
+    ----------
+    output : Genesis4Output
+        The output instance to get data from.
+    ax : matplotlib.axes.Axes
+    bounds : PlotLimits or None, default=None
+        Z limits (defaults to 0 to zmax)
+    xfactor : float, default=1
+        Divisor for Z position.
+    add_legend : bool, default=False
+        Add a legend to the plot.
     """
 
     if bounds is None:
-        zmin, zmax = 0, genesis4_object.stat("z").max()
+        zmin, zmax = 0, output.stat("z").max()
     else:
         zmin, zmax = bounds
     ax.set_xlim(zmin, zmax)
 
-    dat = {}
     ax2 = ax.twinx()
 
     ax.set_xlabel(r"$z$ (m)")
 
-    zlist = genesis4_object.stat("z")
+    zlist = output.stat("z")
 
     lines = []
     for ax1, component, color, label, units in (
         (ax, "aw", "red", r"$aw$", "1"),
         (ax2, "qf", "blue", r"Quad $k$", r"$1/m^2$"),
     ):
-        fz = genesis4_object.stat(component)
+        fz = output.stat(component)
 
-        y, factor, prefix = nice_array(fz)
+        y, _factor, prefix = nice_array(fz)
 
-        line = ax1.fill_between(zlist / xfactor, y, color=color, label=label, alpha=0.5)
-        # lines += line
+        ax1.fill_between(
+            zlist / xfactor,
+            y,
+            color=color,
+            label=label,
+            alpha=0.5,
+            step="post",
+        )
 
         ylabel = f"{label} ({prefix}{units})"
         ax1.set_ylabel(ylabel)
@@ -82,50 +80,75 @@ def add_layout_to_axes(
         ax.legend(lines, labels)
 
 
-from pmd_beamphysics.units import nice_array, nice_scale_prefix
-from pmd_beamphysics.labels import mathlabel
-
-
 def plot_stats_with_layout(
-    genesis4_object,
-    ykeys="field_energy",
-    ykeys2=[],
-    xkey="zplot",
-    xlim=None,
-    ylim=None,
-    ylim2=None,
-    yscale='linear',
-    yscale2='linear',
-    nice=True,
-    tex=False,
-    include_layout=True,
-    include_labels=True,
-    include_legend=True,
-    return_figure=False,
-    **kwargs,
-):
+    output: Genesis4Output,
+    ykeys: Union[str, Sequence[str]] = "field_energy",
+    ykeys2: Union[str, Sequence[str]] = (),
+    xkey: str = "zplot",
+    xlim: Optional[PlotLimits] = None,
+    ylim: Optional[PlotMaybeLimits] = None,
+    ylim2: Optional[PlotMaybeLimits] = None,
+    yscale: str = "linear",
+    yscale2: str = "linear",
+    nice: bool = True,
+    tex: bool = False,
+    include_layout: bool = True,
+    include_legend: bool = True,
+    return_figure: bool = False,
+    **kwargs: Any,
+) -> Optional[matplotlib.figure.Figure]:
     """
     Plots stat output multiple keys.
 
-    If a list of ykeys2 is given, these will be put on the right hand axis. This can also be given as a single key.
+    If a list of ykeys2 is given, these will be put on the right hand axis.
+    This can also be given as a single key.
 
-    Logical switches:
-        nice: a nice SI prefix and scaling will be used to make the numbers reasonably sized. Default: True
+    Parameters
+    ----------
+    output : Genesis4Output
+        The output instance to get data from.
+    ykeys : str or list of str, default="field_energy"
+        Y keys to plot.
+    ykeys2 : str or list of str, default=()
+        Y keys to plot on the right-hand axis.
+    xkey : str, optional
+        The X axis data key.
+    xlim : list
+        Limits for the X axis
+    ylim : list
+        Limits for the Y axis
+    ylim2 : list
+        Limits for the secondary Y axis
+    yscale: str
+        one of "linear", "log", "symlog", "logit", ... for the Y axis
+    yscale2: str
+        one of "linear", "log", "symlog", "logit", ... for the secondary Y axis
+    y2 : list
+        List of keys to be displayed on the secondary Y axis
+    nice : bool
+        Whether or not a nice SI prefix and scaling will be used to
+        make the numbers reasonably sized. Default: True
+    include_layout : bool
+        Whether or not to include a layout plot at the bottom. Default: True
+        Whether or not the plot should include the legend. Default: True
+    return_figure : bool
+        Whether or not to return the figure object for further manipulation.
+        Default: True
+    kwargs : dict
+        Extra arguments can be passed to the specific plotting function.
 
-        tex: use mathtext (TeX) for plot labels. Default: True
-
-        include_legend: The plot will include the legend.  Default: True
-
-        include_layout: the layout plot will be displayed at the bottom.  Default: True
-
-        return_figure: return the figure object for further manipulation. Default: False
-
+    Returns
+    -------
+    fig : matplotlib.pyplot.figure.Figure
+        The plot figure for further customizations or `None` if
+        `return_figure` is set to False.
     """
     if include_layout:
         fig, all_axis = plt.subplots(2, gridspec_kw={"height_ratios": [4, 1]}, **kwargs)
         ax_layout = all_axis[-1]
         ax_plot = [all_axis[0]]
     else:
+        ax_layout = None
         fig, all_axis = plt.subplots(**kwargs)
         ax_plot = [all_axis]
 
@@ -138,27 +161,27 @@ def plot_stats_with_layout(
             ykeys2 = [ykeys2]
         ax_twinx = ax_plot[0].twinx()
         ax_plot.append(ax_twinx)
+    else:
+        ax_twinx = None
 
     # No need for a legend if there is only one plot
     if len(ykeys) == 1 and not ykeys2:
         include_legend = False
 
-    # assert xkey == 'mean_z', 'TODO: other x keys'
-
-    X = genesis4_object.stat(xkey)
+    x_array = output.stat(xkey)
 
     # Only get the data we need
     if xlim:
-        good = np.logical_and(X >= xlim[0], X <= xlim[1])
-        X = X[good]
+        good = np.logical_and(x_array >= xlim[0], x_array <= xlim[1])
+        x_array = x_array[good]
     else:
-        xlim = X.min(), X.max()
+        xlim = x_array.min(), x_array.max()
         good = slice(None, None, None)  # everything
 
     # X axis scaling
-    units_x = str(genesis4_object.units(xkey))
+    units_x = str(output.units(xkey))
     if nice:
-        X, factor_x, prefix_x = nice_array(X)
+        x_array, factor_x, prefix_x = nice_array(x_array)
         units_x = prefix_x + units_x
     else:
         factor_x = 1
@@ -184,7 +207,7 @@ def plot_stats_with_layout(
         linestyle = linestyles[ix]
 
         # Check that units are compatible
-        ulist = [genesis4_object.units(key) for key in keys]
+        ulist = [output.units(key) for key in keys]
         if len(ulist) > 1:
             for u2 in ulist[1:]:
                 assert ulist[0] == u2, f"Incompatible units: {ulist[0]} and {u2}"
@@ -192,7 +215,7 @@ def plot_stats_with_layout(
         unit = str(ulist[0])
 
         # Data
-        data = [genesis4_object.stat(key)[good] for key in keys]
+        data = [output.stat(key)[good] for key in keys]
 
         if nice:
             factor, prefix = nice_scale_prefix(np.ptp(data))
@@ -208,16 +231,18 @@ def plot_stats_with_layout(
 
             # Handle tex labels
             label = mathlabel(key, units=unit, tex=tex)
-            ax.plot(X, dat / factor, label=label, color=color, linestyle=linestyle)
+            ax.plot(
+                x_array, dat / factor, label=label, color=color, linestyle=linestyle
+            )
 
         # Handle tex labels
         ylabel = mathlabel(*keys, units=unit, tex=tex)
         ax.set_ylabel(ylabel)
-        
+
         # Scaling(e.g. "linear", "log", "symlog", "logit")
         if ix == 0:
             ax.set_yscale(yscale)
-        else:
+        elif ax_twinx is not None:
             ax_twinx.set_yscale(yscale2)
 
         # Set limits, considering the scaling.
@@ -232,8 +257,7 @@ def plot_stats_with_layout(
             new_ylim = (ymin, ymax)
             ax.set_ylim(new_ylim)
         # Set limits, considering the scaling.
-        if ix == 1 and ylim2:
-            pass
+        if ix == 1 and ylim2 and ax_twinx is not None:
             # TODO
             if ylim2:
                 ymin2 = ylim2[0]
@@ -260,6 +284,7 @@ def plot_stats_with_layout(
 
     # Layout
     if include_layout:
+        assert ax_layout is not None
         # Gives some space to the top plot
         ax_layout.set_ylim(-1, 1.5)
 
@@ -268,7 +293,7 @@ def plot_stats_with_layout(
         # else:
         #     ax_layout.set_xlabel('mean_z')
         #     xlim = (0, I.stop)
-        add_layout_to_axes(genesis4_object, ax=ax_layout, bounds=xlim)
+        add_layout_to_axes(output, ax=ax_layout, bounds=xlim)
 
     if return_figure:
         return fig

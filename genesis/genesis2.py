@@ -1,7 +1,6 @@
 import os
 from time import time
 import traceback
-from copy import deepcopy
 
 import h5py
 

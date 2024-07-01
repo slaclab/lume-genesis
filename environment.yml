@@ -4,19 +4,34 @@ channels:
   - conda-forge
 dependencies:
   - python>=3.9
+  - eval-type-backport
   - lume-base
-#  - genesis2=*=mpi_mpich*
-  - genesis4=4.6.4=mpi_openmpi* # Pinned because of a bug in 4.6.5
-# Developer
+  - genesis2=*=mpi_openmpi*
+  - genesis4 >=4.6.6=mpi_openmpi*
+  - jinja2
+  - lark
+  - numpy
+  - prettytable
+  - psutil
+  - pydantic >2
+  - pydantic-settings
+  # Developer
   - ffmpeg
   - pytest
   - pytest-cov
   - jupyterlab>=3
+  - jupyterlab-lsp
+  - python-lsp-server
   - matplotlib
   - pygments
   - mkdocs
   - mkdocstrings
   - mkdocs-material
-  - mkdocs-jupyter
+  # NOTE: we are installing mkdocs-jupyter with pip for now
+  # due to the following: https://github.com/conda-forge/mkdocs-jupyter-feedstock/issues/31
+  # - mkdocs-jupyter
   - mkdocstrings-python
-
+  - ruff
+  - typing-extensions
+  - pip:
+      - mkdocs-jupyter>=0.24.7
