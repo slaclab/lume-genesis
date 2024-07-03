@@ -266,8 +266,14 @@ class Genesis4(CommandWrapper):
 
     @nproc.setter
     def nproc(self, nproc: Optional[int]):
-        if nproc is None or nproc <= 0:
+        if nproc is None or nproc == 0:
             nproc = psutil.cpu_count(logical=False)
+        elif nproc < 0:
+            nproc += psutil.cpu_count(logical=False)
+
+        if nproc <= 0:
+            raise ValueError(f"Calculated nproc is invalid: {nproc}")
+
         self._nproc = nproc
 
     @override
