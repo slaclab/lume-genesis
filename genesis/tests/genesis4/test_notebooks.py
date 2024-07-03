@@ -656,7 +656,7 @@ def test_genesis4_example(_shorten_zstop, tmp_path: pathlib.Path) -> None:
     # Genesis4 data
     final_bunching = G.output.beam.bunching[-1, :]
     _current = G.output.beam.current[-1, :]
-    s = G.output.global_.s
+    s = G.output.globals.s
     # ParticleGroup data
     ss = P.slice_statistics(bunching_key, n_slice=len(s))
     ss.keys()
