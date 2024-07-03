@@ -1042,30 +1042,45 @@ def _hdf_summary(
     for attr, hdf_key in obj.hdf_key_map.items():
         full_attr = ".".join(attr for attr in (base_attr, attr))
         full_key = "/".join(key for key in (base_key, hdf_key))
-        fld = obj.model_fields[attr]
 
-        if isinstance(obj, Genesis4Output):
-            units = None
+        if isinstance(obj, Genesis4Output) and attr == "field":
+            res[full_key] = {
+                "python_attr": full_attr,
+                "hdf_key": full_key,
+                "units": "",
+                "description": "Field information",
+            }
         else:
-            units = obj.units.get(attr, None)
+            try:
+                fld = obj.model_fields[attr]
+            except KeyError:
+                logger.error(
+                    f"Internal error: unable to find {attr} ({full_attr} from HDF key {full_key})"
+                )
+                continue
 
-        desc = fld.description or ""
+            if isinstance(obj, Genesis4Output):
+                units = None
+            else:
+                units = obj.units.get(attr, None)
 
-        path_to_remove = f"({full_key})"
-        desc = desc.replace(path_to_remove, "")
+            desc = fld.description or ""
 
-        units_to_remove = f"[{str(units)}]"
-        desc = desc.replace(units_to_remove, "")
-        if units_to_remove == "[m_ec^2]":
-            desc = desc.replace("[mc^2]", "")
-            units = "mc^2"
+            path_to_remove = f"({full_key})"
+            desc = desc.replace(path_to_remove, "")
 
-        res[full_key] = {
-            "python_attr": full_attr,
-            "hdf_key": full_key,
-            "units": units,
-            "description": desc.strip(),
-        }
+            units_to_remove = f"[{str(units)}]"
+            desc = desc.replace(units_to_remove, "")
+            if units_to_remove == "[m_ec^2]":
+                desc = desc.replace("[mc^2]", "")
+                units = "mc^2"
+
+            res[full_key] = {
+                "python_attr": full_attr,
+                "hdf_key": full_key,
+                "units": units,
+                "description": desc.strip(),
+            }
 
         value = getattr(obj, attr)
         if isinstance(value, _OutputBase):
@@ -1127,7 +1142,7 @@ class Genesis4Output(Mapping, BaseModel, arbitrary_types_allowed=True):
             "LUME-Genesis is not yet ready for it."
         ),
     )
-    field: Dict[FileKey, FieldFile] = pydantic.Field(
+    field3d: Dict[FileKey, FieldFile] = pydantic.Field(
         default_factory=dict,
         exclude=True,
         description="Loaded field data, keyed by filename base (e.g., 'end' of 'end.fld.h5').",
@@ -1172,12 +1187,12 @@ class Genesis4Output(Mapping, BaseModel, arbitrary_types_allowed=True):
         """Update aliases based on available data."""
         self.alias.update(tools.make_dotted_aliases(self))
 
-        if self.field_info is not None:
+        if self.field is not None:
             self.alias.update(
                 tools.make_dotted_aliases(
-                    self.field_info,
+                    self.field,
                     existing_aliases=self.alias,
-                    attr_prefix="field_info.",
+                    attr_prefix="field.",
                     alias_prefix="field_",
                 )
             )
@@ -1194,7 +1209,7 @@ class Genesis4Output(Mapping, BaseModel, arbitrary_types_allowed=True):
     @property
     def field_global(self) -> OutputFieldGlobal:
         """Genesis 4 output 1st harmonic field global information (``/Field/Global``)."""
-        return self.field_info.global_
+        return self.field.global_
 
     @property
     def beam_global(self) -> Optional[OutputBeamGlobal]:
@@ -1202,14 +1217,9 @@ class Genesis4Output(Mapping, BaseModel, arbitrary_types_allowed=True):
         return self.beam.global_
 
     @property
-    def field_info(self) -> OutputField:
+    def field(self) -> OutputField:
         """Genesis 4 output field information (``/Field``) - 1st harmonic."""
         return self.field_harmonics.get(1, OutputField())
-
-    @property
-    def fields(self) -> Dict[FileKey, FieldFile]:
-        """Convenience alias for .field."""
-        return self.field
 
     @staticmethod
     def get_output_filename(input: Genesis4Input, workdir: AnyPath) -> pathlib.Path:
@@ -1371,7 +1381,7 @@ class Genesis4Output(Mapping, BaseModel, arbitrary_types_allowed=True):
         loadable = self.field_files[key]
         field = loadable.load()
         assert isinstance(field, FieldFile)
-        self.field[key] = field
+        self.field3d[key] = field
         logger.info(f"Loaded field data: '{key}'")
         self.update_aliases()
         return field
@@ -1648,9 +1658,7 @@ class Genesis4Output(Mapping, BaseModel, arbitrary_types_allowed=True):
     def stat(self, key: str) -> np.ndarray:
         if "power" in key:
             # TODO: this is also some back-compat
-            if self.field_info is None:
-                raise ValueError("Field information unavailable")
-            return self.field_info.peak_power
+            return self.field.peak_power
 
         info = self._get_array_info(key)
         if isinstance(info.parent, (OutputField, OutputBeam)):

@@ -84,12 +84,10 @@ def test_example1(_shorten_zstop) -> None:
 
     # plot the beam sizes
     zplot = output.lattice.zplot
-    field_info = output.field_info
-    assert field_info is not None
     plt.plot(zplot, output.beam.xsize * 1e6, label=r"Beam: $\sigma_x$")
     plt.plot(zplot, output.beam.ysize * 1e6, label=r"Beam: $\sigma_y$")
-    plt.plot(zplot, field_info.xsize * 1e6, label=r"Field: $\sigma_x$")
-    plt.plot(zplot, field_info.ysize * 1e6, label=r"Field: $\sigma_y$")
+    plt.plot(zplot, output.field.xsize * 1e6, label=r"Field: $\sigma_x$")
+    plt.plot(zplot, output.field.ysize * 1e6, label=r"Field: $\sigma_y$")
     plt.legend()
     plt.xlabel(r"$z$ (m)")
     plt.ylabel(r"$\sigma_{x,y}$ ($\mu$m)")
@@ -99,7 +97,7 @@ def test_example1(_shorten_zstop) -> None:
     # plot power and bunching
     z = output.lattice.zplot
     b = output.beam.bunching
-    p = output.field_info.power
+    p = output.field.power
 
     fig, ax1 = plt.subplots()
     color = "tab:red"
@@ -153,7 +151,7 @@ def test_example2() -> None:
     for i1 in range(2):
         for i2 in range(2):
             i = (i2 * 2 + i1 + 1) * istep
-            inten, dg = getWF(output.fields[i], slice=0)
+            inten, dg = getWF(output.field3d[i], slice=0)
             axs[i2, i1].imshow(inten, extent=(-dg, dg, -dg, dg))
             txt = r"$z$ = %3.1f m" % (9.5 * (i2 * 2 + i1 + 1))
             axs[i2, i1].text(-0.15, 0.15, txt, color=color)
@@ -614,17 +612,17 @@ def test_genesis4_example(_shorten_zstop, tmp_path: pathlib.Path) -> None:
     G.output.info()
     # Field files can be very large and are made readily available for lazy loading.
     # Loaded fields are present in `.field` in the output:
-    list(G.output.field)
+    list(G.output.field3d)
     # For convenience, fields and particles may be automatically loaded after a run by using `run(load_fields=True, load_particles=True)` instead.
     # Otherwise, these can be manually loaded individually or all at once:
     G.output.load_fields()
-    list(G.output.field)
+    list(G.output.field3d)
     # This field data has two parts: basic parameters `param`, and the raw 3D complex array `dfl`:
-    print(G.output.field["end"].param)
-    print(G.output.field["end"].dfl.shape)
+    print(G.output.field3d["end"].param)
+    print(G.output.field3d["end"].dfl.shape)
     # Sum over y and compute the absolute square
-    dfl = G.output.field["end"].dfl
-    param = G.output.field["end"].param
+    dfl = G.output.field3d["end"].dfl
+    param = G.output.field3d["end"].param
     dat2 = np.abs(np.sum(dfl, axis=1)) ** 2
     plt.imshow(dat2)
 
@@ -692,7 +690,7 @@ def test_genesis4_example(_shorten_zstop, tmp_path: pathlib.Path) -> None:
     # By default, these plots average over slices. In the case of beam sizes, simply averaging these does not take into account the effect of misaligned slices. To plot this, LUME-Genesis provides additional `beam_sigma_x`, `beam_sima_y`, `beam_sigma_energy` keys that properly project these quantities. The difference is noticable in the energy spread calculation:
     G.plot(["beam_sigma_energy", "beam_energyspread"], ylim=(0, 100))
     G.plot(["field_xsize", "field_ysize"])
-    plt.imshow(G.output.field_info.power, aspect="auto")
+    plt.imshow(G.output.field.power, aspect="auto")
     G.archive(tmp_path / "archived.h5")
     fp = h5py.File(tmp_path / "archived.h5")
     # Grestored = Genesis4.from_archive("archived.h5")
