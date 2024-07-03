@@ -550,7 +550,12 @@ class MainInput(BaseModel):
             else:
                 previous = self.import_beam
         except NamelistAccessError:
-            insert_pos = self.namelists.index(self.setup) + 1
+            try:
+                # Insert it after the time namelist:
+                insert_pos = self.namelists.index(self.time) + 1
+            except NamelistAccessError:
+                # Last attempt: put it after setup
+                insert_pos = self.namelists.index(self.setup) + 1
         else:
             insert_pos = self.namelists.index(previous)
             self.remove(previous)
