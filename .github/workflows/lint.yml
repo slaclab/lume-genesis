@@ -25,6 +25,13 @@ jobs:
         shell: bash -l {0}
         run: conda list
 
+      - name: Run notebook clearing check first (no diff)
+        shell: bash -l {0}
+        env:
+          RUFF_OUTPUT_FORMAT: github
+        run: |
+          pre-commit run jupyter-notebook-clear-output --all-files
+
       - name: Run pre-commit on all files
         shell: bash -l {0}
         env:
