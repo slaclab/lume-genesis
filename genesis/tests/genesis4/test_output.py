@@ -44,7 +44,7 @@ def test_update_aliases(
         ("field_stat_xsize", "field.stat.xsize"),
         ("globals_frequency", "globals.frequency"),
         ("beam_bunching", "beam.bunching"),
-        ("beam_global_energy", "beam.globals.energy"),
+        ("beam_globals_energy", "beam.globals.energy"),
         ("beam_stat_sigma_x", "beam.stat.sigma_x"),
         ("lattice_ax", "lattice.ax"),
     ],
