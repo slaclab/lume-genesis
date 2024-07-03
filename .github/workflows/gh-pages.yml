@@ -28,7 +28,7 @@ jobs:
       - name: Execute notebooks
         shell: bash -l {0}
         run: |
-          scripts/execute_notebooks.bash 
+          scripts/execute_notebooks.bash
       - name: Build Docs
         shell: bash -l {0}
         run: mkdocs build
