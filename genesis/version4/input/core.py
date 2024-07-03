@@ -545,7 +545,14 @@ class MainInput(BaseModel):
                 previous = self.import_beam
         except NamelistAccessError:
             # No previous import_distribution
-            if self.tracks:
+            if self.beams:
+                beam = self.beams[0]
+                insert_pos = self.namelists.index(beam)
+                logger.warning(
+                    f"Replacing existing Beam with {type(to_insert).__name__}"
+                )
+                self.remove(beam)
+            elif self.tracks:
                 insert_pos = self.namelists.index(self.tracks[0])
             elif self.writes:
                 insert_pos = self.namelists.index(self.writes[0])
