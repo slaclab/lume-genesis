@@ -535,8 +535,14 @@ class MainInput(BaseModel):
                 file="initial_particles.h5",
                 charge=particles.charge,
             )
+            to_remove = self.import_beams + self.beams
         else:
             to_insert = ImportBeam(file="initial_particles.h5")
+            to_remove = self.import_distributions + self.beams
+
+        for remove in to_remove:
+            logger.warning(f"Removing existing {type(remove).__name__}")
+            self.remove(remove)
 
         try:
             if isinstance(to_insert, ImportDistribution):
@@ -544,26 +550,7 @@ class MainInput(BaseModel):
             else:
                 previous = self.import_beam
         except NamelistAccessError:
-            # No previous import_distribution
-            if self.beams:
-                beam = self.beams[0]
-                insert_pos = self.namelists.index(beam)
-                logger.warning(
-                    f"Replacing existing Beam with {type(to_insert).__name__}"
-                )
-                self.remove(beam)
-            elif self.tracks:
-                insert_pos = self.namelists.index(self.tracks[0])
-            elif self.writes:
-                insert_pos = self.namelists.index(self.writes[0])
-            elif self.times:
-                insert_pos = self.namelists.index(self.times[0]) + 1
-            else:
-                logger.warning(
-                    f"Unable to determine where to insert the {type(to_insert).__name__}; "
-                    f"placing it at the end"
-                )
-                insert_pos = len(self.namelists)
+            insert_pos = self.namelists.index(self.setup) + 1
         else:
             insert_pos = self.namelists.index(previous)
             self.remove(previous)
