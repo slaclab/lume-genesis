@@ -33,4 +33,4 @@ repos:
         stages: [commit]
         language: system
         entry: jupyter nbconvert --ClearOutputPreprocessor.enabled=True --inplace
-        exclude: "^(Example3-TimeDependent|perlmutter_benchmark).ipynb$"
+        exclude: "^.*(Example3-TimeDependent|perlmutter_benchmark|fodo_scan|fodo_scan_model).ipynb$"
