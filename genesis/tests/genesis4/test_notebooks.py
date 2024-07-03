@@ -153,7 +153,7 @@ def test_example2() -> None:
     for i1 in range(2):
         for i2 in range(2):
             i = (i2 * 2 + i1 + 1) * istep
-            inten, dg = getWF(output.fields[i], slice=0)
+            inten, dg = getWF(output.field3d[i], slice=0)
             axs[i2, i1].imshow(inten, extent=(-dg, dg, -dg, dg))
             txt = r"$z$ = %3.1f m" % (9.5 * (i2 * 2 + i1 + 1))
             axs[i2, i1].text(-0.15, 0.15, txt, color=color)
@@ -614,17 +614,17 @@ def test_genesis4_example(_shorten_zstop, tmp_path: pathlib.Path) -> None:
     G.output.info()
     # Field files can be very large and are made readily available for lazy loading.
     # Loaded fields are present in `.field` in the output:
-    list(G.output.field)
+    list(G.output.field3d)
     # For convenience, fields and particles may be automatically loaded after a run by using `run(load_fields=True, load_particles=True)` instead.
     # Otherwise, these can be manually loaded individually or all at once:
     G.output.load_fields()
-    list(G.output.field)
+    list(G.output.field3d)
     # This field data has two parts: basic parameters `param`, and the raw 3D complex array `dfl`:
-    print(G.output.field["end"].param)
-    print(G.output.field["end"].dfl.shape)
+    print(G.output.field3d["end"].param)
+    print(G.output.field3d["end"].dfl.shape)
     # Sum over y and compute the absolute square
-    dfl = G.output.field["end"].dfl
-    param = G.output.field["end"].param
+    dfl = G.output.field3d["end"].dfl
+    param = G.output.field3d["end"].param
     dat2 = np.abs(np.sum(dfl, axis=1)) ** 2
     plt.imshow(dat2)
 
