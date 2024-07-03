@@ -84,12 +84,10 @@ def test_example1(_shorten_zstop) -> None:
 
     # plot the beam sizes
     zplot = output.lattice.zplot
-    field = output.field
-    assert field is not None
     plt.plot(zplot, output.beam.xsize * 1e6, label=r"Beam: $\sigma_x$")
     plt.plot(zplot, output.beam.ysize * 1e6, label=r"Beam: $\sigma_y$")
-    plt.plot(zplot, field.xsize * 1e6, label=r"Field: $\sigma_x$")
-    plt.plot(zplot, field.ysize * 1e6, label=r"Field: $\sigma_y$")
+    plt.plot(zplot, output.field.xsize * 1e6, label=r"Field: $\sigma_x$")
+    plt.plot(zplot, output.field.ysize * 1e6, label=r"Field: $\sigma_y$")
     plt.legend()
     plt.xlabel(r"$z$ (m)")
     plt.ylabel(r"$\sigma_{x,y}$ ($\mu$m)")
