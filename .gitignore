@@ -112,3 +112,5 @@ docs/examples/genesis4/tmp*
 
 # Don't include animations
 *.mp4
+
+/genesis/tests/artifacts
