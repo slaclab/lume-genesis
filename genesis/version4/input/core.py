@@ -1155,7 +1155,7 @@ class Genesis4Input(BaseModel):
 
         self.initial_particles.write_genesis4_distribution(
             str(particle_file),
-            verbose=True,
+            verbose=False,
         )
         return particle_file
 
