@@ -39,9 +39,9 @@ def test_update_aliases(
     [
         ("beam_sigma_energy", "beam.stat.sigma_energy"),
         ("beam_sigma_x", "beam.stat.sigma_x"),
-        ("field_intensity_farfield", "field_info.intensity_farfield"),
-        ("field_global_energy", "field_info.global_.energy"),
-        ("field_stat_xsize", "field_info.stat.xsize"),
+        ("field_intensity_farfield", "field.intensity_farfield"),
+        ("field_global_energy", "field.global_.energy"),
+        ("field_stat_xsize", "field.stat.xsize"),
         ("global_frequency", "global_.frequency"),
         ("beam_bunching", "beam.bunching"),
         ("beam_global_energy", "beam.global_.energy"),
@@ -63,7 +63,7 @@ def test_alias(
     "attr, model_cls",
     [
         ("beam", OutputBeam),
-        ("field_info", OutputField),
+        ("field", OutputField),
         ("lattice", OutputLattice),
         ("global_", OutputGlobal),
         ("meta", OutputMeta),
