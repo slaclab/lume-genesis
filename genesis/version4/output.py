@@ -1207,12 +1207,12 @@ class Genesis4Output(Mapping, BaseModel, arbitrary_types_allowed=True):
             self.alias.setdefault(alias_from, alias_to)
 
     @property
-    def field_global(self) -> OutputFieldGlobal:
+    def field_globals(self) -> OutputFieldGlobal:
         """Genesis 4 output 1st harmonic field global information (``/Field/Global``)."""
         return self.field.globals
 
     @property
-    def beam_global(self) -> Optional[OutputBeamGlobal]:
+    def beam_globals(self) -> Optional[OutputBeamGlobal]:
         """Genesis 4 output beam global information (``/Beam/Global``)."""
         return self.beam.globals
 
