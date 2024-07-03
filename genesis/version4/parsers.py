@@ -184,14 +184,14 @@ def extract_data(h5):
 def output_key_to_python_identifier(key: str) -> str:
     key = re.sub("[^a-zA-Z_0-9]", "_", key)
     key = pydantic.alias_generators.to_snake(key)
-    if keyword.iskeyword(key):
-        # global -> global_
+    if keyword.iskeyword(key) and key != "global":
         return f"{key}_"
     return {
         "ls_cfield": "lsc_field",
         "ss_cfield": "ssc_field",
         "one_4one": "one4one",
         "gamma_0": "gamma0",
+        "global": "globals",
     }.get(key, key)
 
 

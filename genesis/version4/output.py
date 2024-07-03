@@ -560,7 +560,7 @@ class OutputBeam(_OutputBase):
     """Output beam information. (HDF5 ``/Beam``)"""
 
     units: Dict[str, PydanticPmdUnit] = pydantic.Field(default_factory=dict, repr=False)
-    global_: OutputBeamGlobal = pydantic.Field(
+    globals: OutputBeamGlobal = pydantic.Field(
         default_factory=OutputBeamGlobal,
         description="",
     )
@@ -904,7 +904,7 @@ class OutputFieldGlobal(_OutputBase):
 
 
 class OutputField(_OutputBase):
-    global_: OutputFieldGlobal = pydantic.Field(
+    globals: OutputFieldGlobal = pydantic.Field(
         default_factory=OutputFieldGlobal,
         description="Global field information (/Field/Global)",
     )
@@ -1122,7 +1122,7 @@ class Genesis4Output(Mapping, BaseModel, arbitrary_types_allowed=True):
         default_factory=OutputLattice,
         description="Genesis 4 output lattice information (/Lattice)",
     )
-    global_: OutputGlobal = pydantic.Field(
+    globals: OutputGlobal = pydantic.Field(
         default_factory=OutputGlobal,
         description="Genesis 4 output global information (/Global)",
     )
@@ -1207,14 +1207,14 @@ class Genesis4Output(Mapping, BaseModel, arbitrary_types_allowed=True):
             self.alias.setdefault(alias_from, alias_to)
 
     @property
-    def field_global(self) -> OutputFieldGlobal:
+    def field_globals(self) -> OutputFieldGlobal:
         """Genesis 4 output 1st harmonic field global information (``/Field/Global``)."""
-        return self.field.global_
+        return self.field.globals
 
     @property
-    def beam_global(self) -> Optional[OutputBeamGlobal]:
+    def beam_globals(self) -> Optional[OutputBeamGlobal]:
         """Genesis 4 output beam global information (``/Beam/Global``)."""
-        return self.beam.global_
+        return self.beam.globals
 
     @property
     def field(self) -> OutputField:
@@ -1326,10 +1326,10 @@ class Genesis4Output(Mapping, BaseModel, arbitrary_types_allowed=True):
                 yield harmonic, f"field_{harmonic}"
                 harmonic += 1
 
-        global_ = OutputGlobal.from_hdf5_data(data.pop("global_", {}))
+        globals_ = OutputGlobal.from_hdf5_data(data.pop("globals", {}))
         beam = OutputBeam.from_hdf5_data(data.pop("beam", {}))
         field_harmonics = {
-            harmonic: OutputField.from_hdf5_data(data.pop(key, {}), slen=global_.slen)
+            harmonic: OutputField.from_hdf5_data(data.pop(key, {}), slen=globals_.slen)
             for harmonic, key in get_harmonics_keys()
         }
         lattice = OutputLattice.from_hdf5_data(data.pop("lattice", {}))
@@ -1342,7 +1342,7 @@ class Genesis4Output(Mapping, BaseModel, arbitrary_types_allowed=True):
             beam=beam,
             field_harmonics=field_harmonics,
             lattice=lattice,
-            global_=global_,
+            globals=globals_,
             version=version,
             extra=extra,
             meta=meta,
