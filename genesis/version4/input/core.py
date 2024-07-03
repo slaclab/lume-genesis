@@ -507,15 +507,17 @@ class MainInput(BaseModel):
             previous = self.import_field
         except NamelistAccessError:
             if self.fields:
+                # Before Field, if it exists
                 insert_pos = self.namelists.index(self.fields[0])
             elif self.times:
+                # Otherwise, it needs to come after Time
                 insert_pos = self.namelists.index(self.times[-1]) + 1
             else:
                 logger.warning(
                     "Unable to determine where to insert the importfield; "
                     "placing it after 'setup'"
                 )
-                insert_pos = self.namelists.index(self.setup)
+                insert_pos = self.namelists.index(self.setup) + 1
         else:
             insert_pos = self.namelists.index(previous)
             self.remove(previous)
