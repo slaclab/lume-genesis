@@ -2,7 +2,7 @@ $newrun
 aw0 = 2.47318
 xkx = 0.0
 xky = 1.0
-wcoefz = 0.75 0.0 1.0 
+wcoefz = 0.75 0.0 1.0
 xlamd = 0.03
 fbess0 = 0.0
 delaw = 0.0
@@ -71,7 +71,7 @@ itgaus = 1
 nbins = 8
 igamgaus = 1
 inverfc = 1
-lout = 1 1 1 1 1 0 1 1 1 1 1 1 1 1 1 0 0 0 0 1 
+lout = 1 1 1 1 1 0 1 1 1 1 1 1 1 1 1 0 0 0 0 1
 iphsty = 1
 ishsty = 1
 ippart = 0
