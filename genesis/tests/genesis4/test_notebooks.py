@@ -953,6 +953,15 @@ def test_migration():
     assert np.isclose(main.track.zstop, 123.5)
     assert len(main.namelists) == len(MAIN)
 
+    with pytest.raises(ValueError):
+        g4.MainInput.from_dicts([{}])
+
+    with pytest.raises(ValueError):
+        g4.MainInput.from_dicts([{"type": "invalid_type", "zstop": 123.5}])
+
+    with pytest.raises(ValueError):
+        g4.MainInput.from_dicts([{"type": "beam", "INVALID_ITEM": 123.5}])
+
     def make_lat_orig(k1=2):
         return string.Template(
             """

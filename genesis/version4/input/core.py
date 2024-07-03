@@ -286,9 +286,27 @@ class MainInput(BaseModel):
         -------
         MainInput
         """
+
+        if isinstance(contents, dict):
+            contents = [contents]
+
         adapter = pydantic.TypeAdapter(AnyNameList)
+
+        def make_class(idx: int, dct: dict) -> AnyNameList:
+            type_ = dct.get("type", None)
+            if type_ is None:
+                raise ValueError(f"'type' missing from dictionary #{idx}")
+
+            try:
+                return adapter.validate_python(dct)
+            except pydantic.ValidationError as ex:
+                raise ValueError(
+                    f"Dictionary #{idx} with type {type_!r} did not pass pydantic validation. "
+                    f"Are all parameters for the given class valid?"
+                ) from ex
+
         return cls(
-            namelists=[adapter.validate_python(dct) for dct in contents],
+            namelists=[make_class(idx, dct) for idx, dct in enumerate(contents)],
             filename=filename,
         )
 
