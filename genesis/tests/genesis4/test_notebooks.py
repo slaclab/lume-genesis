@@ -10,6 +10,7 @@ as part of the documentation generation process.
 
 import pathlib
 import pprint
+import string
 import textwrap
 from math import pi, sqrt
 from typing import Optional
@@ -945,8 +946,12 @@ def test_migration():
     main = g4.MainInput.from_dicts(MAIN)
 
     print(main)
-
-    import string
+    assert main.setup.beamline == "ARAMIS"
+    assert np.isclose(main.lattice.zmatch, 9.5)
+    assert main.field.power == 5000
+    assert main.beam.current == 3000
+    assert np.isclose(main.track.zstop, 123.5)
+    assert len(main.namelists) == len(MAIN)
 
     def make_lat_orig(k1=2):
         return string.Template(
@@ -964,7 +969,7 @@ def test_migration():
         """
         ).substitute(my_k1=k1)
 
-    g4.Lattice.from_contents(make_lat_orig())
+    orig_lattice = g4.Lattice.from_contents(make_lat_orig())
 
     def make_lat_new(k1=2):
         return g4.Lattice(
@@ -983,11 +988,14 @@ def test_migration():
             },
         )
 
-    make_lat_new()
+    new_lattice = make_lat_new()
+
+    new_lattice.filename = orig_lattice.filename
+    assert orig_lattice == new_lattice
 
     G = g4.Genesis4(main, make_lat_new())
 
-    G.input
+    print(G.input)
 
     new_main = g4.MainInput.from_dicts(MAIN)
 
