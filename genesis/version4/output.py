@@ -1127,7 +1127,7 @@ class Genesis4Output(Mapping, BaseModel, arbitrary_types_allowed=True):
             "LUME-Genesis is not yet ready for it."
         ),
     )
-    field: Dict[FileKey, FieldFile] = pydantic.Field(
+    field3d: Dict[FileKey, FieldFile] = pydantic.Field(
         default_factory=dict,
         exclude=True,
         description="Loaded field data, keyed by filename base (e.g., 'end' of 'end.fld.h5').",
@@ -1205,11 +1205,6 @@ class Genesis4Output(Mapping, BaseModel, arbitrary_types_allowed=True):
     def field_info(self) -> OutputField:
         """Genesis 4 output field information (``/Field``) - 1st harmonic."""
         return self.field_harmonics.get(1, OutputField())
-
-    @property
-    def fields(self) -> Dict[FileKey, FieldFile]:
-        """Convenience alias for .field."""
-        return self.field
 
     @staticmethod
     def get_output_filename(input: Genesis4Input, workdir: AnyPath) -> pathlib.Path:
@@ -1371,7 +1366,7 @@ class Genesis4Output(Mapping, BaseModel, arbitrary_types_allowed=True):
         loadable = self.field_files[key]
         field = loadable.load()
         assert isinstance(field, FieldFile)
-        self.field[key] = field
+        self.field3d[key] = field
         logger.info(f"Loaded field data: '{key}'")
         self.update_aliases()
         return field
