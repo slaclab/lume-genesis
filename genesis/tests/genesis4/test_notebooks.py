@@ -914,3 +914,83 @@ def test_example1_lattice_plot() -> None:
 
     G.input.lattice.elements.pop("FEL")
     G.input.lattice.plot()  # only a single beamline now, plot it
+
+
+def test_migration():
+    MAIN = [
+        {
+            "type": "setup",
+            "rootname": "Benchmark",
+            "lattice": "lattice.lat",
+            "beamline": "ARAMIS",
+            "lambda0": 1e-10,
+            "gamma0": 11357.82,
+            "delz": 0.045,
+            "shotnoise": 0,
+            "beam_global_stat": True,
+            "field_global_stat": True,
+        },
+        {"type": "lattice", "zmatch": 9.5},
+        {
+            "type": "field",
+            "power": 5000,
+            "dgrid": 0.0002,
+            "ngrid": 255,
+            "waist_size": 3e-05,
+        },
+        {"type": "beam", "current": 3000, "delgam": 1, "ex": 4e-07, "ey": 4e-07},
+        {"type": "track", "zstop": 123.5},
+    ]
+
+    main = g4.MainInput.from_dicts(MAIN)
+
+    print(main)
+
+    import string
+
+    def make_lat_orig(k1=2):
+        return string.Template(
+            """
+    D1: DRIFT = { l = 0.445};
+    D2: DRIFT = { l = 0.24};
+    QF: QUADRUPOLE = { l = 0.080000, k1= ${my_k1} };
+    QD: QUADRUPOLE = { l = 0.080000, k1= -${my_k1} };
+
+    UND: UNDULATOR = { lambdau=0.015000,nwig=266,aw=0.84853};
+
+    FODO: LINE= {UND,D1,QF,D2,UND,D1,QD,D2};
+
+    ARAMIS: LINE= {13*FODO};
+        """
+        ).substitute(my_k1=k1)
+
+    g4.Lattice.from_contents(make_lat_orig())
+
+    def make_lat_new(k1=2):
+        return g4.Lattice(
+            {
+                "D1": g4.Drift(L=0.445),
+                "D2": g4.Drift(L=0.24),
+                "QF": g4.Quadrupole(L=0.08, k1=k1),
+                "QD": g4.Quadrupole(L=0.08, k1=-k1),
+                "UND": g4.Undulator(aw=0.84853, lambdau=0.015, nwig=266),
+                "FODO": g4.Line(
+                    elements=["UND", "D1", "QF", "D2", "UND", "D1", "QD", "D2"]
+                ),
+                "ARAMIS": g4.Line(
+                    elements=[g4.DuplicatedLineItem(label="FODO", count=13)]
+                ),
+            },
+        )
+
+    make_lat_new()
+
+    G = g4.Genesis4(main, make_lat_new())
+
+    G.input
+
+    new_main = g4.MainInput.from_dicts(MAIN)
+
+    G.input.main = new_main
+
+    _G1 = g4.Genesis4(main, make_lat_new())
