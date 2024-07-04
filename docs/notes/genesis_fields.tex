@@ -20,11 +20,11 @@ The description of FEL radiation field format in the {\sc genesis} manual is sca
 
 Let us denote the radiation field value taken from {\sc dfl} file for $n$-th slice at $i,j$ transverse location as $F_{n,i,j}$.
 The manual hints that integrated value of $|F_{n,i,j}|^2$ over the spatial domain yields the total FEL power of $n$-th slice.
-Indeed, the value of 
+Indeed, the value of
 \begin{equation}
 P_n = \sum_{i,j}{|F_{n,i,j}|^2},
 \end{equation}
- matches the value of integrated power, in units of Watt, reported in the output file for $n$-th slice. The values of $F_{n,i,j}$ returned by {\sc genesis} are therefore in the units of $\sqrt{\textrm{W}}$. 
+ matches the value of integrated power, in units of Watt, reported in the output file for $n$-th slice. The values of $F_{n,i,j}$ returned by {\sc genesis} are therefore in the units of $\sqrt{\textrm{W}}$.
  One can use this fact to devise the conversion factor for {\sc dfl} / {\sc rad.h5} to V/m.
 We first recall that time-averaged energy density is given by (Jackson, Eq. 7.14):
 \begin{equation}

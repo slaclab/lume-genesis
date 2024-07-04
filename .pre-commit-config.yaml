@@ -17,10 +17,20 @@ repos:
         exclude: "^(python/versioneer.py|python/src/_version.py)$"
 
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.4.6
+    rev: v0.5.0
     hooks:
       - id: ruff
         args: [--fix]
         types_or: [python, pyi, jupyter]
       - id: ruff-format
         types_or: [python, pyi, jupyter]
+
+  - repo: local
+    hooks:
+      - id: jupyter-notebook-clear-output
+        name: jupyter-notebook-jupyter-clear
+        files: \.ipynb$
+        stages: [commit]
+        language: system
+        entry: jupyter nbconvert --ClearOutputPreprocessor.enabled=True --inplace
+        exclude: "^.*(Example3-TimeDependent|perlmutter_benchmark|fodo_scan|fodo_scan_model).ipynb$"
