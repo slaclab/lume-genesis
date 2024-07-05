@@ -35,6 +35,7 @@ from ... import tools
 from ...errors import (
     MultipleNamelistsError,
     NamelistAccessError,
+    NoSetupNamelistError,
     NoSuchNamelistError,
 )
 from .. import archive as _archive
@@ -381,6 +382,19 @@ class MainInput(BaseModel):
             filename,
         )
 
+    def _check_for_mistakes(self) -> None:
+        """Check and fix simple mistakes to be friendly to the end-user."""
+        try:
+            setup = self.setup
+        except NoSuchNamelistError:
+            raise NoSetupNamelistError(
+                "No setup namelist: the configuration is invalid"
+            ) from None
+
+        if not setup.rootname:
+            logger.debug("Setting setup.rootname as the user left it blank")
+            setup.rootname = "output"
+
     def write_files(
         self,
         workdir: AnyPath,
@@ -391,6 +405,9 @@ class MainInput(BaseModel):
         """
         Write the main input file, arrays and other necessary files to run
         Genesis to ``workdir``.
+
+        This may modify ``setup`` or other namelists as required to generate
+        valid Genesis4 input.
 
         Parameters
         ----------
@@ -410,6 +427,8 @@ class MainInput(BaseModel):
         List[pathlib.Path]
             The additional filenames that were written.
         """
+        self._check_for_mistakes()
+
         workdir = pathlib.Path(workdir).resolve()
         source_path = pathlib.Path(source_path).resolve()
         if not workdir.exists():

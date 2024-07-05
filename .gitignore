@@ -114,3 +114,6 @@ docs/examples/genesis4/tmp*
 *.mp4
 
 /genesis/tests/artifacts
+
+# Don't include JupyterLab language server (LSP) files:
+/.virtual_documents

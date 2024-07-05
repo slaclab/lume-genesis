@@ -32,6 +32,11 @@ jobs:
         run: |
           pre-commit run jupyter-notebook-clear-output --all-files
 
+      - name: Switch to a temporary branch
+        shell: bash -l {0}
+        run: |
+          git checkout -b _ci_branch_
+
       - name: Run pre-commit on all files
         shell: bash -l {0}
         env:
