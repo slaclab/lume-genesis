@@ -10,6 +10,10 @@ class NoSuchNamelistError(NamelistAccessError):
     """No such namelist of the given type is in the main input."""
 
 
+class NoSetupNamelistError(NoSuchNamelistError):
+    """The required `setup` namelist is not present."""
+
+
 class MultipleNamelistsError(NamelistAccessError):
     """
     More than one namelist of the given type is defined.

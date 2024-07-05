@@ -35,6 +35,7 @@ from ... import tools
 from ...errors import (
     MultipleNamelistsError,
     NamelistAccessError,
+    NoSetupNamelistError,
     NoSuchNamelistError,
 )
 from .. import archive as _archive
@@ -386,7 +387,9 @@ class MainInput(BaseModel):
         try:
             setup = self.setup
         except NoSuchNamelistError:
-            raise ValueError("No setup namelist: the configuration is invalid")
+            raise NoSetupNamelistError(
+                "No setup namelist: the configuration is invalid"
+            ) from None
 
         if not setup.rootname:
             logger.debug("Setting setup.rootname as the user left it blank")

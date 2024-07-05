@@ -1,6 +1,10 @@
+import pathlib
+
 import pydantic
 import pydantic.alias_generators
 import pytest
+
+from ...errors import NoSetupNamelistError
 
 from ... import version4 as g4
 from ...version4 import AnyBeamlineElement, AnyNameList, Lattice, MainInput, Setup
@@ -127,3 +131,17 @@ def test_line_positional_instantiation():
     # the class.
     positional = g4.Line(["a"])
     assert positional == base
+
+
+def test_setup_missing_setup(tmp_path: pathlib.Path):
+    main = g4.MainInput()
+    with pytest.raises(NoSetupNamelistError):
+        main.write_files(tmp_path)
+
+
+def test_setup_rootname_fix(tmp_path: pathlib.Path):
+    main = g4.MainInput([g4.Setup()])
+    assert main.setup.rootname == ""
+
+    main.write_files(tmp_path)
+    assert main.setup.rootname == "output"
