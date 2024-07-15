@@ -1299,8 +1299,15 @@ class Genesis4Output(Mapping, BaseModel, arbitrary_types_allowed=True):
         """
         output_root = pathlib.Path(filename).parent
 
-        with h5py.File(filename, "r") as h5:
-            data = parsers.extract_data(h5)
+        try:
+            with h5py.File(filename, "r") as h5:
+                data = parsers.extract_data(h5)
+        except FileNotFoundError:
+            raise FileNotFoundError(
+                f"Genesis 4 simulation output file not found. "
+                f"Check if the simulation ran successfully and if the run settings are correct. "
+                f"The expected output filename is: {filename}"
+            ) from None
 
         fields = [
             LoadableFieldH5File(
