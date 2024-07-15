@@ -720,7 +720,11 @@ def pretty_repr(
         basic_repr = repr(obj)
     elif isinstance(obj, dict):
         if sort_keys:
-            values = {key: obj[key] for key in sorted(obj)}
+            try:
+                values = {key: obj[key] for key in sorted(obj)}
+            except TypeError:
+                # Heterogenous keys may fail to sort
+                values = dict(obj)
         else:
             values = dict(obj)
         defaults = {key: None for key in obj}

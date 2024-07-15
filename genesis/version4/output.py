@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import inspect
 import logging
 import operator
 import pathlib
@@ -158,8 +159,14 @@ class _OutputBase(BaseModel):
             info = cls.model_fields.get(key, None)
             if info is None:
                 res[key] = value
-            elif info.annotation is np.ndarray and isinstance(value, float):
+            elif info.annotation is np.ndarray and isinstance(value, (float, int)):
                 res[key] = np.asarray([value])
+            elif (
+                inspect.isclass(info.annotation)
+                and issubclass(info.annotation, _OutputBase)
+                and isinstance(value, dict)
+            ):
+                res[key] = info.annotation._fix_scalar_data(value)
             else:
                 res[key] = value
         return res
