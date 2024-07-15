@@ -193,3 +193,10 @@ def test_hdf_summary_smoke(
     output: Genesis4Output,
 ) -> None:
     assert "/Global" in output.to_hdf_summary()
+
+
+def test_nested_load() -> None:
+    meta = OutputMeta.from_hdf5_data({"beamdumps": {"intstep": 1}})
+    assert meta.beamdumps.intstep.tolist() == [1]
+    meta = OutputMeta.from_hdf5_data({"fielddumps": {"intstep": 1}})
+    assert meta.fielddumps.intstep.tolist() == [1]
