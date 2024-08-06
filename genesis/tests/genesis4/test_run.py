@@ -98,3 +98,50 @@ def test_get_run_prefix_smoke(genesis4: Genesis4, nproc: int, mpi: bool) -> None
     genesis4.nproc = nproc
     genesis4.use_mpi = mpi
     assert genesis4.get_run_prefix()
+
+
+def test_run_3rd_harmonic():
+    from ... import version4 as g4
+
+    main = g4.MainInput(
+        [
+            g4.Setup(
+                rootname="Example1",
+                beamline="FEL",
+                gamma0=11357.82,
+                delz=0.045,
+                nbins=8,
+                shotnoise=False,
+            ),
+            g4.LatticeNamelist(zmatch=9.5),
+            g4.Field(power=5000.0, waist_size=3e-05, dgrid=0.0002, ngrid=255),
+            g4.Field(power=5000.0, waist_size=3e-05, dgrid=0.0002, ngrid=255, harm=3),
+            g4.Beam(delgam=1.0, current=3000.0, ex=4e-07, ey=4e-07),
+            g4.Track(),
+            g4.Write(field="end"),
+        ],
+    )
+
+    lattice = g4.Lattice(
+        {
+            "D1": g4.Drift(L=0.44),
+            "D2": g4.Drift(L=0.24),
+            "FEL": g4.Line(elements=["FODO"] * 6),
+            "FODO": g4.Line(
+                elements=["UND", "D1", "QF", "D2", "UND", "D1", "QD", "D2"],
+            ),
+            "QD": g4.Quadrupole(L=0.08, k1=-2.0),
+            "QF": g4.Quadrupole(L=0.08, k1=2.0),
+            "UND": g4.Undulator(aw=0.84853, lambdau=0.015, nwig=266, helical=True),
+        }
+    )
+
+    G = g4.Genesis4(main, lattice)
+    output = G.run()
+    assert 3 in output.field_harmonics
+    assert output.field_harmonics[3].ngrid == 255
+    assert "h3" in output.field_files
+
+    field_data = output.load_field_by_key("h3")
+    assert field_data.label == "h3"
+    assert field_data.param.gridpoints == 255
