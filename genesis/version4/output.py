@@ -1358,6 +1358,15 @@ class Genesis4Output(Mapping, BaseModel, arbitrary_types_allowed=True):
         meta = OutputMeta.from_hdf5_data(data.pop("meta", {}))
         version = meta.version
         key_map = data.pop("hdf_key_map", {})
+
+        for key, value in data.items():
+            if not isinstance(value, (float, int, str, bool, np.ndarray)):
+                logger.warning(
+                    f"Ignoring unexpected output file HDF5 key: {key}.  "
+                    f"This may indicate lume-genesis needs updating."
+                )
+                data.pop(key)
+
         extra = data
 
         output = cls(
