@@ -1335,10 +1335,18 @@ class Genesis4Output(Mapping, BaseModel, arbitrary_types_allowed=True):
             # The first harmonic is just "Field"
             yield 1, "field"
             # Harmonic 2+ are HDF5 "FieldN" -> Python "field_n"
-            harmonic = 2
-            while f"field_{harmonic}" in list(data):
-                yield harmonic, f"field_{harmonic}"
-                harmonic += 1
+            for key in sorted(data):
+                if not key.startswith("field_"):
+                    continue
+
+                try:
+                    harmonic = int(key.split("_", 1)[1])
+                except ValueError:
+                    logger.error(f"Unexpected field key in output: {key}")
+                    data.pop(key)
+                    continue
+
+                yield harmonic, key
 
         globals_ = OutputGlobal.from_hdf5_data(data.pop("globals", {}))
         beam = OutputBeam.from_hdf5_data(data.pop("beam", {}))
