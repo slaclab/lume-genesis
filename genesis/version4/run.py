@@ -299,9 +299,9 @@ class Genesis4(CommandWrapper):
 
         Parameters
         ----------
-        load_fields : bool, default=True
+        load_fields : bool, default=False
             After execution, load all field files.
-        load_particles : bool, default=True
+        load_particles : bool, default=False
             After execution, load all particle files.
         smear : bool, default=True
             If set, for particles, this will smear the phase over the sample
