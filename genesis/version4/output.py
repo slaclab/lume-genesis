@@ -1760,6 +1760,7 @@ def simple_mean_from_slice_data(
         slice data array
     weight : np.ndarray
         2D (zstep, islice) weight array.
+
     Returns
     -------
     np.ndarray
