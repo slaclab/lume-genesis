@@ -1752,17 +1752,19 @@ def simple_mean_from_slice_data(
     weight: np.ndarray,
 ) -> np.ndarray:
     """
-    Calculate the mean of a slice sta
+    Calculate the mean of a 2D slice statistic array weighted by another 2D array.
 
     Parameters
     ----------
     dat : np.ndarray
-        slice data array
+        2D (zstep, islice) slice data array
     weight : np.ndarray
         2D (zstep, islice) weight array.
     Returns
     -------
-    np.ndarray
+    np.ndarray:
+        mean data with shape (zstep, )
+
     """
     if not len(dat):
         return _empty_ndarray()
