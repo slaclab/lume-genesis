@@ -986,6 +986,9 @@ class Genesis4Input(BaseModel):
         distribution.  If set, this acts as a shortcut for automatically adding
         an ``importdistribution`` namelist and writing the corresponding HDF5
         file for Genesis.
+    initial_field : FieldFile, optional
+        Initial Genesis 4 format field file to use in the simulation. Use
+        `FieldFile.from_file` to load the file first.
     """
 
     main: MainInput

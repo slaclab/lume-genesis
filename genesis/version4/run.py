@@ -169,6 +169,9 @@ class Genesis4(CommandWrapper):
     initial_particles : ParticleGroup or Genesis4ParticleData, optional
         Initial particles to use in the simulation, using the
         OpenPMD-beamphysics standard.
+    initial_field : FieldFile, optional
+        Initial Genesis 4 format field file to use in the simulation. Use
+        `FieldFile.from_file` to load the file first.
     """
 
     COMMAND: ClassVar[str] = "genesis4"
