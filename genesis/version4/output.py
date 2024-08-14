@@ -851,7 +851,7 @@ class OutputFieldStat(_OutputBase):
         skip_attrs = {
             "energy",  # This is already calculated
         }
-        for attr in set(OutputField.model_fields):
+        for attr in OutputField.model_fields:
             value = getattr(field, attr)
             if not isinstance(value, np.ndarray):
                 skip_attrs.add(attr)
@@ -1760,6 +1760,7 @@ def simple_mean_from_slice_data(
         2D (zstep, islice) slice data array
     weight : np.ndarray
         2D (zstep, islice) weight array.
+
     Returns
     -------
     np.ndarray:
