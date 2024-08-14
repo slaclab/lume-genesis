@@ -819,6 +819,7 @@ class OutputGlobal(_OutputBase):
 
 class OutputFieldStat(_OutputBase):
     """Calculated output field statistics. Mean field position and size."""
+
     intensity_farfield: NDArray
     intensity_nearfield: NDArray
     phase_farfield: NDArray
@@ -833,14 +834,14 @@ class OutputFieldStat(_OutputBase):
     xsize: NDArray
     ysize: NDArray
     energy: NDArray
-    
+
     extra: Dict[str, OutputDataType] = pydantic.Field(
         default_factory=dict,
         description=(
             "Additional Genesis 4 output data.  This is a future-proofing mechanism "
             "in case Genesis 4 changes and LUME-Genesis is not yet ready for it."
         ),
-    )    
+    )
 
     @classmethod
     def from_output_field(cls, field: OutputField) -> Optional[OutputFieldStat]:
@@ -848,13 +849,13 @@ class OutputFieldStat(_OutputBase):
         power = np.nan_to_num(field.power)
 
         skip_attrs = {
-                     "energy", # This is already calculated
-                     }
+            "energy",  # This is already calculated
+        }
         for attr in set(OutputField.model_fields):
             value = getattr(field, attr)
             if not isinstance(value, np.ndarray):
                 skip_attrs.add(attr)
-                
+
         simple_stats = {
             attr: simple_mean_from_slice_data(getattr(field, attr), weight=power)
             for attr in set(OutputField.model_fields) - skip_attrs
@@ -865,7 +866,7 @@ class OutputFieldStat(_OutputBase):
         }
 
         return OutputFieldStat(
-            extra=extra, 
+            extra=extra,
             energy=field.energy,
             **simple_stats,
         )
@@ -1746,14 +1747,13 @@ class Genesis4Output(Mapping, BaseModel, arbitrary_types_allowed=True):
         return len(self.alias)
 
 
-
 def simple_mean_from_slice_data(
     dat: np.ndarray,
     weight: np.ndarray,
 ) -> np.ndarray:
     """
     Calculate the mean of a slice sta
-    
+
     Parameters
     ----------
     dat : np.ndarray
@@ -1769,7 +1769,10 @@ def simple_mean_from_slice_data(
     dat = np.nan_to_num(dat)  # Convert any nan to zero for averaging.
     numerator = np.sum(dat * weight, axis=1)
     denominator = np.sum(weight, axis=1)
-    return np.divide(numerator, denominator, where=denominator != 0, out=np.zeros_like(numerator))
+    return np.divide(
+        numerator, denominator, where=denominator != 0, out=np.zeros_like(numerator)
+    )
+
 
 def projected_variance_from_slice_data(
     x2: np.ndarray,
