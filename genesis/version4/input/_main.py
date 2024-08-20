@@ -1348,7 +1348,7 @@ class ImportDistribution(types.NameList):
         evaluation start.
     eval_end : float, default=1.0
         evaluation end.
-    settimewindow : bool, default=True
+    settimewindow : bool, default=False
         set time window.
     align : int, default=0
         currently unused.
@@ -1439,7 +1439,7 @@ class ImportDistribution(types.NameList):
         description="evaluation end.",
     )
     settimewindow: bool = pydantic.Field(
-        default=True,
+        default=False,
         description="set time window.",
     )
     align: int = pydantic.Field(
