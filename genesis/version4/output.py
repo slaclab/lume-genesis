@@ -1204,6 +1204,17 @@ class Genesis4Output(Mapping, BaseModel, arbitrary_types_allowed=True):
                 )
             )
 
+        for harmonic, field in self.field_harmonics.items():
+            if harmonic > 1:
+                self.alias.update(
+                    tools.make_dotted_aliases(
+                        field,
+                        existing_aliases=self.alias,
+                        attr_prefix=f"field_harmonics[{harmonic}].",
+                        alias_prefix=f"field{harmonic}_",
+                    )
+                )
+
         custom_aliases = {
             # Back-compat
             "beam_sigma_energy": "beam.stat.sigma_energy",
@@ -1726,6 +1737,13 @@ class Genesis4Output(Mapping, BaseModel, arbitrary_types_allowed=True):
     def __getitem__(self, key: str) -> Any:
         """Support for Mapping -> easy access to data."""
         dotted_attr = self.alias[key]
+        # NOTE: special-casing field harmonics
+        harmonics_prefix = "field_harmonics["
+        if dotted_attr.startswith(harmonics_prefix):
+            index = int(dotted_attr[len(harmonics_prefix) :].split("]")[0])
+            field_attr = dotted_attr.split(".", 1)[1]
+            return operator.attrgetter(field_attr)(self.field_harmonics[index])
+
         return operator.attrgetter(dotted_attr)(self)
 
     @override
