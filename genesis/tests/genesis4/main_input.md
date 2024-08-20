@@ -292,7 +292,7 @@ Note that this namelist will be expanded in the future, to enable tilts and matc
 - `alphay`(*double, 0 or matched value*): If matching is enabled, new alpha function in $y$.
 - `eval_start` (*double, 0*): evaluation start.
 - `eval_end` (*double, 1*): evaluation end.
-- `settimewindow` (*bool, true*): set time window.
+- `settimewindow` (*bool, false*): set time window.
 - `align` (*int, 0*): currently unused.
 - `align_start` (*double, 0*): currently unused.
 - `align_end` (*double, 1*): currently unused.
@@ -465,7 +465,7 @@ Generates profile objects `<label_prefix>.gamma`, `<label_prefix>.delgam`,
 `<label_prefix>.current`, etc., each one corresponding to one `&profile_file`.
 
 - `file` (*string, <empty>*): HDF5 filename.
-- `label_prefix` (*string, <empty>*): prefix for each object.
+- `label_prefix` (*string, \<empty>*): prefix for each object.
 - `xdata` (*string, \<empty>*): Points to a dataset in an HDF5 file to define the `s`-position for the look-up table. The format is `filename/group1/.../groupn/datasetname`, where the naming of groups is not required if the dataset is at root level of the HDF file
 - `ydata` (*string, \<empty>*): Same as y data but for the function values of the look-up table.
 - `isTime` (*bool, false*): If true the `s`-position is a time variable and therefore multiplied with the speed of light `c` to get the position in meters.
@@ -475,7 +475,7 @@ Generates profile objects `<label_prefix>.gamma`, `<label_prefix>.delgam`,
 
 A sequence of values given as a string.
 
-- `label` (*string, <empty>*): label for the sequence.
+- `label` (*string, \<empty>*): label for the sequence.
 - `val` (*double, [<empty>]*): list of values.
 - `default` (*double, 0*): default value to use for out-of-bound indices.
 
@@ -483,8 +483,8 @@ A sequence of values given as a string.
 
 A sequence list with data in a file.
 
-- `label` (*string, <empty>*): label for the sequence.
-- `file` (*string, <empty>*): filename to load the sequence from with one line per value.
+- `label` (*string, \<empty>*): label for the sequence.
+- `file` (*string, \<empty>*): filename to load the sequence from with one line per value.
 
 ### add_plugin_fielddiag
 
