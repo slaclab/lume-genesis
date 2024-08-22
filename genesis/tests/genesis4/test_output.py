@@ -230,3 +230,14 @@ def test_nested_load() -> None:
     assert meta.beamdumps.intstep.tolist() == [1]
     meta = OutputMeta.from_hdf5_data({"fielddumps": {"intstep": 1}})
     assert meta.fielddumps.intstep.tolist() == [1]
+
+
+@pytest.mark.parametrize(("key",), [["power"]])
+def test_unsupported_key(
+    output: Genesis4Output,
+    key: str,
+) -> None:
+    with pytest.raises(KeyError):
+        output[key]
+    with pytest.raises(KeyError):
+        output.stat(key)
