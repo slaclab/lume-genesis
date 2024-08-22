@@ -452,28 +452,6 @@ class OutputBeamStat(_OutputBase):
             current, axis=1
         )
 
-    @staticmethod
-    def calculate_simple_stat(
-        current: np.ndarray,
-        dat: np.ndarray,
-    ) -> np.ndarray:
-        """
-        Calculate simple statistics of the given data.
-
-        Parameters
-        ----------
-        current : np.ndarray
-        dat : np.ndarray
-
-        Returns
-        -------
-        np.ndarray
-        """
-        if not len(dat):
-            return _empty_ndarray()
-        dat = np.nan_to_num(dat)  # Convert any nan to zero for averaging.
-        return np.sum(dat * current, axis=1) / np.sum(current, axis=1)
-
     @classmethod
     def from_output_beam(cls, beam: OutputBeam) -> OutputBeamStat:
         """Calculate all statistics given an `OutputBeam` instance."""
@@ -495,11 +473,11 @@ class OutputBeamStat(_OutputBase):
                 skip_attrs.add(attr)
 
         simple_stats = {
-            attr: cls.calculate_simple_stat(current, getattr(beam, attr))
+            attr: simple_mean_from_slice_data(getattr(beam, attr), weight=current)
             for attr in set(OutputBeam.model_fields) - skip_attrs
         }
         extra = {
-            key: cls.calculate_simple_stat(current, value)
+            key: simple_mean_from_slice_data(value, weight=current)
             for key, value in beam.extra.items()
         }
         units = dict(beam.units)
@@ -842,25 +820,55 @@ class OutputGlobal(_OutputBase):
 class OutputFieldStat(_OutputBase):
     """Calculated output field statistics. Mean field position and size."""
 
+    intensity_farfield: NDArray
+    intensity_nearfield: NDArray
+    phase_farfield: NDArray
+    phase_nearfield: NDArray
+    power: NDArray
+    xdivergence: NDArray
+    ydivergence: NDArray
+    xpointing: NDArray
+    ypointing: NDArray
     xposition: NDArray
     yposition: NDArray
-
     xsize: NDArray
     ysize: NDArray
+    energy: NDArray
+
+    extra: Dict[str, OutputDataType] = pydantic.Field(
+        default_factory=dict,
+        description=(
+            "Additional Genesis 4 output data.  This is a future-proofing mechanism "
+            "in case Genesis 4 changes and LUME-Genesis is not yet ready for it."
+        ),
+    )
 
     @classmethod
     def from_output_field(cls, field: OutputField) -> Optional[OutputFieldStat]:
-        if any(
-            not len(fld)
-            for fld in (field.xposition, field.yposition, field.xsize, field.ysize)
-        ):
-            return None
+        """Calculate all statistics given an `OutputField` instance."""
+        power = np.nan_to_num(field.power)
+
+        skip_attrs = {
+            "energy",  # This is already calculated
+        }
+        for attr in OutputField.model_fields:
+            value = getattr(field, attr)
+            if not isinstance(value, np.ndarray):
+                skip_attrs.add(attr)
+
+        simple_stats = {
+            attr: simple_mean_from_slice_data(getattr(field, attr), weight=power)
+            for attr in set(OutputField.model_fields) - skip_attrs
+        }
+        extra = {
+            key: simple_mean_from_slice_data(value, weight=power)
+            for key, value in field.extra.items()
+        }
 
         return OutputFieldStat(
-            xposition=np.mean(field.xposition, axis=1),
-            yposition=np.mean(field.yposition, axis=1),
-            xsize=np.mean(field.xsize, axis=1),
-            ysize=np.mean(field.ysize, axis=1),
+            extra=extra,
+            energy=field.energy,
+            **simple_stats,
         )
 
 
@@ -1263,9 +1271,9 @@ class Genesis4Output(Mapping, BaseModel, arbitrary_types_allowed=True):
 
         Parameters
         ----------
-        load_fields : bool, default=True
+        load_fields : bool, default=False
             After execution, load all field files.
-        load_particles : bool, default=True
+        load_particles : bool, default=False
             After execution, load all particle files.
         smear : bool, default=True
             If set, for particles, this will smear the phase over the sample
@@ -1712,9 +1720,9 @@ class Genesis4Output(Mapping, BaseModel, arbitrary_types_allowed=True):
             # Check again: xsize, ysize are not stats attributes but are
             # expected to exist per many examples (beam_xsize)
             # (TODO)
-            return OutputBeamStat.calculate_simple_stat(
-                info.parent.current,
+            return simple_mean_from_slice_data(
                 getattr(info.parent, info.array_attr),
+                weight=info.parent.current,
             )
         if isinstance(info.parent, OutputLattice):
             # TODO: this is bringing forward the old functionality but
@@ -1755,6 +1763,36 @@ class Genesis4Output(Mapping, BaseModel, arbitrary_types_allowed=True):
     def __len__(self) -> int:
         """Support for Mapping -> easy access to data."""
         return len(self.alias)
+
+
+def simple_mean_from_slice_data(
+    dat: np.ndarray,
+    weight: np.ndarray,
+) -> np.ndarray:
+    """
+    Calculate the mean of a 2D slice statistic array weighted by another 2D array.
+
+    Parameters
+    ----------
+    dat : np.ndarray
+        2D (zstep, islice) slice data array
+    weight : np.ndarray
+        2D (zstep, islice) weight array.
+
+    Returns
+    -------
+    np.ndarray:
+        mean data with shape (zstep, )
+
+    """
+    if not len(dat):
+        return _empty_ndarray()
+    dat = np.nan_to_num(dat)  # Convert any nan to zero for averaging.
+    numerator = np.sum(dat * weight, axis=1)
+    denominator = np.sum(weight, axis=1)
+    return np.divide(
+        numerator, denominator, where=denominator != 0, out=np.zeros_like(numerator)
+    )
 
 
 def projected_variance_from_slice_data(
