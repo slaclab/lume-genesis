@@ -276,7 +276,12 @@ def test_fodo(_shorten_zstop, tmp_path: pathlib.Path) -> None:
     G = Genesis4(main)
     G.nproc = 0  # Auto-select
     G.run()
-    G.plot("power", yscale="log", y2=["beam_xsize", "beam_ysize"], ylim2=(0, 50e-6))
+    G.plot(
+        "field_peak_power",
+        yscale="log",
+        y2=["beam_xsize", "beam_ysize"],
+        ylim2=(0, 50e-6),
+    )
 
     def run1(k):
         make_lat(k)
@@ -288,7 +293,12 @@ def test_fodo(_shorten_zstop, tmp_path: pathlib.Path) -> None:
         return G
 
     G2 = run1(4)
-    G2.plot("power", yscale="log", y2=["beam_xsize", "beam_ysize"], ylim2=(0, 50e-6))
+    G2.plot(
+        "field_peak_power",
+        yscale="log",
+        y2=["beam_xsize", "beam_ysize"],
+        ylim2=(0, 50e-6),
+    )
 
     klist = np.linspace(1, 3, NUM_STEPS)
     Glist = [run1(k) for k in klist]
@@ -296,7 +306,7 @@ def test_fodo(_shorten_zstop, tmp_path: pathlib.Path) -> None:
     fig, ax = plt.subplots()
     for k, g in zip(klist, Glist):
         x = g.stat("zplot")
-        y = g.stat("power")
+        y = g.stat("field_peak_power")
         ax.plot(x, y / 1e6, label=f"{k:0.1f}")
     ax.set_yscale("log")
     ax.set_xlabel(r"$z$ (m)")
@@ -304,7 +314,7 @@ def test_fodo(_shorten_zstop, tmp_path: pathlib.Path) -> None:
     plt.legend(title=r"$k$ (1/m$^2$)")
 
     fig, ax = plt.subplots()
-    y = np.array([g.stat("power")[-1] for g in Glist])
+    y = np.array([g.stat("field_peak_power")[-1] for g in Glist])
     ixbest = y.argmax()
     _Gbest = Glist[ixbest]
     kbest = klist[ixbest]
@@ -498,7 +508,12 @@ def test_fodo_scan_model(_shorten_zstop, tmp_path: pathlib.Path) -> None:
 
     G = fodo_model.run()
 
-    G.plot("power", yscale="log", y2=["beam_xsize", "beam_ysize"], ylim2=(0, 50e-6))
+    G.plot(
+        "field_peak_power",
+        yscale="log",
+        y2=["beam_xsize", "beam_ysize"],
+        ylim2=(0, 50e-6),
+    )
 
     def run2(kL):
         G = FODOModel(kL=kL).run()
@@ -506,7 +521,12 @@ def test_fodo_scan_model(_shorten_zstop, tmp_path: pathlib.Path) -> None:
 
     G2 = run2(0.136)  # = 1.7 * .08
 
-    G2.plot("power", yscale="log", y2=["beam_xsize", "beam_ysize"], ylim2=(0, 200e-6))
+    G2.plot(
+        "field_peak_power",
+        yscale="log",
+        y2=["beam_xsize", "beam_ysize"],
+        ylim2=(0, 200e-6),
+    )
 
     kLlist = np.linspace(0.1, 0.4, NUM_STEPS)
     Glist = [run2(kL) for kL in kLlist]
@@ -514,14 +534,14 @@ def test_fodo_scan_model(_shorten_zstop, tmp_path: pathlib.Path) -> None:
     fig, ax = plt.subplots()
     for k, g in zip(kLlist, Glist):
         x = g.stat("zplot")
-        y = g.stat("power")
+        y = g.stat("field_peak_power")
         ax.plot(x, y / 1e6, label=f"{k:0.3f}")
     ax.set_xlabel(r"$z$ (m)")
     ax.set_ylabel("power (MW)")
     plt.legend(title=r"$k_1L$ (1/m)")
 
     fig, ax = plt.subplots()
-    y = np.array([g.stat("power")[-1] for g in Glist])
+    y = np.array([g.stat("field_peak_power")[-1] for g in Glist])
     ixbest = y.argmax()
     _Gbest = Glist[ixbest]
     kbest = kLlist[ixbest]
@@ -554,7 +574,12 @@ def test_fodo_scan_model(_shorten_zstop, tmp_path: pathlib.Path) -> None:
         return G
 
     G2 = run3(10e-3)
-    G2.plot("power", yscale="log", y2=["beam_xsize", "beam_ysize"], ylim2=(0, None))
+    G2.plot(
+        "field_peak_power",
+        yscale="log",
+        y2=["beam_xsize", "beam_ysize"],
+        ylim2=(0, None),
+    )
 
     lambdaulist = np.linspace(10e-3, 25e-3, NUM_STEPS)
     Glist = [run3(lambdau) for lambdau in lambdaulist]
@@ -562,7 +587,7 @@ def test_fodo_scan_model(_shorten_zstop, tmp_path: pathlib.Path) -> None:
     fig, ax = plt.subplots()
     for k, g in zip(lambdaulist, Glist):
         x = g.stat("zplot")
-        y = g.stat("power")
+        y = g.stat("field_peak_power")
         ax.plot(x, y / 1e6, label=f"{k*1e3:0.1f}")
     ax.set_yscale("log")
     ax.set_xlabel(r"$z$ (m)")
@@ -682,7 +707,7 @@ def test_genesis4_example(_shorten_zstop, tmp_path: pathlib.Path) -> None:
     # # Plotting
     #
     # Convenient plotting of the data in `.output` is provided by `.plot`. The default is to plot the power. Depending on the key these statistics are averaged or integrated over the slices. Some keys like `power` are converted to `peak_power`, while `field_energy` is the integral over `field_power`.
-    print(G.output.alias["power"])
+    print(G.output.alias["field_peak_power"])
     G.plot()
     # Left and right axes can be set this way:
     G.plot(
