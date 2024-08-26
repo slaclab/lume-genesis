@@ -65,6 +65,9 @@ def test_field_harmonic_aliases(
     # alias: str,
     # expected_attr: str,
 ) -> None:
+    assert output.alias["field_xpointing"] == "field.xpointing"
+    assert output.alias["field1_xpointing"] == "field.xpointing"
+
     old_aliases = dict(output.alias)
     output.field_harmonics[2] = copy.copy(output.field_harmonics[1])
     output.field_harmonics[3] = copy.copy(output.field_harmonics[1])

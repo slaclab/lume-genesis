@@ -1227,6 +1227,15 @@ class Genesis4Output(Mapping, BaseModel, arbitrary_types_allowed=True):
                 )
             )
 
+            self.alias.update(
+                tools.make_dotted_aliases(
+                    self.field,
+                    existing_aliases=self.alias,
+                    attr_prefix="field.",
+                    alias_prefix="field1_",
+                )
+            )
+
         for harmonic, field in self.field_harmonics.items():
             if harmonic > 1:
                 self.alias.update(
