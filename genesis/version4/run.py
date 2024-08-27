@@ -184,7 +184,7 @@ class Genesis4(CommandWrapper):
     command_mpi_env: str = "GENESIS4_BIN"
     original_path: AnyPath
 
-    input: Genesis4Input
+    _input: Genesis4Input
     output: Optional[Genesis4Output]
 
     def __init__(
@@ -249,7 +249,7 @@ class Genesis4(CommandWrapper):
             workdir = pathlib.Path(".")
 
         self.original_path = workdir
-        self.input = input
+        self._input = input
         self.output = output
 
         # Internal
@@ -259,6 +259,21 @@ class Genesis4(CommandWrapper):
         # MPI
         self.nproc = 1
         self.nnode = 1
+
+    @property
+    def input(self) -> Genesis4Input:
+        """The Genesis 4 input, including namelists and lattice information."""
+        return self._input
+
+    @input.setter
+    def input(self, inp: Any) -> None:
+        if not isinstance(inp, Genesis4Input):
+            raise ValueError(
+                f"The provided input is of type {type(inp).__name__} and not `Genesis4Input`. "
+                f"Please consider creating a new Genesis4 object instead with the "
+                f"new parameters!"
+            )
+        self._input = inp
 
     @property
     def nproc(self):

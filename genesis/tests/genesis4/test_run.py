@@ -3,9 +3,10 @@ from typing import Optional
 
 import pytest
 
+from ... import version4 as g4
 from ...version4 import Genesis4
 from ...version4.input import Beam, Lattice, MainInput
-from ..conftest import test_root
+from ..conftest import genesis4_example1_path, test_root
 from .conftest import run_basic
 from .util import run_with_instances, run_with_source
 
@@ -101,8 +102,6 @@ def test_get_run_prefix_smoke(genesis4: Genesis4, nproc: int, mpi: bool) -> None
 
 
 def test_run_3rd_harmonic():
-    from ... import version4 as g4
-
     main = g4.MainInput(
         [
             g4.Setup(
@@ -145,3 +144,14 @@ def test_run_3rd_harmonic():
     field_data = output.load_field_by_key("h3")
     assert field_data.label == "h3"
     assert field_data.param.gridpoints == 255
+
+
+def test_input_setter():
+    G = g4.Genesis4(genesis4_example1_path / "Example1.in")
+
+    with pytest.raises(ValueError):
+        G.input = None
+
+    new = g4.Genesis4Input(main=g4.MainInput(), lattice=g4.Lattice())
+    G.input = new
+    assert G.input is new
