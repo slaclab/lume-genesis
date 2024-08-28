@@ -47,6 +47,7 @@ from .input import (
     Write,
 )
 from .output import Genesis4Output
+from .particles import Genesis4ParticleData
 from .run import Genesis4
 from .types import AnyPath, Reference
 
@@ -108,4 +109,6 @@ __all__ = [
     "Wake",
     "Write",
     "Track",
+    # Particles:
+    "Genesis4ParticleData",
 ]
