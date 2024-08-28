@@ -1,3 +1,4 @@
+import copy
 from typing import Union
 
 import numpy as np
@@ -57,6 +58,38 @@ def test_alias(
     assert output.alias[alias] == expected_attr
     output._get_array_info(alias)
     assert isinstance(output[alias], np.ndarray)
+
+
+def test_field_harmonic_aliases(
+    output: Genesis4Output,
+    # alias: str,
+    # expected_attr: str,
+) -> None:
+    assert output.alias["field_xpointing"] == "field.xpointing"
+    assert output.alias["field1_xpointing"] == "field.xpointing"
+
+    old_aliases = dict(output.alias)
+    output.field_harmonics[2] = copy.copy(output.field_harmonics[1])
+    output.field_harmonics[3] = copy.copy(output.field_harmonics[1])
+    output.update_aliases()
+    new_aliases = dict(output.alias)
+    assert len(new_aliases) > len(old_aliases)
+    print("New aliases:", sorted(set(new_aliases) - set(old_aliases)))
+
+    output.field_harmonics[2].xpointing = np.array([1, 2, 3])
+    assert output.alias["field2_xpointing"] == "field_harmonics[2].xpointing"
+    assert output["field2_xpointing"].tolist() == [1, 2, 3]
+
+    output.field_harmonics[2].globals.xpointing = np.array([1, 2, 3])
+    assert (
+        output.alias["field2_globals_xpointing"]
+        == "field_harmonics[2].globals.xpointing"
+    )
+    assert output["field2_globals_xpointing"].tolist() == [1, 2, 3]
+
+    output.field_harmonics[3].xpointing = np.array([4, 2, 3])
+    assert output.alias["field3_xpointing"] == "field_harmonics[3].xpointing"
+    assert output["field3_xpointing"].tolist() == [4, 2, 3]
 
 
 @pytest.mark.parametrize(
@@ -200,3 +233,14 @@ def test_nested_load() -> None:
     assert meta.beamdumps.intstep.tolist() == [1]
     meta = OutputMeta.from_hdf5_data({"fielddumps": {"intstep": 1}})
     assert meta.fielddumps.intstep.tolist() == [1]
+
+
+@pytest.mark.parametrize(("key",), [["power"]])
+def test_unsupported_key(
+    output: Genesis4Output,
+    key: str,
+) -> None:
+    with pytest.raises(KeyError):
+        output[key]
+    with pytest.raises(KeyError):
+        output.stat(key)

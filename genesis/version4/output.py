@@ -1108,6 +1108,21 @@ def _hdf_summary(
     return res
 
 
+def _check_for_unsupported_key(key: str):
+    """
+    Some user-facing string keys may be scheduled for deprecation or have
+    already been removed.
+
+    Raises `KeyError` if so.
+    """
+    if key == "power":
+        raise KeyError(
+            'The key "power" is no longer accepted.  To specify peak power '
+            'for the 1st harmonic, you can use "field_peak_power", '
+            'and for the Nth harmonic you can use "fieldN_peak_power".'
+        )
+
+
 class Genesis4Output(Mapping, BaseModel, arbitrary_types_allowed=True):
     """
     Genesis 4 command output.
@@ -1211,6 +1226,26 @@ class Genesis4Output(Mapping, BaseModel, arbitrary_types_allowed=True):
                     alias_prefix="field_",
                 )
             )
+
+            self.alias.update(
+                tools.make_dotted_aliases(
+                    self.field,
+                    existing_aliases=self.alias,
+                    attr_prefix="field.",
+                    alias_prefix="field1_",
+                )
+            )
+
+        for harmonic, field in self.field_harmonics.items():
+            if harmonic > 1:
+                self.alias.update(
+                    tools.make_dotted_aliases(
+                        field,
+                        existing_aliases=self.alias,
+                        attr_prefix=f"field_harmonics[{harmonic}].",
+                        alias_prefix=f"field{harmonic}_",
+                    )
+                )
 
         custom_aliases = {
             # Back-compat
@@ -1623,12 +1658,6 @@ class Genesis4Output(Mapping, BaseModel, arbitrary_types_allowed=True):
         y = list(y)
         y2 = list(y2)
 
-        # Special case
-        for yk in (y, y2):
-            for i, key in enumerate(yk):
-                if "power" in key:
-                    yk[i] = "peak_power"
-
         return plot_stats_with_layout(
             self,
             ykeys=y,
@@ -1695,9 +1724,7 @@ class Genesis4Output(Mapping, BaseModel, arbitrary_types_allowed=True):
         )
 
     def stat(self, key: str) -> np.ndarray:
-        if "power" in key:
-            # TODO: this is also some back-compat
-            return self.field.peak_power
+        _check_for_unsupported_key(key)
 
         info = self._get_array_info(key)
         if isinstance(info.parent, (OutputField, OutputBeam)):
@@ -1713,10 +1740,6 @@ class Genesis4Output(Mapping, BaseModel, arbitrary_types_allowed=True):
                 getattr(info.parent, info.array_attr),
                 weight=info.parent.current,
             )
-        if isinstance(info.parent, OutputLattice):
-            # TODO: this is bringing forward the old functionality but
-            # doesn't seem quite right
-            return getattr(info.parent, info.array_attr)
         # raise ValueError(f"No stats for {key}")
         # TODO: passing the value through for now, so this would be like
         # get_array(key)
@@ -1733,7 +1756,16 @@ class Genesis4Output(Mapping, BaseModel, arbitrary_types_allowed=True):
     @override
     def __getitem__(self, key: str) -> Any:
         """Support for Mapping -> easy access to data."""
+        _check_for_unsupported_key(key)
+
         dotted_attr = self.alias[key]
+        # NOTE: special-casing field harmonics
+        harmonics_prefix = "field_harmonics["
+        if dotted_attr.startswith(harmonics_prefix):
+            index = int(dotted_attr[len(harmonics_prefix) :].split("]")[0])
+            field_attr = dotted_attr.split(".", 1)[1]
+            return operator.attrgetter(field_attr)(self.field_harmonics[index])
+
         return operator.attrgetter(dotted_attr)(self)
 
     @override
