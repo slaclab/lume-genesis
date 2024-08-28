@@ -1,9 +1,8 @@
 from __future__ import annotations
 
 import pathlib
-from typing import (
-    Union,
-)
+import pydantic
+from typing import Union
 
 import h5py
 import numpy as np
@@ -48,8 +47,8 @@ def get_key_from_filename(fn: str) -> FileKey:
 
 class FieldFile(BaseModel):
     label: FileKey = ""
-    dfl: NDArray
-    param: FieldFileParams
+    dfl: NDArray = pydantic.Field(default_factory=lambda: np.zeros((1, 1, 1)))
+    param: FieldFileParams = pydantic.Field(default_factory=FieldFileParams)
 
     @property
     def hdf5_filename(self) -> str:

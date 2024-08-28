@@ -100,7 +100,7 @@ class Genesis4ParticleData(BaseModel):
     slicerange_min: Optional[float] = None
     slicerange_max: Optional[float] = None
     slicerange_inc: Optional[float] = None
-    units: Dict[str, str]
+    units: Dict[str, str] = pydantic.Field(default_factory=dict)
 
     @classmethod
     def from_h5(cls, h5: h5py.File) -> Genesis4ParticleData:

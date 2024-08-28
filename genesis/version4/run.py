@@ -239,10 +239,13 @@ class Genesis4(CommandWrapper):
                 source_path=workdir,
             )
 
-        if input.initial_particles is not initial_particles:
+        if (
+            input.initial_particles is not initial_particles
+            and initial_particles is not None
+        ):
             input.initial_particles = initial_particles
 
-        if input.initial_field is not initial_field:
+        if input.initial_field is not initial_field and initial_field is not None:
             input.initial_field = initial_field
 
         if workdir is None:
