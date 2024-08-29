@@ -3,7 +3,15 @@ from typing import Optional
 import numpy as np
 from pmd_beamphysics import ParticleGroup
 
-from ...version4 import Genesis4Input, Lattice, MainInput
+from ...version4 import (
+    Genesis4,
+    Genesis4Input,
+    ImportBeam,
+    ImportField,
+    Lattice,
+    MainInput,
+    Setup,
+)
 
 
 def gaussian_data(
@@ -79,6 +87,11 @@ def test_set_particles(main_input: MainInput) -> None:
     assert input.initial_particles == group
     assert input.main.time.slen != 0.0
 
+    assert len(input.main.import_distributions) == 1
+
+    input.initial_particles = None
+    assert len(input.main.import_distributions) == 0
+
 
 def test_archive_particles(main_input: MainInput) -> None:
     input = Genesis4Input(main=main_input, lattice=Lattice())
@@ -89,3 +102,17 @@ def test_archive_particles(main_input: MainInput) -> None:
     input.initial_particles = group
     assert input.initial_particles == group
     assert input.main.time.slen != 0.0
+
+
+def test_import_beam_not_cleared() -> None:
+    namelists = [Setup(), ImportBeam()]
+    main = MainInput(namelists=list(namelists))
+    G = Genesis4(main, Lattice())
+    assert namelists == G.input.main.namelists
+
+
+def test_import_field_not_cleared() -> None:
+    namelists = [Setup(), ImportField()]
+    main = MainInput(namelists=list(namelists))
+    G = Genesis4(main, Lattice())
+    assert namelists == G.input.main.namelists
