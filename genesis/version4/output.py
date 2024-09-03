@@ -206,13 +206,16 @@ class OutputLattice(_OutputBase):
     )
     ax: NDArray = pydantic.Field(
         default_factory=_empty_ndarray,
-        description=r"Offset of the undulator module in $x$ in meter.",
+        description=r"Offset of the undulator module in $x$. [m]",
     )
     ay: NDArray = pydantic.Field(
         default_factory=_empty_ndarray,
-        description=r"Offset of the undulator module in $y$ in meter.",
+        description=r"Offset of the undulator module in $y$. [m]",
     )
-    chic_angle: NDArray = pydantic.Field(default_factory=_empty_ndarray)
+    chic_angle: NDArray = pydantic.Field(
+        default_factory=_empty_ndarray,
+        description="Chicane angle [degree]",
+    )
     chic_lb: NDArray = pydantic.Field(
         default_factory=_empty_ndarray,
         description=r"Length of an individual dipole in meter.",
@@ -222,10 +225,13 @@ class OutputLattice(_OutputBase):
         description=(
             r"Drift between the outer and inner dipoles, projected onto the undulator "
             r"axis. The actual path length is longer by the factor $1/\cos\theta$, where "
-            r"$\theta$ is the bending angle of an individual dipole. "
+            r"$\theta$ is the bending angle of an individual dipole. [m]"
         ),
     )
-    chic_lt: NDArray = pydantic.Field(default_factory=_empty_ndarray)
+    chic_lt: NDArray = pydantic.Field(
+        default_factory=_empty_ndarray,
+        description="Chicane length [m]",
+    )
     cx: NDArray = pydantic.Field(
         default_factory=_empty_ndarray,
         description=r"Kick angle in $x$ in units of $\gamma \beta_x$.",
@@ -252,7 +258,10 @@ class OutputLattice(_OutputBase):
             r"\partial a_w/\partial y$."
         ),
     )
-    ku: NDArray = pydantic.Field(default_factory=_empty_ndarray)
+    ku: NDArray = pydantic.Field(
+        default_factory=_empty_ndarray,
+        description="Ku [1/m]",
+    )
     kx: NDArray = pydantic.Field(
         default_factory=_empty_ndarray,
         description=(
@@ -281,7 +290,8 @@ class OutputLattice(_OutputBase):
         description="Quadrupole offset in $y$ in meters.",
     )
     slippage: NDArray = pydantic.Field(
-        default_factory=_empty_ndarray, description="Lattice slippage."
+        default_factory=_empty_ndarray,
+        description="Lattice slippage. [1]",
     )
     z: NDArray = pydantic.Field(
         default_factory=_empty_ndarray,
@@ -346,41 +356,131 @@ class OutputBeamStat(_OutputBase):
     """
 
     units: Dict[str, PydanticPmdUnit] = pydantic.Field(default_factory=dict, repr=False)
-    sigma_x: NDArray
-    sigma_y: NDArray
-    sigma_energy: NDArray
+    sigma_x: NDArray = pydantic.Field(
+        default_factory=_empty_ndarray,
+        description="Projected RMS beam size in X [m]",
+    )
+    sigma_y: NDArray = pydantic.Field(
+        default_factory=_empty_ndarray,
+        description="Projected RMS beam size in Y [m]",
+    )
+    sigma_energy: NDArray = pydantic.Field(
+        default_factory=_empty_ndarray,
+        description="Average beam energy [eV]",
+    )
 
-    alphax: NDArray
-    alphay: NDArray
-    betax: NDArray
-    betay: NDArray
-    bunching: NDArray
-    bunchingphase: NDArray
-    current: NDArray
-    efield: NDArray
-    emitx: NDArray
-    emity: NDArray
-    energy: NDArray
-    energyspread: NDArray
-    lsc_field: NDArray
-    pxmax: NDArray
-    pxmin: NDArray
-    pxposition: NDArray
-    pymax: NDArray
-    pymin: NDArray
-    pyposition: NDArray
-    ssc_field: NDArray
-    wakefield: NDArray
+    alphax: NDArray = pydantic.Field(
+        default_factory=_empty_ndarray,
+        description="Slice-averaged by current twiss alpha horizontal. Evaluated only at the beginning. [rad]",
+    )
+    alphay: NDArray = pydantic.Field(
+        default_factory=_empty_ndarray,
+        description="Slice-averaged by current twiss alpha vertical. Evaluated only at the beginning. [rad]",
+    )
+    betax: NDArray = pydantic.Field(
+        default_factory=_empty_ndarray,
+        description="Slice-averaged by current twiss beta horizontal. Evaluated only at the beginning. [m]",
+    )
+    betay: NDArray = pydantic.Field(
+        default_factory=_empty_ndarray,
+        description="Slice-averaged by current twiss beta vertical. Evaluated only at the beginning. [m]",
+    )
+    bunching: NDArray = pydantic.Field(
+        default_factory=_empty_ndarray,
+        description="TODO CM - there's a formula for this",
+    )
+    bunchingphase: NDArray = pydantic.Field(
+        default_factory=_empty_ndarray,
+        description="Bunching phase evaluated at each integration step. [rad]",
+    )
+    current: NDArray = pydantic.Field(
+        default_factory=_empty_ndarray,
+        description="[Deprecated] Beam current. Evaluated only at the beginning. [A]",
+    )
+    # TODO remove deprecated 'current'
+    # TODO add average_power: average energy over RMS duration
+    efield: NDArray = pydantic.Field(
+        default_factory=_empty_ndarray,
+        description="Slice-averaged by current Efield, internally eloss+longESC [eV/m]",
+    )
+    emitx: NDArray = pydantic.Field(
+        default_factory=_empty_ndarray,
+        description="Slice-averaged by current beam horizontal emittance. Evaluated only at the beginning. [m]",
+    )
+    emity: NDArray = pydantic.Field(
+        default_factory=_empty_ndarray,
+        description="Slice-averaged by current beam vertical emittance. Evaluated only at the beginning. [m]",
+    )
+    energy: NDArray = pydantic.Field(
+        default_factory=_empty_ndarray,
+        description="Slice-averaged by current energy [eV]",
+    )
+    energyspread: NDArray = pydantic.Field(
+        default_factory=_empty_ndarray,
+        description="Slice-averaged by current energy spread [eV]",
+    )
+    pxmax: NDArray = pydantic.Field(
+        default_factory=_empty_ndarray,
+        description="Slice-averaged by current particle horizontal maximum momentum [rad]",
+    )
+    pxmin: NDArray = pydantic.Field(
+        default_factory=_empty_ndarray,
+        description="Slice-averaged by current particle horizontal minimum momentum [rad]",
+    )
+    pxposition: NDArray = pydantic.Field(
+        default_factory=_empty_ndarray,
+        description="Slice-averaged by current particle horizontal position in momentum space [rad]",
+    )
+    pymax: NDArray = pydantic.Field(
+        default_factory=_empty_ndarray,
+        description="Slice-averaged by current particle vertical maximum momentum [rad]",
+    )
+    pymin: NDArray = pydantic.Field(
+        default_factory=_empty_ndarray,
+        description="Slice-averaged by current particle vertical minimum momentum [rad]",
+    )
+    pyposition: NDArray = pydantic.Field(
+        default_factory=_empty_ndarray,
+        description="Slice-averaged by current particle vertical position in momentum space [rad]",
+    )
+    lsc_field: NDArray = pydantic.Field(
+        default_factory=_empty_ndarray,
+        description="Slice-averaged by current longitudinal space charge [eV/m]",
+    )
+    ssc_field: NDArray = pydantic.Field(
+        default_factory=_empty_ndarray,
+        description="Slice-averaged by energy short-range space charge [eV/m]",
+    )
+    wakefield: NDArray = pydantic.Field(
+        default_factory=_empty_ndarray,
+        description="Slice-averaged by energy wakefield, internally the energy loss. [eV/m]",
+    )
 
-    xmin: NDArray
-    xmax: NDArray
-    xposition: NDArray
-    # xsize: NDArray
+    xmin: NDArray = pydantic.Field(
+        default_factory=_empty_ndarray,
+        description="Minimum over all slices of particle horizontal minimum position [m]",
+    )
+    xmax: NDArray = pydantic.Field(
+        default_factory=_empty_ndarray,
+        description="Maximum over all slices of particle horizontal minimum position [m]",
+    )
+    xposition: NDArray = pydantic.Field(
+        default_factory=_empty_ndarray,
+        description="Slice-averaged by current particle horizontal position [m]",
+    )
 
-    ymin: NDArray
-    ymax: NDArray
-    yposition: NDArray
-    # ysize: NDArray
+    ymin: NDArray = pydantic.Field(
+        default_factory=_empty_ndarray,
+        description="Slice-averaged by current particle vertical minimum position [m]",
+    )
+    ymax: NDArray = pydantic.Field(
+        default_factory=_empty_ndarray,
+        description="Slice-averaged by current particle vertical maximum position [m]",
+    )
+    yposition: NDArray = pydantic.Field(
+        default_factory=_empty_ndarray,
+        description="Slice-averaged by current particle vertical position [m]",
+    )
     extra: Dict[str, OutputDataType] = pydantic.Field(
         default_factory=dict,
         description=(
@@ -517,28 +617,38 @@ class OutputBeamGlobal(_OutputBase):
     units: Dict[str, PydanticPmdUnit] = pydantic.Field(default_factory=dict, repr=False)
     energy: NDArray = pydantic.Field(
         default_factory=_empty_ndarray,
-        description="",
+        description="Average beam energy [eV]",
     )
     energyspread: NDArray = pydantic.Field(
         default_factory=_empty_ndarray,
-        description="",
+        description="Projected energy spread [1]",
     )
     xposition: NDArray = pydantic.Field(
         default_factory=_empty_ndarray,
-        description="",
+        description="Slice average centroid X position [m]",
     )
     yposition: NDArray = pydantic.Field(
         default_factory=_empty_ndarray,
-        description="",
+        description="Slice average centroid Y position [m]",
     )
     xsize: NDArray = pydantic.Field(
         default_factory=_empty_ndarray,
-        description="",
+        description="Projected RMS beam size in X [m]",
     )
     ysize: NDArray = pydantic.Field(
         default_factory=_empty_ndarray,
-        description="",
+        description="Projected RMS beam size in Y [m]",
     )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        self.units.setdefault("energy", parsers.known_unit["eV"])
+        self.units.setdefault("energyspread", parsers.known_unit["1"])
+        self.units.setdefault("xposition", parsers.known_unit["m"])
+        self.units.setdefault("yposition", parsers.known_unit["m"])
+        self.units.setdefault("xsize", parsers.known_unit["m"])
+        self.units.setdefault("ysize", parsers.known_unit["m"])
 
 
 class OutputBeam(_OutputBase):
@@ -565,7 +675,7 @@ class OutputBeam(_OutputBase):
         default_factory=_empty_ndarray,
         description=(
             "Evaluated at each integration step. "
-            "Genesis4 mc^2 units are automatically converted to eV in LUME-Genesis."
+            "Genesis4 mc^2 units are automatically converted to eV in LUME-Genesis. [eV]"
         ),
         # Genesis 4 units: mc^2; LUME-Genesis units: eV
     )
@@ -573,7 +683,7 @@ class OutputBeam(_OutputBase):
         default_factory=_empty_ndarray,
         description=(
             "Evaluated at each integration step. "
-            "Genesis4 mc^2 units are automatically converted to eV in LUME-Genesis."
+            "Genesis4 mc^2 units are automatically converted to eV in LUME-Genesis. [eV]"
         ),
     )
 
@@ -660,10 +770,10 @@ class OutputBeam(_OutputBase):
     )
 
     xposition: NDArray = pydantic.Field(
-        default_factory=_empty_ndarray, description="Partical horizontal position [m]"
+        default_factory=_empty_ndarray, description="Particle horizontal position [m]"
     )
     yposition: NDArray = pydantic.Field(
-        default_factory=_empty_ndarray, description="Partical vertical position [m]"
+        default_factory=_empty_ndarray, description="Particle vertical position [m]"
     )
 
     # The following are evaluated only at the beginning of the simulation.
@@ -740,7 +850,10 @@ class OutputMetaDumps(_OutputBase):
         super().__init__(filenames=filenames, **kwargs)
 
     filenames: Dict[str, str] = pydantic.Field(default_factory=dict)
-    intstep: NDArray = pydantic.Field(default_factory=_empty_ndarray)
+    intstep: NDArray = pydantic.Field(
+        default_factory=_empty_ndarray,
+        description="Integration step",
+    )
     ndumps: int = pydantic.Field(default=0, description="Number of dumps")
 
 
@@ -820,20 +933,64 @@ class OutputGlobal(_OutputBase):
 class OutputFieldStat(_OutputBase):
     """Calculated output field statistics. Mean field position and size."""
 
-    intensity_farfield: NDArray
-    intensity_nearfield: NDArray
-    phase_farfield: NDArray
-    phase_nearfield: NDArray
-    power: NDArray
-    xdivergence: NDArray
-    ydivergence: NDArray
-    xpointing: NDArray
-    ypointing: NDArray
-    xposition: NDArray
-    yposition: NDArray
-    xsize: NDArray
-    ysize: NDArray
-    energy: NDArray
+    intensity_farfield: NDArray = pydantic.Field(
+        description="Power-weighted field intensity in the far field [arb units]",
+    )
+    intensity_nearfield: NDArray = pydantic.Field(
+        default_factory=_empty_ndarray,
+        description="Power-weighted field intensity in the near field [arb units]",
+    )
+    phase_farfield: NDArray = pydantic.Field(
+        default_factory=_empty_ndarray,
+        description="Power-weighted far field phase [rad]",
+    )
+    phase_nearfield: NDArray = pydantic.Field(
+        default_factory=_empty_ndarray,
+        description="Power-weighted near field phase [rad]",
+    )
+    power: NDArray = pydantic.Field(
+        default_factory=_empty_ndarray,
+        description="Power [W]",
+    )
+    xdivergence: NDArray = pydantic.Field(
+        default_factory=_empty_ndarray,
+        description="Power-weighted horizontal divergence [rad]",
+    )
+    ydivergence: NDArray = pydantic.Field(
+        default_factory=_empty_ndarray,
+        description="Power-weighted vertical divergence [rad]",
+    )
+
+    xpointing: NDArray = pydantic.Field(
+        default_factory=_empty_ndarray,
+        description="Power-weighted horizontal pointing. [rad]",
+    )
+    ypointing: NDArray = pydantic.Field(
+        default_factory=_empty_ndarray,
+        description="Power-weighted vertical pointing. [rad]",
+    )
+
+    xposition: NDArray = pydantic.Field(
+        default_factory=_empty_ndarray,
+        description="Power-weighted horizontal position. [m]",
+    )
+    yposition: NDArray = pydantic.Field(
+        default_factory=_empty_ndarray,
+        description="Power-weighted vertical position. [m]",
+    )
+
+    xsize: NDArray = pydantic.Field(
+        default_factory=_empty_ndarray,
+        description="Power-weighted horizontal sigma. [m]",
+    )
+    ysize: NDArray = pydantic.Field(
+        default_factory=_empty_ndarray,
+        description="Power-weighted vertical sigma. [m]",
+    )
+    energy: NDArray = pydantic.Field(
+        default_factory=_empty_ndarray,
+        description="Power-weighted energy [J]",
+    )
 
     extra: Dict[str, OutputDataType] = pydantic.Field(
         default_factory=dict,
@@ -842,6 +999,26 @@ class OutputFieldStat(_OutputBase):
             "in case Genesis 4 changes and LUME-Genesis is not yet ready for it."
         ),
     )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        self.units.setdefault("intensity_farfield", parsers.known_unit["1"])
+        self.units.setdefault("intensity_nearfield", parsers.known_unit["1"])
+        self.units.setdefault("phase_farfield", parsers.known_unit["rad"])
+        self.units.setdefault("phase_nearfield", parsers.known_unit["rad"])
+        self.units.setdefault("power", parsers.known_unit["W"])
+        self.units.setdefault("xdivergence", parsers.known_unit["rad"])
+        self.units.setdefault("ydivergence", parsers.known_unit["rad"])
+
+        self.units.setdefault("xpointing", parsers.known_unit["rad"])
+        self.units.setdefault("ypointing", parsers.known_unit["rad"])
+        self.units.setdefault("xposition", parsers.known_unit["m"])
+        self.units.setdefault("yposition", parsers.known_unit["m"])
+
+        self.units.setdefault("xsize", parsers.known_unit["m"])
+        self.units.setdefault("ysize", parsers.known_unit["m"])
+        self.units.setdefault("energy", parsers.known_unit["J"])
 
     @classmethod
     def from_output_field(cls, field: OutputField) -> Optional[OutputFieldStat]:
@@ -865,9 +1042,11 @@ class OutputFieldStat(_OutputBase):
             for key, value in field.extra.items()
         }
 
+        units = dict(field.units)
         return OutputFieldStat(
             extra=extra,
             energy=field.energy,
+            units=units,
             **simple_stats,
         )
 
@@ -875,7 +1054,10 @@ class OutputFieldStat(_OutputBase):
 class OutputFieldGlobal(_OutputBase):
     """Field-global information from Genesis 4 output. (HDF5 ``/Field/Global``)"""
 
-    energy: NDArray = pydantic.Field(default_factory=_empty_ndarray)
+    energy: NDArray = pydantic.Field(
+        default_factory=_empty_ndarray,
+        description="Field energy [J]",
+    )
     intensity_farfield: NDArray = pydantic.Field(
         default_factory=_empty_ndarray,
         description="Field intensity in the far field [arb units]",
@@ -916,6 +1098,23 @@ class OutputFieldGlobal(_OutputBase):
         default_factory=_empty_ndarray,
         description="Vertical sigma. [m]",
     )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        self.units.setdefault("energy", parsers.known_unit["J"])
+        self.units.setdefault("intensity_farfield", parsers.known_unit["1"])
+        self.units.setdefault("intensity_nearfield", parsers.known_unit["1"])
+        self.units.setdefault("xdivergence", parsers.known_unit["rad"])
+        self.units.setdefault("ydivergence", parsers.known_unit["rad"])
+        self.units.setdefault("xpointing", parsers.known_unit["rad"])
+        self.units.setdefault("ypointing", parsers.known_unit["rad"])
+
+        self.units.setdefault("xposition", parsers.known_unit["m"])
+        self.units.setdefault("yposition", parsers.known_unit["m"])
+
+        self.units.setdefault("xsize", parsers.known_unit["m"])
+        self.units.setdefault("ysize", parsers.known_unit["m"])
 
 
 class OutputField(_OutputBase):
@@ -987,7 +1186,7 @@ class OutputField(_OutputBase):
     )
     energy: NDArray = pydantic.Field(
         default_factory=_empty_ndarray,
-        description="Calculated by LUME-Genesis using slen from /Global.",
+        description="Calculated by LUME-Genesis using slen from /Global. [J]",
     )
 
     def __init__(self, *args, slen: Optional[float] = None, **kwargs):
@@ -1033,6 +1232,7 @@ _T = TypeVar("_T", bound=_OutputBase)
 class _ArrayInfo(NamedTuple):
     parent: _OutputBase
     array_attr: str
+    dotted_attr: str
     units: Optional[PydanticPmdUnit]
     field: Union[pydantic.fields.FieldInfo, pydantic.fields.ComputedFieldInfo]
     value: Optional[np.ndarray]
@@ -1696,6 +1896,7 @@ class Genesis4Output(Mapping, BaseModel, arbitrary_types_allowed=True):
         return _ArrayInfo(
             parent=parent,
             array_attr=array_attr,
+            dotted_attr=dotted_attr,
             units=parent.units.get(array_attr, None),
             field=field,
             value=value,
@@ -1710,14 +1911,21 @@ class Genesis4Output(Mapping, BaseModel, arbitrary_types_allowed=True):
         shapes = {
             key: str(array_info.shape or "") for key, array_info in array_info.items()
         }
-        annotations = {
-            key: array_info.field.description for key, array_info in array_info.items()
-        }
-        table = {
+        units = {
             key: str(array_info.units or "") for key, array_info in array_info.items()
         }
+
+        def get_desc(key: str, info: _ArrayInfo) -> str:
+            desc = info.field.description or ""
+            unit = units.get(key, "")
+            if unit:
+                desc = desc.replace(f"[{unit}]", "")
+
+            return f"{desc} (output.{info.dotted_attr})"
+
+        annotations = {key: get_desc(key, info) for key, info in array_info.items()}
         return tools.table_output(
-            table,  # column 0 (key) and 1 (units)
+            units,  # column 0 (key) and 1 (units)
             annotations=shapes,  # column 2 (description) -> shape
             descriptions=annotations,  # column 3 (type/annotation) -> description
             headers=["Key", "Units", "Shape", "Description"],
