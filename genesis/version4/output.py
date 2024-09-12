@@ -1124,10 +1124,7 @@ class OutputField(_OutputBase):
     )
     dgrid: float = pydantic.Field(
         default=0.0,
-        description=(
-            "Grid extension from the center to one edge. The whole grid is "
-            "twice as large with 0 as the center position."
-        ),
+        description="Transverse grid step size. [m]",
     )
     intensity_farfield: NDArray = pydantic.Field(
         default_factory=_empty_ndarray,
