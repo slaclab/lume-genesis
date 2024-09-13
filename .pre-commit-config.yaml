@@ -17,7 +17,7 @@ repos:
         exclude: "^(python/versioneer.py|python/src/_version.py)$"
 
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.5.0
+    rev: v0.6.5
     hooks:
       - id: ruff
         args: [--fix]
