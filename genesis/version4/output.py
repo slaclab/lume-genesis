@@ -387,7 +387,7 @@ class OutputBeamStat(_OutputBase):
     )
     bunching: NDArray = pydantic.Field(
         default_factory=_empty_ndarray,
-        description="TODO CM - there's a formula for this",
+        description="Bunching - see `OutputBeamStat.calculate_bunching` method for details.",
     )
     bunchingphase: NDArray = pydantic.Field(
         default_factory=_empty_ndarray,
@@ -531,8 +531,10 @@ class OutputBeamStat(_OutputBase):
         bunching: np.ndarray,
         bunchingphase: np.ndarray,
     ) -> np.ndarray:
-        """
-        Calculate bunching.
+        r"""
+        Calculate bunching, following this formula:
+
+        $$ \text{bunching}_m = \frac{\left| \displaystyle\sum_{n=1}^{N} e^{i \phi_{mn}}\, b_{mn}\, I_{mn} \right|}{\displaystyle\sum_{n=1}^{N} I_{mn}} $$
 
         Parameters
         ----------
