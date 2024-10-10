@@ -289,3 +289,18 @@ def test_field_harmonic_alias_access():
     output = G.run()
 
     assert output.field_harmonics[3].energy is output["field3_energy"]
+    assert output.field_harmonics[1].energy is output["field_energy"]
+
+    # Ensure that the base genesis object is able to access it, as well.
+    # It checks the
+    G.plot(
+        "field_energy",
+        yscale="linear",
+        y2=["beam_xsize", "beam_ysize"],
+    )
+    G.plot(
+        "field3_energy",
+        yscale="linear",
+        y2=["beam_xsize", "beam_ysize"],
+    )
+    output.info()
