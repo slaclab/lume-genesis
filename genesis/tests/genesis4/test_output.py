@@ -17,7 +17,7 @@ from ...version4.output import (
     OutputMeta,
     OutputMetaVersion,
 )
-from ..conftest import test_root
+from ..conftest import test_root, genesis4_example1_path
 
 
 @pytest.fixture(scope="function")
@@ -244,3 +244,48 @@ def test_unsupported_key(
         output[key]
     with pytest.raises(KeyError):
         output.stat(key)
+
+
+@pytest.mark.filterwarnings("ignore:invalid value encountered in divide")
+def test_field_harmonic_alias_access():
+    main = g4.MainInput(
+        [
+            g4.Setup(
+                rootname="output",
+                beamline="FEL",
+                gamma0=8000.0,
+                delz=0.015,
+                lambda0=1.0e-10,
+                npart=8,
+                seed=1,
+                beam_global_stat=True,
+                field_global_stat=True,
+            ),
+            g4.LatticeNamelist(zmatch=5.008),
+            g4.Time(slen=10e-06, sample=1000),
+            g4.ProfileGauss(
+                label="beamcurrent",
+                c0=1e-10,
+                s0=1.0,
+                sig=0.01,
+            ),
+            g4.Beam(
+                delgam=0.5,
+                current=g4.Reference("beamcurrent"),
+                ex=0.3e-06,
+                ey=0.3e-06,
+            ),
+            g4.Field(dgrid=0.002, ngrid=255, accumulate=True),
+            g4.Field(dgrid=0.002, ngrid=255, harm=3, accumulate=True),
+            g4.Track(zstop=0.001),
+            g4.Write(beam="end"),
+        ],
+    )
+
+    lattice = g4.Lattice.from_file(genesis4_example1_path / "Example1.lat")
+    G = g4.Genesis4(main, lattice)
+    G.verbose = True
+
+    output = G.run()
+
+    assert output.field_harmonics[3].energy is output["field3_energy"]
