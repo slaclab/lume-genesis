@@ -34,5 +34,6 @@ dependencies:
   - mkdocstrings-python
   - ruff
   - typing-extensions
+  - pip
   - pip:
       - mkdocs-jupyter>=0.24.7
