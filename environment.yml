@@ -8,6 +8,7 @@ dependencies:
   - lume-base
   - genesis2=*=mpi_openmpi*
   - genesis4 >=4.6.6=mpi_openmpi*
+  - h5py=*=mpi_openmpi*
   - jinja2
   - lark
   - numpy
@@ -33,5 +34,6 @@ dependencies:
   - mkdocstrings-python
   - ruff
   - typing-extensions
+  - pip
   - pip:
       - mkdocs-jupyter>=0.24.7

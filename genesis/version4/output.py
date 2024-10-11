@@ -1875,10 +1875,38 @@ class Genesis4Output(Mapping, BaseModel, arbitrary_types_allowed=True):
             **kwargs,
         )
 
+    def _split_parent_and_attr(self, alias: str) -> Tuple[_OutputBase, str]:
+        """
+        For a given alias, get the container class instance and the final attribute name.
+
+        For example, for a dotted attribute name of
+        `"field_harmonics[3].stat.phase_nearfield'", return the parent object
+        ``self.field_harmonics[3].stat`` and the final attribute string
+        `"stat"` as a tuple.
+        """
+        dotted_attr = self.alias[alias]
+
+        if "." not in dotted_attr:
+            raise ValueError(f"Invalid alias {alias}={dotted_attr}")
+
+        child_attr, remainder = dotted_attr.split(".", 1)
+
+        # NOTE: special-casing field harmonics
+        harmonics_prefix = "field_harmonics["
+        if child_attr.startswith(harmonics_prefix):
+            index = int(child_attr[len(harmonics_prefix) :].split("]")[0])
+            child = self.field_harmonics[index]
+        else:
+            child = getattr(self, child_attr)
+
+        if "." not in remainder:
+            return child, remainder
+
+        remainder, final = remainder.rsplit(".", 1)
+        return operator.attrgetter(remainder)(child), final
+
     def _get_array_info(self, key: str) -> _ArrayInfo:
-        dotted_attr = self.alias[key]
-        parent_attr, array_attr = dotted_attr.rsplit(".", 1)
-        parent: _OutputBase = operator.attrgetter(parent_attr)(self)
+        parent, array_attr = self._split_parent_and_attr(key)
         try:
             field = parent.model_fields[array_attr]
         except KeyError:
@@ -1895,7 +1923,7 @@ class Genesis4Output(Mapping, BaseModel, arbitrary_types_allowed=True):
         return _ArrayInfo(
             parent=parent,
             array_attr=array_attr,
-            dotted_attr=dotted_attr,
+            dotted_attr=self.alias[key],
             units=parent.units.get(array_attr, None),
             field=field,
             value=value,
@@ -1965,15 +1993,8 @@ class Genesis4Output(Mapping, BaseModel, arbitrary_types_allowed=True):
         """Support for Mapping -> easy access to data."""
         _check_for_unsupported_key(key)
 
-        dotted_attr = self.alias[key]
-        # NOTE: special-casing field harmonics
-        harmonics_prefix = "field_harmonics["
-        if dotted_attr.startswith(harmonics_prefix):
-            index = int(dotted_attr[len(harmonics_prefix) :].split("]")[0])
-            field_attr = dotted_attr.split(".", 1)[1]
-            return operator.attrgetter(field_attr)(self.field_harmonics[index])
-
-        return operator.attrgetter(dotted_attr)(self)
+        parent, array_attr = self._split_parent_and_attr(key)
+        return getattr(parent, array_attr)
 
     @override
     def __iter__(self) -> Generator[str, None, None]:

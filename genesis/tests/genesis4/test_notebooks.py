@@ -595,6 +595,8 @@ def test_fodo_scan_model(_shorten_zstop, tmp_path: pathlib.Path) -> None:
     plt.legend(title=r"$\lambda_u$ (mm)")
 
 
+@pytest.mark.filterwarnings("ignore:Attempt to set non-positive")
+@pytest.mark.filterwarnings("ignore:More than 20")
 def test_genesis4_example(_shorten_zstop, tmp_path: pathlib.Path) -> None:
     G = Genesis4(
         genesis4_examples / "data/basic4/cu_hxr.in",
