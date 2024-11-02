@@ -627,6 +627,19 @@ class Genesis4(CommandWrapper):
         inst.load_archive(arch)
         return inst
 
+    @classmethod
+    def from_tao(cls, tao) -> Genesis4:
+        """
+        Create a new Genesis4 object from a pytao.Tao instance
+
+        Parameters
+        ----------
+
+        """
+        input = MainInput.from_tao(tao)
+        lattice = Lattice.from_tao(tao)
+        return cls(input=input, lattice=lattice)
+
     @override
     def load_output(
         self,

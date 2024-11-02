@@ -40,6 +40,8 @@ from ..types import (
 )
 from . import _lattice as auto_lattice
 from . import parsers
+from ..interfaces.bmad import genesis4_elements_and_line_from_tao
+
 
 try:
     from typing import Literal
@@ -1003,6 +1005,14 @@ class Lattice(BaseModel):
             elements_by_name,
             filename=pathlib.Path(filename) if filename else None,
         )
+
+    @classmethod
+    def from_tao(cls, tao):
+        elements, line_labels = genesis4_elements_and_line_from_tao(tao)
+
+        line_label = tao.branch1(1, 0)["name"]
+        elements[line_label] = Line(elements=line_labels)
+        return cls(elements=elements)
 
     def to_file(
         self,

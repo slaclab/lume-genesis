@@ -39,6 +39,7 @@ from ...errors import (
 )
 from .. import archive as _archive
 from ..field import FieldFile
+from ..interfaces.bmad import genesis4_namelists_from_tao
 from ..particles import Genesis4ParticleData
 from ..types import (
     AnyPath,
@@ -376,6 +377,11 @@ class MainInput(BaseModel):
             main_config,
             filename,
         )
+
+    @classmethod
+    def from_tao(cls, tao):
+        namelists = genesis4_namelists_from_tao(tao)
+        return cls(namelists=namelists)
 
     def _check_for_mistakes(self) -> None:
         """Check and fix simple mistakes to be friendly to the end-user."""

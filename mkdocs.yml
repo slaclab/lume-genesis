@@ -30,6 +30,7 @@ nav:
           - examples/genesis4/fodo_scan_model.ipynb
           - examples/genesis4/genesis4_example.ipynb
           - examples/genesis4/perlmutter_benchmark.ipynb
+          - examples/genesis4/bmad-genesis4.ipynb
       - API:
           - api/genesis4.md
           - api/genesis4-main-input.md
