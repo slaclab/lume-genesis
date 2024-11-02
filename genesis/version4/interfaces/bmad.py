@@ -11,8 +11,19 @@ import numpy as np
 
 
 def label_from_bmad_name(bmad_name: str) -> str:
-    """Format a label by standardizing case, removing backslashes,
-    and replacing disallowed characters."""
+    """
+    Formats a label by standardizing case, removing backslashes, and replacing disallowed characters.
+
+    Parameters
+    ----------
+    bmad_name : str
+        The Bmad name string to be formatted.
+
+    Returns
+    -------
+    str
+        A formatted label suitable for Genesis4.
+    """
     name = bmad_name.upper()
     label = name.split("\\")[-1]  # Extracts text after backslash, if any
     return label.replace(".", "_").replace("#", "_")
@@ -20,14 +31,25 @@ def label_from_bmad_name(bmad_name: str) -> str:
 
 def quadrupole_and_corrector_steps(quad: Quadrupole, cx=0, cy=0, num_steps=1):
     """
-    This converts a Genesis4 Quadrupole into quad with a corrector
+    Converts a Genesis4 Quadrupole into a series of quadrupole and corrector steps.
 
+    Parameters
+    ----------
+    quad : Quadrupole
+        The Quadrupole element to be divided into steps.
+    cx : float, optional
+        The horizontal corrector strength. Defaults to 0.
+    cy : float, optional
+        The vertical corrector strength. Defaults to 0.
+    num_steps : int, optional
+        The number of steps to divide the quadrupole into. Defaults to 1.
 
     Returns
     -------
-    eles: List of Genesis4 elements
-
+    list
+        A list of Genesis4 elements, alternating between Corrector and Quadrupole steps.
     """
+
     L1 = quad.L / num_steps
     label = quad.label
     L_corrector = 1e-9  # BUG: zero length does nothing, but this works.
@@ -66,26 +88,28 @@ def quadrupole_and_corrector_steps(quad: Quadrupole, cx=0, cy=0, num_steps=1):
 
 def genesis4_eles_from_tao_ele(tao, ele_id):
     """
-    Create a Genesis4 elements from a pytao.Tao instance.
-
-    Note that multip
-
-    This is intended to be used with
-        `tao_create_genesis4_lattice`
+    Creates Genesis4 elements from a specified element in a pytao.Tao instance.
 
     Parameters
     ----------
-    tao: Tao object
-        Tao instance to create the Genesis4 lattice from.
-
-    ele_id: int or str
-        Name or index of the element in the Tao instance
+    tao : Tao
+        The Tao instance containing the element definitions.
+    ele_id : int or str
+        The identifier (name or index) of the element in the Tao instance.
 
     Returns
     -------
-    eles: List of Genesis4 elements
+    list
+        A list of Genesis4 elements created from the specified Tao element.
 
+    Raises
+    ------
+    NotImplementedError
+        If the element type or offset is not supported.
+    ValueError
+        If the undulator length is inconsistent with the number of periods and period length.
     """
+
     info = tao.ele_head(ele_id)
     info.update(tao.ele_gen_attribs(ele_id))
     info.update(tao.ele_methods(ele_id))
@@ -170,20 +194,28 @@ def genesis4_eles_from_tao_ele(tao, ele_id):
 
 def genesis4_elements_and_line_from_tao(tao, match="*"):
     """
-    Create a Genesis4 lattice from a pytao.Tao instance.
-
+    Creates a Genesis4 lattice from a pytao.Tao instance.
 
     Parameters
     ----------
-    tao: Tao object
-        Tao instance to create the Genesis4 lattice from.
+    tao : Tao
+        The Tao instance to extract elements from.
+    match : str, optional
+        A pattern to match elements in the Tao lattice. Defaults to "*".
 
     Returns
     -------
-    elements: dict
-    line_labels: list of str
+    dict
+        A dictionary mapping element labels to Genesis4 element objects.
+    list of str
+        A list of element labels in the order of the lattice line.
 
+    Raises
+    ------
+    ValueError
+        If elements with the same label have different properties.
     """
+
     elements = {}
     line_labels = []
     for ix_ele in tao.lat_list(match, "ele.ix_ele"):
@@ -209,16 +241,18 @@ def genesis4_namelists_from_tao(
     tao, ele_start: str = "beginning", branch: int = 0, universe: int = 1
 ):
     """
-    Creates a Genesis4 input configuration from a Tao object, incorporating specified
-    starting element, branch, and universe to extract relevant beamline and beam parameters.
+    Creates Genesis4 namelists from a Tao instance, using specified parameters to
+    extract relevant beamline, beam, and field configurations.
 
     Parameters
     ----------
     tao : pytao.Tao
-        A running Tao instance
+        A running Tao instance, providing access to element attributes, Twiss parameters,
+        and orbit data.
     ele_start : str, optional
-        The starting element within the Tao universe and branch, specified with the
-        `@` and `>>` syntax (e.g., `'1@0>>element_name'`). Defaults to `'beginning'`.
+        The starting element within the specified Tao universe and branch, using the
+        syntax `@` for universe and `>>` for branch (e.g., `'1@0>>element_name'`).
+        Defaults to `'beginning'`.
     branch : int, optional
         The branch index within the specified Tao universe. Defaults to 0.
     universe : int, optional
@@ -226,21 +260,21 @@ def genesis4_namelists_from_tao(
 
     Returns
     -------
-    MainInput
-        A MainInput object containing the Genesis4 input setup with namelists for
-        the setup, field, beam, and tracking.
+    list
+        A list of Genesis4 namelists for the setup, field, beam, and tracking configurations.
 
     Notes
     -----
-    - This function gathers element attributes, Twiss parameters, and orbit data
-      from the specified Tao element.
-    - The function constructs the beamline name, computes the normalized gamma value
-      from the total energy, and sets up the Genesis4 input namelists accordingly.
+    - This function collects attributes, Twiss parameters, and orbit data from the
+      specified Tao element to construct Genesis4-compatible input data.
+    - The generated `beamline` name is based on the Tao universe and branch configuration,
+      with `gamma0` calculated from the total energy.
+    - Additional parameters for field and beam properties are hard-coded but may be generalized.
 
     Examples
     --------
-    >>> tao = Tao(...)
-    >>> genesis_input = genesis4_input_from_tao(tao, ele_start='beginning', branch=0, universe=1)
+    >>> tao = pytao.Tao(...)
+    >>> namelists = genesis4_namelists_from_tao(tao, ele_start='beginning', branch=0, universe=1)
 
     """
 
