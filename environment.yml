@@ -27,13 +27,9 @@ dependencies:
   - pygments
   - mkdocs
   - mkdocstrings
+  - mkdocs-jupyter
   - mkdocs-material
-  # NOTE: we are installing mkdocs-jupyter with pip for now
-  # due to the following: https://github.com/conda-forge/mkdocs-jupyter-feedstock/issues/31
-  # - mkdocs-jupyter
   - mkdocstrings-python
   - ruff
   - typing-extensions
   - pip
-  - pip:
-      - mkdocs-jupyter>=0.24.7
