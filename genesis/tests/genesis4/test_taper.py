@@ -4,7 +4,7 @@ import pytest
 
 from ..conftest import test_artifacts
 from ...errors import NotFlatError, RecursiveLineError
-from ...version4 import Lattice, Undulator, Line, Quadrupole
+from ...version4 import Drift, DuplicatedLineItem, Lattice, Undulator, Line, Quadrupole
 
 
 @pytest.fixture
@@ -247,52 +247,165 @@ def test_plot(
     plt.savefig(test_artifacts / f"{request.node.name}.png")
 
 
-def test_flatten_example() -> None:
+def test_flatten_doc_example() -> None:
     UND = Undulator(label="UND")
-    UND1 = Undulator(label="UND1")
+    UNDA = Undulator(label="UNDA")
     QUAD = Quadrupole(label="QUAD")
-    L1 = Line(elements=["UND"], label="L1")
-    L2 = Line(elements=["QUAD"], label="L2")
-    LN = Line(elements=["L1", "L2", "UND1"], label="LN")
-    lattice = Lattice.from_elements([L1, L2, LN, UND, QUAD, UND1])
-    flattened = lattice.flatten_line("LN", count=1, in_place=False)
+    LA = Line(elements=["UND"], label="LA")
+    LB = Line(elements=["QUAD"], label="LB")
+    LN = Line(elements=["LA", "LB"], label="LN")
+
+    lattice = Lattice.from_elements([LA, LB, LN, UND, QUAD, UNDA])
+    flattened = lattice.flatten_line(
+        "LN",
+        start=0,
+        count=1,
+        in_place=False,
+    )
     assert flattened == [
         [
-            Undulator(label="L0_UND"),
-            Quadrupole(label="L0_QUAD"),
-            Undulator(label="L0_UND1"),
+            Undulator(label="LN0_LA0_UND0"),
+            Quadrupole(label="LN0_LB0_QUAD0"),
+        ]
+    ]
+
+    flattened = lattice.flatten_line(
+        "LN",
+        start=1,
+        count=2,
+        in_place=False,
+    )
+    assert flattened == [
+        [
+            Undulator(label="LN1_LA1_UND1"),
+            Quadrupole(label="LN1_LB1_QUAD1"),
+        ],
+        [
+            Undulator(label="LN2_LA1_UND1"),
+            Quadrupole(label="LN2_LB1_QUAD1"),
+        ],
+    ]
+
+
+def test_flatten_example() -> None:
+    UND = Undulator(label="UND")
+    UNDA = Undulator(label="UNDA")
+    QUAD = Quadrupole(label="QUAD")
+    LA = Line(elements=["UND"], label="LA")
+    LB = Line(elements=["QUAD"], label="LB")
+    LN = Line(elements=["LA", "LB", "UNDA"], label="LN")
+    lattice = Lattice.from_elements([LA, LB, LN, UND, QUAD, UNDA])
+    flattened = lattice.flatten_line(
+        "LN",
+        count=1,
+        start=1,
+        in_place=False,
+        # line_format="{name}_{index}",
+        # label_format="{name}_{index}",
+    )
+    assert flattened == [
+        [
+            Undulator(label="LN1_LA1_UND1"),
+            Quadrupole(label="LN1_LB1_QUAD1"),
+            Undulator(label="LN1_UNDA1"),
         ]
     ]
 
     flattened = lattice.flatten_line("LN", start=1, count=2, in_place=False)
     assert flattened == [
         [
-            Undulator(label="L1_UND"),
-            Quadrupole(label="L1_QUAD"),
-            Undulator(label="L1_UND1"),
+            Undulator(label="LN1_LA1_UND1"),
+            Quadrupole(label="LN1_LB1_QUAD1"),
+            Undulator(label="LN1_UNDA1"),
         ],
         [
-            Undulator(label="L2_UND"),
-            Quadrupole(label="L2_QUAD"),
-            Undulator(label="L2_UND1"),
+            Undulator(label="LN2_LA1_UND1"),
+            Quadrupole(label="LN2_LB1_QUAD1"),
+            Undulator(label="LN2_UNDA1"),
         ],
     ]
 
-    lattice = Lattice.from_elements([L1, L2, LN, UND, QUAD, UND1])
+    lattice = Lattice.from_elements([LA, LB, LN, UND, QUAD, UNDA])
     lattice.flatten_line("LN", count=1, in_place=True)
     assert lattice.elements["LN"].elements == [
-        "L0_UND",
-        "L0_QUAD",
-        "L0_UND1",
+        "LN0_LA0_UND0",
+        "LN0_LB0_QUAD0",
+        "LN0_UNDA0",
     ]
 
-    lattice = Lattice.from_elements([L1, L2, LN, UND, QUAD, UND1])
+    lattice = Lattice.from_elements([LA, LB, LN, UND, QUAD, UNDA])
     lattice.flatten_line("LN", start=1, count=2, in_place=True)
     assert lattice.elements["LN"].elements == [
-        "L1_UND",
-        "L1_QUAD",
-        "L1_UND1",
-        "L2_UND",
-        "L2_QUAD",
-        "L2_UND1",
+        "LN1_LA1_UND1",
+        "LN1_LB1_QUAD1",
+        "LN1_UNDA1",
+        "LN2_LA1_UND1",
+        "LN2_LB1_QUAD1",
+        "LN2_UNDA1",
     ]
+
+
+def test_flatten_example1():
+    fodo_count = 6
+
+    lat0 = Lattice(
+        elements={
+            "D1": Drift(label="D1", L=0.44),
+            "D2": Drift(label="D2", L=0.24),
+            "QF": Quadrupole(label="QF", L=0.08, k1=2.0),
+            "QD": Quadrupole(label="QD", L=0.08, k1=-2.0),
+            "UND": Undulator(
+                label="UND", aw=0.84853, lambdau=0.015, nwig=266, helical=True
+            ),
+            "FODO": Line(
+                label="FODO",
+                elements=["UND", "D1", "QF", "D2", "UND", "D1", "QD", "D2"],
+            ),
+            "FEL": Line(
+                label="FEL",
+                elements=[DuplicatedLineItem(label="FODO", count=fodo_count)],
+            ),
+        },
+    )
+
+    flattened = lat0.flatten_line(
+        "FEL",
+        count=1,
+        start=1,
+        in_place=False,
+        line_format="{name}{index}",
+        label_format="{name}_{index}",
+    )
+    flattened_names = [ele.label for section in flattened for ele in section]
+    for ele in lat0.elements["FODO"].elements:
+        assert f"FEL1_FODO1_{ele}_1" in flattened_names
+
+    assert "FEL1_FODO1_D1_1" in flattened_names
+    assert "FEL2_FODO1_UND_1" not in flattened_names
+
+    assert len(flattened_names) == fodo_count * len(lat0.elements["FODO"].elements)
+
+    print("Flattened:")
+    for name in flattened_names:
+        print(name)
+
+    flattened = lat0.flatten_line(
+        "FEL",
+        count=2,
+        start=1,
+        in_place=False,
+        line_format="{name}{index}",
+        label_format="{name}_{index}",
+    )
+    flattened_names = [ele.label for section in flattened for ele in section]
+    assert "FEL1_FODO1_UND_1" in flattened_names
+    assert "FEL2_FODO1_UND_1" in flattened_names
+    assert "FEL2_FODO1_UND_2" in flattened_names
+    assert "FEL2_FODO2_UND_1" in flattened_names
+
+    for ele in lat0.elements["FODO"].elements:
+        for idx in range(1, 6):
+            assert f"FEL1_FODO{idx}_{ele}_1" in flattened_names
+            assert f"FEL2_FODO{idx}_{ele}_1" in flattened_names
+
+    assert len(flattened_names) == fodo_count * len(lat0.elements["FODO"].elements) * 2

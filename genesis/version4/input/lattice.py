@@ -706,7 +706,11 @@ class Lattice(BaseModel):
         *,
         count: int = 1,
         start: int = 0,
-        format: str = "L{index}_{name}",
+        prefix: str = "",
+        suffix: str = "",
+        delimiter: str = "_",
+        line_format: str = "{name}{index}",
+        last_format: str = "",
         in_place: bool = True,
         new_beamline: str = "",
     ):
@@ -714,11 +718,19 @@ class Lattice(BaseModel):
         Flatten a beamline such that any nested beamlines are made into distinct elements.
 
         For example, take a beamline ``LN`` which contains 2 nested beamlines
-        "L1" (containing UND) and "L2" (containing QUAD).
-        Flattening this with the default format of ``L{index}_{name}``
-        would result with replacing ``LN`` with:
-        * ``L0_UND`` and ``L0_QUAD`` (wtih start=0, count=1)
-        * ``L1_UND``, ``L1_QUAD``, ``L2_UND``, ``L2_QUAD`` (with start=1, count=2)
+        "LA" (containing UND) and "LB" (containing QUAD).
+
+        Flattening this with the default line format of ``{name}{index}`` and
+        the default label format of the same ``{name}{index}`` would result
+        with replacing ``LN`` as follows.
+
+        Using start=0, count=1:
+
+        * ``LN0_LA0_UND0`` and ``LN0_LB0_QUAD0``
+
+        Using start=1, count=2:
+
+        * ``LN1_LA1_UND1``, ``LN1_LB1_QUAD1``, ``LN2_LA1_UND1``, ``LN2_LB1_QUAD1``
 
         Parameters
         ----------
@@ -728,10 +740,19 @@ class Lattice(BaseModel):
             The number of times to duplicate the flattened beamline.
         start : int, default=0
             The starting index for relabeling elements.
-        format : str, default="L{index}_{name}"
+        prefix : str, default=""
+            A prefix to add to the renamed elements.
+        suffix : str, default=""
+            A suffix to add to the renamed elements.
+        delimiter : str, default="_"
+            The delimiter to use between the name and index in the new element names.
+        line_format : str, default="{name}{index}"
             The string format to use for renaming beamline elements.
+        last_format : str, default=line_format
+            An optional format string to use for the last element in each segment.
+            Defaults to using the 'line_format'.
         in_place : bool, default=True
-            Perform the flattening in-place.  Remove unused elements and add
+            Perform the flattening in-place. Remove unused elements and add
             the new elements directly to the lattice.
         new_beamline : str
             For in-place mode, use this as the name for the new beamline.
@@ -743,34 +764,66 @@ class Lattice(BaseModel):
             from ``start`` to ``start + count - 1``. Each segment is a list of
             created elements based on that index.
         """
+        self.fix_labels()
+        last_format = last_format or line_format
+        line_stack = []
+
+        def _inspect(
+            name: str,
+            seen: Dict[str, int],
+        ) -> Generator[Tuple[str, AnyBeamlineElement], None, None]:
+            if name in line_stack:
+                raise RecursiveLineError(
+                    f"Recursion of beamline elements in line {beamline} detected: {name}"
+                )
+
+            line_stack.append(name)
+
+            element = self.elements[name]
+            seen_count = seen.get(name, start - 1) + 1
+            seen[name] = seen_count
+
+            format = line_format if isinstance(element, Line) else last_format
+
+            line_prefix = format.format(
+                name=name,
+                index=seen_count,
+                beamline=beamline,
+                delimiter=delimiter,
+            )
+
+            if isinstance(element, Line):
+                seen = {}
+                for _, el in element.flattened:
+                    for inner, sub_ele in _inspect(el, seen=seen):
+                        yield f"{line_prefix}{delimiter}{inner}", sub_ele
+            else:
+                yield line_prefix, element
+            line_stack.pop(-1)
+
         to_duplicate = self.inspect_line_by_name(beamline)
         new_elements = {}
         sections = []
-        for index in range(start, start + count):
+        seen: Dict[str, int] = {}
+        for _ in range(start, start + count):
             section = []
-            for name in to_duplicate:
-                new_name = format.format(
-                    name=name,
-                    index=index,
-                    start=start,
-                    count=count,
-                    beamline=beamline,
-                )
-                new_element = copy.deepcopy(self.elements[name])
-                new_element.label = new_name
-
+            for new_name, elem in list(_inspect(beamline, seen=seen)):
+                new_name = f"{prefix}{new_name}{suffix}"
                 if new_name in new_elements:
                     raise ValueError(
-                        f"Name for element conflicts with another new element: {new_name}"
+                        f"Corrected name for element conflicts with another new element: {new_name}"
                     )
+
+                new_element = copy.deepcopy(elem)
+                new_element.label = new_name
                 new_elements[new_name] = new_element
                 section.append(new_element)
             sections.append(section)
 
         if in_place:
-            for name in to_duplicate:
-                if name not in new_elements:
-                    self.elements.pop(name, None)
+            for label in to_duplicate:
+                if label not in new_elements:
+                    self.elements.pop(label, None)
             if new_beamline != beamline and beamline not in new_elements:
                 self.elements.pop(beamline, None)
 
