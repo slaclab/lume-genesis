@@ -196,9 +196,9 @@ class Corrector(types.BeamlineElement):
     L : float, default=0.0
         Length of the corrector in meter.
     cx : float, default=0.0
-        Kick angle in $x$ in units of $\gamma \beta_x$.
+        Kick angle in $x$ in units of radians.
     cy : float, default=0.0
-        Kick angle in $y$ in units of $\gamma \beta_y$.
+        Kick angle in $y$ in units of radians.
     """
 
     type: Literal["corrector"] = "corrector"
@@ -210,11 +210,11 @@ class Corrector(types.BeamlineElement):
     )
     cx: float = pydantic.Field(
         default=0.0,
-        description=r"Kick angle in $x$ in units of $\gamma \beta_x$.",
+        description="Kick angle in $x$ in units of radians.",
     )
     cy: float = pydantic.Field(
         default=0.0,
-        description=r"Kick angle in $y$ in units of $\gamma \beta_y$.",
+        description="Kick angle in $y$ in units of radians.",
     )
     label: str = ""
 
