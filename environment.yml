@@ -7,11 +7,12 @@ dependencies:
   - eval-type-backport
   - lume-base
   - genesis2=*=mpi_openmpi*
-  - genesis4 >=4.6.6=mpi_openmpi*
+  - genesis4 >=4.6.7=mpi_openmpi*
   - h5py=*=mpi_openmpi*
   - jinja2
   - lark
   - numpy
+  - openpmd-beamphysics >=0.9.10
   - prettytable
   - psutil
   - pydantic >2
@@ -20,20 +21,16 @@ dependencies:
   - ffmpeg
   - pytest
   - pytest-cov
-  - jupyterlab>=3
+  - jupyterlab >=3
   - jupyterlab-lsp
   - python-lsp-server
   - matplotlib
   - pygments
   - mkdocs
   - mkdocstrings
+  - mkdocs-jupyter
   - mkdocs-material
-  # NOTE: we are installing mkdocs-jupyter with pip for now
-  # due to the following: https://github.com/conda-forge/mkdocs-jupyter-feedstock/issues/31
-  # - mkdocs-jupyter
   - mkdocstrings-python
   - ruff
   - typing-extensions
   - pip
-  - pip:
-      - mkdocs-jupyter>=0.24.7
