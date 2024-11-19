@@ -1042,6 +1042,7 @@ class OutputFieldStat(_OutputBase):
         extra = {
             key: simple_mean_from_slice_data(value, weight=power)
             for key, value in field.extra.items()
+            if isinstance(value, np.ndarray)
         }
 
         units = dict(field.units)
@@ -1127,6 +1128,10 @@ class OutputField(_OutputBase):
     dgrid: float = pydantic.Field(
         default=0.0,
         description="Transverse grid step size. [m]",
+    )
+    gridspacing: float = pydantic.Field(
+        default=0.0,
+        description="Grid spacing. [m]",
     )
     intensity_farfield: NDArray = pydantic.Field(
         default_factory=_empty_ndarray,
