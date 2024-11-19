@@ -12,6 +12,7 @@ dependencies:
   - jinja2
   - lark
   - numpy
+  - openpmd-beamphysics >=0.9.10
   - prettytable
   - psutil
   - pydantic >2
@@ -20,7 +21,7 @@ dependencies:
   - ffmpeg
   - pytest
   - pytest-cov
-  - jupyterlab>=3
+  - jupyterlab >=3
   - jupyterlab-lsp
   - python-lsp-server
   - matplotlib
