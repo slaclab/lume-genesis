@@ -628,16 +628,30 @@ class Genesis4(CommandWrapper):
         return inst
 
     @classmethod
-    def from_tao(cls, tao) -> Genesis4:
+    def from_tao(cls, tao, ele_start='beginning', ele_end='end', universe=1, branch=0) -> Genesis4:
         """
         Create a new Genesis4 object from a pytao.Tao instance
 
         Parameters
         ----------
+        tao : Tao
+            The Tao instance to extract elements from.        
+        ele_start : str, optional
+            Element to start. Defaults to "beginning".
+        ele_end : str, optional
+            Element to end. Defaults to "end".        
+        branch : int, optional
+            The branch index within the specified Tao universe. Defaults to 0.
+        universe : int, optional
+            The universe index within the Tao object. Defaults to 1.  
+
+        Returns
+        -------
+        Genesis4
 
         """
-        input = MainInput.from_tao(tao)
-        lattice = Lattice.from_tao(tao)
+        input = MainInput.from_tao(tao, ele_start=ele_start, universe=universe, branch=branch)
+        lattice = Lattice.from_tao(tao, ele_start=ele_start, ele_end=ele_end, universe=universe, branch=branch)
         return cls(input=input, lattice=lattice)
 
     @override

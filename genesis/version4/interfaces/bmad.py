@@ -1,6 +1,5 @@
-from ..input._lattice import Quadrupole, Corrector, Drift, Marker, Undulator
-from ..input._main import Setup, Field, Track, Beam
-
+from ..input import Quadrupole, Corrector, Drift, Marker, Undulator
+from ..input import Setup, Field, Track, Beam
 
 from pmd_beamphysics.units import mec2
 
@@ -9,10 +8,22 @@ from scipy.constants import c
 from math import pi, sqrt
 import numpy as np
 
+def ele_info(tao, ele_id):
+    info = tao.ele_head(ele_id)
+    info.update(tao.ele_gen_attribs(ele_id))
+    info.update(tao.ele_methods(ele_id))
+    info["key"] = info["key"].lower()
+    return info
+
 
 def label_from_bmad_name(bmad_name: str) -> str:
     """
     Formats a label by standardizing case, removing backslashes, and replacing disallowed characters.
+
+    For superimposed elements with a composite name with '\', 
+    the last name will be used.
+
+    TODO: better lord-slave logic
 
     Parameters
     ----------
@@ -90,6 +101,10 @@ def genesis4_eles_from_tao_ele(tao, ele_id):
     """
     Creates Genesis4 elements from a specified element in a pytao.Tao instance.
 
+    TODO: recogonize "chicane" bend patterns. 
+
+    TODO: desplit elements
+
     Parameters
     ----------
     tao : Tao
@@ -110,32 +125,63 @@ def genesis4_eles_from_tao_ele(tao, ele_id):
         If the undulator length is inconsistent with the number of periods and period length.
     """
 
-    info = tao.ele_head(ele_id)
-    info.update(tao.ele_gen_attribs(ele_id))
-    info.update(tao.ele_methods(ele_id))
+    info = ele_info(tao, ele_id)
     key = info["key"].lower()
+    
+    # Make Genesis4 label
+    name = info["name"] # Original Bmad name. We need to clean this.
+    label = label_from_bmad_name(name)
 
-    # Genesis4 calls this 'label':
-    label = label_from_bmad_name(info["name"])
-
+    L = info.get("L", 0)
     x_offset = info.get("X_OFFSET", 0)
     y_offset = info.get("Y_OFFSET", 0)
 
     if key == "beginning_ele":
-        eles = None
-    elif key in ("drift", "pipe"):
-        ele = Drift(L=info["L"], label=label)
+        eles = []
+
+    elif key in ("hkicker", "vkicker", "kicker"):
+        if L == 0:
+            L = 1e-9 # Avoid bug with zero length corrector
+            
+        if key == "hkicker":
+            cx = info["KICK"]
+            cy = 0
+        elif key == "vkicker":
+            cx = 0
+            cy = info["KICK"]
+        else:
+            cx = info["HKICK"]
+            cy = info["VKICK"]
+        ele = Corrector(cx=cx, cy=cy, label=label, L=L) 
         eles = [ele]
-    elif key in ("marker", "monitor") and (info["L"] == 0):
-        ele = Marker(label=label)
+        
+    elif key in ("drift", "ecollimator", "pipe"):
+        ele = Drift(L=L, label=label)
         eles = [ele]
-        eles = None  # TEMP
+
+    elif key in ("lcavity", "rfcavity"):
+        if info["GRADIENT"] == 0:
+            eles = [Drift(L=L, label=label)]
+        else:
+            raise NotImplementedError(f"{key} '{name}' with nonzero gradient")            
+    elif key in ("sbend", ):
+        if info["G"] == 0:
+            eles = [Drift(L=L, label=label)]
+        else:
+            raise NotImplementedError(f"{key} '{name}' with nonzero G")
+        
+    elif key in ("instrument", "marker", "monitor"):
+        if L ==0:
+            ele = Marker(label=label)
+        else:
+            ele = Drift(L=L, label=label)
+        eles = [ele]
     elif key == "quadrupole":
         cx = info["HKICK"]
         cy = info["VKICK"]
 
         ele = Quadrupole(
-            L=info["L"],
+            L=L,
             k1=info["K1"],
             label=label,
             x_offset=x_offset,
@@ -161,8 +207,6 @@ def genesis4_eles_from_tao_ele(tao, ele_id):
         B0 = B0 = info["B_MAX"]
         lambdau = info["L_PERIOD"]
         K = B0 * lambdau * c / (2 * pi * mec2)
-
-        L = info["L"]
         nwig = int(info["N_PERIOD"])
         lambdau = info["L_PERIOD"]
         if not np.isclose(L, nwig * lambdau):
@@ -187,12 +231,12 @@ def genesis4_eles_from_tao_ele(tao, ele_id):
         )
         eles = [ele]
     else:
-        raise NotImplementedError(key)
+        raise NotImplementedError(f"{label}: {key} with {L=}")
 
     return eles
 
 
-def genesis4_elements_and_line_from_tao(tao, match="*"):
+def genesis4_elements_and_line_from_tao(tao, ele_start='beginning', ele_end='end', universe=1, branch=0):
     """
     Creates a Genesis4 lattice from a pytao.Tao instance.
 
@@ -200,8 +244,14 @@ def genesis4_elements_and_line_from_tao(tao, match="*"):
     ----------
     tao : Tao
         The Tao instance to extract elements from.
-    match : str, optional
-        A pattern to match elements in the Tao lattice. Defaults to "*".
+    ele_start : str, optional
+        Element to start. Defaults to "beginning".
+    ele_end : str, optional
+        Element to end. Defaults to "end".        
+    branch : int, optional
+        The branch index within the specified Tao universe. Defaults to 0.
+    universe : int, optional
+        The universe index within the Tao object. Defaults to 1.        
 
     Returns
     -------
@@ -218,27 +268,28 @@ def genesis4_elements_and_line_from_tao(tao, match="*"):
 
     elements = {}
     line_labels = []
-    for ix_ele in tao.lat_list(match, "ele.ix_ele"):
+    for ix_ele in tao.lat_list(f"{ele_start}:{ele_end}", "ele.ix_ele", ix_uni=universe, ix_branch=branch):
         eles = genesis4_eles_from_tao_ele(tao, ix_ele)
-        if eles is not None:
-            for ele in eles:
-                label = ele.label
-                ele.label = ""
-                if label in elements:
-                    ele0 = elements[label]
-                    if ele0 != ele:
-                        raise ValueError(
-                            f"Elements have the same name but different properties: {ele0}, {ele}"
-                        )
-                else:
-                    elements[label] = ele
-                line_labels.append(label)
+
+        for ele in eles:
+            label = ele.label
+            ele.label = ""
+            if label in elements:
+                ele0 = elements[label]
+                if ele0 != ele:
+                    raise ValueError(
+                        f"Elements have the same name but different properties: {ele0}, {ele}"
+                    )
+            else:
+                elements[label] = ele
+            line_labels.append(label)
 
     return elements, line_labels
 
 
 def genesis4_namelists_from_tao(
-    tao, ele_start: str = "beginning", branch: int = 0, universe: int = 1
+    tao, ele_start: str = "beginning", branch: int = 0, universe: int = 1,
+    
 ):
     """
     Creates Genesis4 namelists from a Tao instance, using specified parameters to
