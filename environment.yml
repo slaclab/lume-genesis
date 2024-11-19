@@ -33,3 +33,6 @@ dependencies:
   - ruff
   - typing-extensions
   - pip
+  - pip:
+      # TODO: remove prior to merging
+      - git+https://github.com/ken-lauer/openPMD-beamphysics.git/@fix_genesis4_4.6.7
