@@ -311,8 +311,8 @@ def genesis4_namelists_from_tao(
         A running Tao instance, providing access to element attributes, Twiss parameters,
         and orbit data.
     ele_start : str, optional
-        The starting element within the specified Tao universe and branch, using the
-        syntax `@` for universe and `>>` for branch (e.g., `'1@0>>element_name'`).
+        The starting element within the specified Tao universe and branch.
+        The  syntax `@` for universe and `>>` are not allowed in this name.
         Defaults to `'beginning'`.
     branch : int, optional
         The branch index within the specified Tao universe. Defaults to 0.
@@ -340,8 +340,10 @@ def genesis4_namelists_from_tao(
     """
 
     # Handle Tao universe @ branch >> sytax
-    if ">>" not in ele_start:
-        ele_start = f"{universe}@{branch}>>{ele_start}"
+    if ">>" in ele_start or "@" in ele_start:
+        raise ValueError("Do not use @ or >> in the element name")
+
+    ele_start = f"{universe}@{branch}>>{ele_start}"
 
     attrs = tao.ele_gen_attribs(ele_start)
     twiss = tao.ele_twiss(ele_start)
