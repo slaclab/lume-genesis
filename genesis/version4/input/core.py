@@ -406,7 +406,6 @@ class MainInput(BaseModel):
         -----
         - The generated `beamline` name is based on the Tao universe and branch configuration,
           with `gamma0` calculated from the total energy.
-        - Additional parameters for field and beam properties are hard-coded but may be generalized.
 
         Examples
         --------
