@@ -404,8 +404,6 @@ class MainInput(BaseModel):
 
         Notes
         -----
-        - This function collects attributes, Twiss parameters, and orbit data from the
-          specified Tao element to construct Genesis4-compatible input data.
         - The generated `beamline` name is based on the Tao universe and branch configuration,
           with `gamma0` calculated from the total energy.
         - Additional parameters for field and beam properties are hard-coded but may be generalized.
