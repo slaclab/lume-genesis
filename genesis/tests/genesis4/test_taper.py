@@ -301,7 +301,7 @@ def test_flatten_example() -> None:
         start=1,
         in_place=False,
         # line_format="{name}_{index}",
-        # label_format="{name}_{index}",
+        # last_format="{name}_{index}",
     )
     assert flattened == [
         [
@@ -374,7 +374,7 @@ def test_flatten_example1():
         start=1,
         in_place=False,
         line_format="{name}{index}",
-        label_format="{name}_{index}",
+        last_format="{name}_{index}",
     )
     flattened_names = [ele.label for section in flattened for ele in section]
     for ele in lat0.elements["FODO"].elements:
@@ -395,7 +395,7 @@ def test_flatten_example1():
         start=1,
         in_place=False,
         line_format="{name}{index}",
-        label_format="{name}_{index}",
+        last_format="{name}_{index}",
     )
     flattened_names = [ele.label for section in flattened for ele in section]
     assert "FEL1_FODO1_UND_1" in flattened_names
