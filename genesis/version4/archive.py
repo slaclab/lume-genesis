@@ -78,12 +78,6 @@ def _hdf5_dictify(data, encoding: str):
         adapter = pydantic.TypeAdapter(PydanticPmdUnit)
         return _hdf5_dictify(adapter.dump_python(data, mode="json"), encoding=encoding)
     if isinstance(data, ParticleGroup):
-        print(
-            {
-                "__python_class_name__": "ParticleGroup",
-                **_hdf5_dictify({"data": data.data}, encoding=encoding),
-            }
-        )
         return {
             "__python_class_name__": "ParticleGroup",
             **_hdf5_dictify({"data": data.data}, encoding=encoding),
