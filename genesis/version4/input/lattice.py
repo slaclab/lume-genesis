@@ -40,6 +40,8 @@ from ..types import (
 )
 from . import _lattice as auto_lattice
 from . import parsers
+from ..interfaces.bmad import genesis4_elements_and_line_from_tao
+
 
 try:
     from typing import Literal
@@ -1003,6 +1005,51 @@ class Lattice(BaseModel):
             elements_by_name,
             filename=pathlib.Path(filename) if filename else None,
         )
+
+    @classmethod
+    def from_tao(
+        cls,
+        tao,
+        ele_start="beginning",
+        ele_end="end",
+        universe: int = 1,
+        branch: int = 0,
+        line_label: str = None,
+    ):
+        """
+        Creates a Genesis4 Lattice from a running PyTao Tao instance.
+
+        The lattice will contain one Line element.
+
+        Parameters
+        ----------
+        tao : Tao
+            The Tao instance containing the element definitions.
+        ele_start : str, optional
+            Element to start. Defaults to "beginning".
+        ele_end : str, optional
+            Element to end. Defaults to "end".
+        universe: int, optional = 1
+            Tao universe to use
+        branch: int, optional = 0
+            Tao branch to use
+        line_label: str, default = None
+            Name of the line element.
+            If not given, the Tao branch name will be used.
+
+        Returns
+        -------
+        Lattice
+
+        """
+        elements, line_labels = genesis4_elements_and_line_from_tao(
+            tao, ele_start=ele_start, ele_end=ele_end, universe=universe, branch=branch
+        )
+
+        if line_label is None:
+            line_label = tao.branch1(universe, branch)["name"]
+        elements[line_label] = Line(elements=line_labels)
+        return cls(elements=elements)
 
     def to_file(
         self,

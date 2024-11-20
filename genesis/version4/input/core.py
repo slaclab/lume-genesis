@@ -39,6 +39,7 @@ from ...errors import (
 )
 from .. import archive as _archive
 from ..field import FieldFile
+from ..interfaces.bmad import genesis4_namelists_from_tao
 from ..particles import Genesis4ParticleData
 from ..types import (
     AnyPath,
@@ -376,6 +377,46 @@ class MainInput(BaseModel):
             main_config,
             filename,
         )
+
+    @classmethod
+    def from_tao(
+        cls, tao, ele_start: str = "beginning", branch: int = 0, universe: int = 1
+    ):
+        """
+        Creates Genesis4 MainInput from a Tao instance, using specified parameters to
+        extract relevant beamline, beam, and field configurations.
+
+        Parameters
+        ----------
+        tao : pytao.Tao
+            A running Tao instance, providing access to element attributes, Twiss parameters,
+            and orbit data.
+        ele_start : str, optional
+            Element to start. Defaults to "beginning".
+        branch : int, optional
+            The branch index within the specified Tao universe. Defaults to 0.
+        universe : int, optional
+            The universe index within the Tao object. Defaults to 1.
+
+        Returns
+        -------
+        MainInput
+
+        Notes
+        -----
+        - The generated `beamline` name is based on the Tao universe and branch configuration,
+          with `gamma0` calculated from the total energy.
+
+        Examples
+        --------
+        >>> tao = pytao.Tao(...)
+        >>> input = MainInput.from_tao(tao, ele_start='beginning', branch=0, universe=1)
+
+        """
+        namelists = genesis4_namelists_from_tao(
+            tao, ele_start=ele_start, branch=branch, universe=universe
+        )
+        return cls(namelists=namelists)
 
     def _check_for_mistakes(self) -> None:
         """Check and fix simple mistakes to be friendly to the end-user."""

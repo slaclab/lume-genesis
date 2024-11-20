@@ -1,0 +1,31 @@
+no_digested
+! These are the periodic Twiss
+beginning[beta_a] = 8.53711320
+beginning[beta_b] = 17.38992039
+beginning[alpha_a] = -0.70330585
+beginning[alpha_b] = 1.40347554
+
+beginning[e_tot] = 11357.82 * m_electron
+
+parameter[geometry] = open ! closed will calculate the periodic Twiss
+parameter[particle] = electron
+
+! Genesis4 undulator parameters:
+lambdau = 0.015000
+nwig = 266
+aw = 0.84853
+
+D1: DRIFT, L = 0.44
+D2: DRIFT, L = 0.24
+QF: QUADRUPOLE, L = 0.080000, k1= 2.000000
+QD: QUADRUPOLE, L = 0.080000, k1= -2.000000
+UND: WIGGLER, L = lambdau*nwig,
+    L_period=lambdau, n_period=nwig,
+    field_calc = helical_model,
+    b_max = 2*pi*m_electron * aw / (c_light * lambdau)
+
+FODO: LINE= (UND,D1,QF,D2,UND,D1,QD,D2)
+
+FEL: LINE= (6*FODO)
+
+use, FEL
