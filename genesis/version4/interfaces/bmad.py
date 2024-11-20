@@ -334,7 +334,9 @@ def genesis4_namelists_from_tao(
 
     Examples
     --------
-    >>> tao = pytao.Tao(...)
+    >>> import pytao
+    >>> from genesis.version4.bmad.interfaces import genesis4_namelists_from_tao
+    >>> tao = pytao.Tao(init_file="$ACC_ROOT_DIR/bmad-doc/tao_examples/fodo/tao.init")
     >>> namelists = genesis4_namelists_from_tao(tao, ele_start='beginning', branch=0, universe=1)
 
     """
