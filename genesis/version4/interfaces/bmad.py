@@ -36,6 +36,9 @@ def label_from_bmad_name(bmad_name: str) -> str:
         A formatted label suitable for Genesis4.
     """
     name = bmad_name.upper()
+    if "\\" in name and name.split("\\")[-1].isnumeric():
+        raise NotImplementedError("Multipass elements not supported")
+    
     label = name.split("\\")[-1]  # Extracts text after backslash, if any
     return label.replace(".", "_").replace("#", "_")
 
