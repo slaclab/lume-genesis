@@ -379,12 +379,13 @@ class MainInput(BaseModel):
         )
 
     @classmethod
-    def from_tao(cls,
-                tao, ele_start: str = "beginning", branch: int = 0, universe: int = 1):
+    def from_tao(
+        cls, tao, ele_start: str = "beginning", branch: int = 0, universe: int = 1
+    ):
         """
         Creates Genesis4 MainInput from a Tao instance, using specified parameters to
         extract relevant beamline, beam, and field configurations.
-    
+
         Parameters
         ----------
         tao : pytao.Tao
@@ -396,11 +397,11 @@ class MainInput(BaseModel):
             The branch index within the specified Tao universe. Defaults to 0.
         universe : int, optional
             The universe index within the Tao object. Defaults to 1.
-    
+
         Returns
         -------
         MainInput
-    
+
         Notes
         -----
         - This function collects attributes, Twiss parameters, and orbit data from the
@@ -408,14 +409,16 @@ class MainInput(BaseModel):
         - The generated `beamline` name is based on the Tao universe and branch configuration,
           with `gamma0` calculated from the total energy.
         - Additional parameters for field and beam properties are hard-coded but may be generalized.
-    
+
         Examples
         --------
         >>> tao = pytao.Tao(...)
         >>> input = MainInput.from_tao(tao, ele_start='beginning', branch=0, universe=1)
-    
-        """        
-        namelists = genesis4_namelists_from_tao(tao, ele_start=ele_start, branch=branch, universe=universe)
+
+        """
+        namelists = genesis4_namelists_from_tao(
+            tao, ele_start=ele_start, branch=branch, universe=universe
+        )
         return cls(namelists=namelists)
 
     def _check_for_mistakes(self) -> None:

@@ -8,6 +8,7 @@ from scipy.constants import c
 from math import pi, sqrt
 import numpy as np
 
+
 def ele_info(tao, ele_id):
     info = tao.ele_head(ele_id)
     info.update(tao.ele_gen_attribs(ele_id))
@@ -20,7 +21,7 @@ def label_from_bmad_name(bmad_name: str) -> str:
     """
     Formats a label by standardizing case, removing backslashes, and replacing disallowed characters.
 
-    For superimposed elements with a composite name with '\', 
+    For superimposed elements with a composite name with '\',
     the last name will be used.
 
     TODO: better lord-slave logic
@@ -38,7 +39,7 @@ def label_from_bmad_name(bmad_name: str) -> str:
     name = bmad_name.upper()
     if "\\" in name and name.split("\\")[-1].isnumeric():
         raise NotImplementedError("Multipass elements not supported")
-    
+
     label = name.split("\\")[-1]  # Extracts text after backslash, if any
     return label.replace(".", "_").replace("#", "_")
 
@@ -104,7 +105,7 @@ def genesis4_eles_from_tao_ele(tao, ele_id):
     """
     Creates Genesis4 elements from a specified element in a pytao.Tao instance.
 
-    TODO: recogonize "chicane" bend patterns. 
+    TODO: recogonize "chicane" bend patterns.
 
     TODO: desplit elements
 
@@ -130,9 +131,9 @@ def genesis4_eles_from_tao_ele(tao, ele_id):
 
     info = ele_info(tao, ele_id)
     key = info["key"].lower()
-    
+
     # Make Genesis4 label
-    name = info["name"] # Original Bmad name. We need to clean this.
+    name = info["name"]  # Original Bmad name. We need to clean this.
     label = label_from_bmad_name(name)
 
     L = info.get("L", 0)
@@ -144,8 +145,8 @@ def genesis4_eles_from_tao_ele(tao, ele_id):
 
     elif key in ("hkicker", "vkicker", "kicker"):
         if L == 0:
-            L = 1e-9 # Avoid bug with zero length corrector
-            
+            L = 1e-9  # Avoid bug with zero length corrector
+
         if key == "hkicker":
             cx = info["KICK"]
             cy = 0
@@ -155,9 +156,9 @@ def genesis4_eles_from_tao_ele(tao, ele_id):
         else:
             cx = info["HKICK"]
             cy = info["VKICK"]
-        ele = Corrector(cx=cx, cy=cy, label=label, L=L) 
+        ele = Corrector(cx=cx, cy=cy, label=label, L=L)
         eles = [ele]
-        
+
     elif key in ("drift", "ecollimator", "pipe"):
         ele = Drift(L=L, label=label)
         eles = [ele]
@@ -166,15 +167,15 @@ def genesis4_eles_from_tao_ele(tao, ele_id):
         if info["GRADIENT"] == 0:
             eles = [Drift(L=L, label=label)]
         else:
-            raise NotImplementedError(f"{key} '{name}' with nonzero gradient")            
-    elif key in ("sbend", ):
+            raise NotImplementedError(f"{key} '{name}' with nonzero gradient")
+    elif key in ("sbend",):
         if info["G"] == 0:
             eles = [Drift(L=L, label=label)]
         else:
             raise NotImplementedError(f"{key} '{name}' with nonzero G")
-        
+
     elif key in ("instrument", "marker", "monitor"):
-        if L ==0:
+        if L == 0:
             ele = Marker(label=label)
         else:
             ele = Drift(L=L, label=label)
@@ -239,7 +240,9 @@ def genesis4_eles_from_tao_ele(tao, ele_id):
     return eles
 
 
-def genesis4_elements_and_line_from_tao(tao, ele_start='beginning', ele_end='end', universe=1, branch=0):
+def genesis4_elements_and_line_from_tao(
+    tao, ele_start="beginning", ele_end="end", universe=1, branch=0
+):
     """
     Creates a Genesis4 lattice from a pytao.Tao instance.
 
@@ -250,11 +253,11 @@ def genesis4_elements_and_line_from_tao(tao, ele_start='beginning', ele_end='end
     ele_start : str, optional
         Element to start. Defaults to "beginning".
     ele_end : str, optional
-        Element to end. Defaults to "end".        
+        Element to end. Defaults to "end".
     branch : int, optional
         The branch index within the specified Tao universe. Defaults to 0.
     universe : int, optional
-        The universe index within the Tao object. Defaults to 1.        
+        The universe index within the Tao object. Defaults to 1.
 
     Returns
     -------
@@ -271,7 +274,9 @@ def genesis4_elements_and_line_from_tao(tao, ele_start='beginning', ele_end='end
 
     elements = {}
     line_labels = []
-    for ix_ele in tao.lat_list(f"{ele_start}:{ele_end}", "ele.ix_ele", ix_uni=universe, ix_branch=branch):
+    for ix_ele in tao.lat_list(
+        f"{ele_start}:{ele_end}", "ele.ix_ele", ix_uni=universe, ix_branch=branch
+    ):
         eles = genesis4_eles_from_tao_ele(tao, ix_ele)
 
         for ele in eles:
@@ -291,8 +296,10 @@ def genesis4_elements_and_line_from_tao(tao, ele_start='beginning', ele_end='end
 
 
 def genesis4_namelists_from_tao(
-    tao, ele_start: str = "beginning", branch: int = 0, universe: int = 1,
-    
+    tao,
+    ele_start: str = "beginning",
+    branch: int = 0,
+    universe: int = 1,
 ):
     """
     Creates Genesis4 namelists from a Tao instance, using specified parameters to
@@ -353,7 +360,7 @@ def genesis4_namelists_from_tao(
     )
 
     # TODO: Generalize
-    field = Field(power=5000.0, waist_size=3e-05, dgrid=0.0002, ngrid=255)
+    field = Field()
 
     beam = Beam(
         alphax=twiss["alpha_a"],

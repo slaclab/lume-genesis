@@ -1007,7 +1007,15 @@ class Lattice(BaseModel):
         )
 
     @classmethod
-    def from_tao(cls, tao, ele_start='beginning', ele_end='end', universe: int=1, branch: int=0, line_label: str=None):
+    def from_tao(
+        cls,
+        tao,
+        ele_start="beginning",
+        ele_end="end",
+        universe: int = 1,
+        branch: int = 0,
+        line_label: str = None,
+    ):
         """
         Creates a Genesis4 Lattice from a running PyTao Tao instance.
 
@@ -1020,7 +1028,7 @@ class Lattice(BaseModel):
         ele_start : str, optional
             Element to start. Defaults to "beginning".
         ele_end : str, optional
-            Element to end. Defaults to "end".              
+            Element to end. Defaults to "end".
         universe: int, optional = 1
             Tao universe to use
         branch: int, optional = 0
@@ -1034,11 +1042,9 @@ class Lattice(BaseModel):
         Lattice
 
         """
-        elements, line_labels = genesis4_elements_and_line_from_tao(tao,
-                                                                    ele_start=ele_start,
-                                                                    ele_end=ele_end,
-                                                                   universe=universe,
-                                                                   branch=branch)
+        elements, line_labels = genesis4_elements_and_line_from_tao(
+            tao, ele_start=ele_start, ele_end=ele_end, universe=universe, branch=branch
+        )
 
         if line_label is None:
             line_label = tao.branch1(universe, branch)["name"]
