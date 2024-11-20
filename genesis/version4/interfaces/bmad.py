@@ -9,14 +9,6 @@ from math import pi, sqrt
 import numpy as np
 
 
-def ele_info(tao, ele_id):
-    info = tao.ele_head(ele_id)
-    info.update(tao.ele_gen_attribs(ele_id))
-    info.update(tao.ele_methods(ele_id))
-    info["key"] = info["key"].lower()
-    return info
-
-
 def label_from_bmad_name(bmad_name: str) -> str:
     """
     Formats a label by standardizing case, removing backslashes, and replacing disallowed characters.
@@ -129,7 +121,9 @@ def genesis4_eles_from_tao_ele(tao, ele_id):
         If the undulator length is inconsistent with the number of periods and period length.
     """
 
-    info = ele_info(tao, ele_id)
+    info = tao.ele_head(ele_id)
+    info.update(tao.ele_gen_attribs(ele_id))
+    info.update(tao.ele_methods(ele_id))
     key = info["key"].lower()
 
     # Make Genesis4 label
@@ -172,7 +166,9 @@ def genesis4_eles_from_tao_ele(tao, ele_id):
         if info["G"] == 0:
             eles = [Drift(L=L, label=label)]
         else:
-            raise NotImplementedError(f"{key} '{name}' with nonzero G")
+            raise NotImplementedError(
+                f"{key} '{name}' with nonzero G. TODO: implement chicanes."
+            )
 
     elif key in ("instrument", "marker", "monitor"):
         if L == 0:
