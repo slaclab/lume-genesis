@@ -1383,7 +1383,6 @@ class Genesis4Output(Mapping, BaseModel, arbitrary_types_allowed=True):
     )
     particles: Dict[FileKey, ParticleGroup] = pydantic.Field(
         default_factory=dict,
-        exclude=True,
         description="Loaded particle data, keyed by integration step number or filename base.",
     )
     alias: Dict[str, str] = pydantic.Field(

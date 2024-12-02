@@ -162,6 +162,38 @@ def test_hdf_archive(
     assert json_for_comparison(orig_output) == json_for_comparison(genesis4.output)
 
 
+def test_hdf_archive_particles(
+    genesis4: Genesis4,
+    hdf5_filename: pathlib.Path,
+) -> None:
+    genesis4.input.main.namelists.append(Write(beam="end"))
+    orig_output = genesis4.run(raise_on_error=True)
+    assert orig_output.run.success
+
+    orig_output.load_particles()
+
+    orig_particles = orig_output.particles
+    assert len(orig_output.particles)
+
+    t0 = time.monotonic()
+    genesis4.archive(hdf5_filename)
+
+    t1 = time.monotonic()
+    genesis4.load_archive(hdf5_filename)
+    new_output = genesis4.output
+
+    t2 = time.monotonic()
+    print("Took", t1 - t0, "s to archive")
+    print("Took", t2 - t1, "s to restore")
+    assert new_output is not None
+    assert list(new_output.particles) == list(orig_particles)
+
+    for key in new_output.particles:
+        particles = orig_particles[key]
+        print("Checking particles", particles)
+        assert particles == new_output.particles[key]
+
+
 def json_for_comparison(model: BaseModel) -> str:
     # Assuming dictionary keys can't be assumed to be sorted
     data = json.loads(model.model_dump_json())
