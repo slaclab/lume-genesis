@@ -43,6 +43,7 @@ from ...version4 import (
     Wake,
     Write,
 )
+from ...version4.archive import store_in_hdf5_file, restore_from_hdf5_file
 from ...version4.types import BeamlineElement, NameList
 from ..conftest import test_artifacts
 from . import util
@@ -241,3 +242,21 @@ def test_hdf_archive_using_group(
     orig_output_repr = repr(orig_output)
     restored_output_repr = repr(genesis4.output)
     assert orig_output_repr == restored_output_repr
+
+
+class StringModel(BaseModel):
+    str_value: str
+    bytes_value: bytes
+
+
+def test_null_bytes_storage(hdf5_filename: pathlib.Path):
+    orig = StringModel(str_value="one\0two\0three", bytes_value=b"one\0two\0three")
+    with h5py.File(hdf5_filename, "w") as h5:
+        store_in_hdf5_file(h5, orig)
+
+    with h5py.File(hdf5_filename, "r") as h5:
+        output = restore_from_hdf5_file(h5)
+
+    print(orig)
+    print(output)
+    assert orig == output

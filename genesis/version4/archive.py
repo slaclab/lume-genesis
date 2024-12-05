@@ -42,7 +42,7 @@ def _hdf5_dictify(data, encoding: str):
             "value": str(data),
         }
     if isinstance(data, str):
-        return data.encode(encoding)
+        return np.bytes_(data.encode(encoding))
     if isinstance(data, (int, float, bool)):
         return data
     if isinstance(data, bytes):
@@ -50,7 +50,7 @@ def _hdf5_dictify(data, encoding: str):
         # byte datasets are encoded strings unless marked like so:
         return {
             "__python_class_name__": "bytes",
-            "value": data,
+            "value": np.bytes_(data),
         }
     if isinstance(data, np.ndarray):
         return data
@@ -159,7 +159,9 @@ def _hdf5_store_dict(group: h5py.Group, data, encoding: str, depth=0) -> None:
                 depth=depth + 1,
                 encoding=encoding,
             )
-        elif isinstance(value, (str, bytes, int, float, bool)):
+        elif isinstance(value, bytes):
+            group.attrs[h5_key] = np.bytes_(value)
+        elif isinstance(value, (str, int, float, bool)):
             group.attrs[h5_key] = value
         elif isinstance(value, (np.ndarray,)):
             group.create_dataset(h5_key, data=value)
@@ -279,6 +281,10 @@ def _hdf5_restore_dict(
         if hasattr(value, "tolist"):
             # Get the native type from a numpy scalar
             value = value.tolist()
+
+        if isinstance(value, bytes):
+            value = value.decode(encoding)
+
         res_by_hdf5_key[key] = value
 
     key_map_json = item.attrs.get("__python_key_map__", None)
