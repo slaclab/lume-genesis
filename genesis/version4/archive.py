@@ -335,3 +335,15 @@ def restore_from_hdf5_file(
     for key in _reserved_h5_attrs:
         data.pop(key, None)
     return cls.model_validate(data)
+
+
+def pick_from_archive(h5: h5py.Group, encoding: str = "utf-8"):
+    """
+    Restore a single instance from an HDF5 file archive.
+
+    Parameters
+    ----------
+    h5 : h5py.Group
+        The file or group to restore from.
+    """
+    return _hdf5_restore_dict(h5, encoding=encoding)
