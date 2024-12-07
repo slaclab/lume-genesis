@@ -395,7 +395,7 @@ class Genesis4(CommandWrapper):
             start_time=start_time,
             end_time=end_time,
             run_time=end_time - start_time,
-            output_log=execute_result["log"],
+            output_log=execute_result["log"].replace("\x00", ""),
         )
 
         success_or_failure = "Success" if not execute_result["error"] else "Failure"

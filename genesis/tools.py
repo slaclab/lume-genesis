@@ -113,7 +113,7 @@ def execute(cmd, cwd=None):
 
 
 # Alternative execute
-def execute2(cmd, timeout=None, cwd=None):
+def execute2(cmd, timeout=None, cwd=None, encoding="utf-8"):
     """
     Execute with time limit (timeout) in seconds, catching run errors.
     """
@@ -132,11 +132,21 @@ def execute2(cmd, timeout=None, cwd=None):
         output["why_error"] = ""
     except subprocess.TimeoutExpired as ex:
         stdout = ex.stdout or b""
-        output["log"] = "\n".join((stdout.decode(), f"{ex.__class__.__name__}: {ex}"))
+        output["log"] = "\n".join(
+            (
+                stdout.decode(encoding, errors="ignore"),
+                f"{ex.__class__.__name__}: {ex}",
+            )
+        )
         output["why_error"] = "timeout"
     except subprocess.CalledProcessError as ex:
         stdout = ex.stdout or b""
-        output["log"] = "\n".join((stdout.decode(), f"{ex.__class__.__name__}: {ex}"))
+        output["log"] = "\n".join(
+            (
+                stdout.decode(encoding, errors="ignore"),
+                f"{ex.__class__.__name__}: {ex}",
+            )
+        )
         output["why_error"] = "error"
     except Exception as ex:
         stack = traceback.print_exc()

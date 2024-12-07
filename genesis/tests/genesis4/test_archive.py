@@ -5,6 +5,7 @@ from typing import Union
 
 import h5py
 import pytest
+from pmd_beamphysics import ParticleGroup
 from pydantic import BaseModel
 
 from ...version4 import (
@@ -42,6 +43,11 @@ from ...version4 import (
     Undulator,
     Wake,
     Write,
+)
+from ...version4.archive import (
+    store_in_hdf5_file,
+    restore_from_hdf5_file,
+    pick_from_archive,
 )
 from ...version4.types import BeamlineElement, NameList
 from ..conftest import test_artifacts
@@ -194,6 +200,32 @@ def test_hdf_archive_particles(
         assert particles == new_output.particles[key]
 
 
+def test_pick_from_archive(
+    genesis4: Genesis4,
+    hdf5_filename: pathlib.Path,
+) -> None:
+    genesis4.input.main.namelists.append(Write(beam="end"))
+    orig_output = genesis4.run(raise_on_error=True)
+    assert orig_output.run.success
+
+    orig_output.load_particles()
+
+    orig_particles = orig_output.particles
+    assert len(orig_output.particles)
+
+    genesis4.archive(hdf5_filename)
+
+    with h5py.File(hdf5_filename) as h5:
+        for key in orig_output.particles:
+            particles = orig_particles[key]
+            print("Checking particles", particles)
+
+            loaded = pick_from_archive(h5[f"output/particles/{key}"])
+            assert isinstance(loaded, ParticleGroup)
+            assert loaded == particles
+            assert loaded.species == "electron"
+
+
 def json_for_comparison(model: BaseModel) -> str:
     # Assuming dictionary keys can't be assumed to be sorted
     data = json.loads(model.model_dump_json())
@@ -241,3 +273,21 @@ def test_hdf_archive_using_group(
     orig_output_repr = repr(orig_output)
     restored_output_repr = repr(genesis4.output)
     assert orig_output_repr == restored_output_repr
+
+
+class StringModel(BaseModel):
+    str_value: str
+    bytes_value: bytes
+
+
+def test_null_bytes_storage(hdf5_filename: pathlib.Path):
+    orig = StringModel(str_value="one\0two\0three", bytes_value=b"one\0two\0three")
+    with h5py.File(hdf5_filename, "w") as h5:
+        store_in_hdf5_file(h5, orig)
+
+    with h5py.File(hdf5_filename, "r") as h5:
+        output = restore_from_hdf5_file(h5)
+
+    print(orig)
+    print(output)
+    assert orig == output
