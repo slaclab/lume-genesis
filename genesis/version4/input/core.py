@@ -636,12 +636,13 @@ class MainInput(BaseModel):
             self.remove(previous)
 
         if update_slen and isinstance(particles, ParticleGroup):
+            particles_slen = get_particles_slen(particles)
             for time_ in self.times:
                 was = time_.slen
-                time_.slen = get_particles_slen(particles)
-                if time_.slen != was:
+                if was < particles_slen:
+                    time_.slen = particles_slen
                     logger.warning(
-                        "Updating time namelist slen: %f (was %f)",
+                        "Updating time namelist slen: %f (was %f) to span all particles",
                         time_.slen,
                         was,
                     )
@@ -1227,12 +1228,14 @@ class Genesis4Input(BaseModel):
                     f"now={self.initial_particles.charge}"
                 )
                 dist.charge = self.initial_particles.charge
+
+            particles_slen = get_particles_slen(self.initial_particles)
             for time_ in self.main.times:
                 was = time_.slen
-                time_.slen = get_particles_slen(self.initial_particles)
-                if time_.slen != was:
+                if was < particles_slen:
+                    time_.slen = particles_slen
                     logger.warning(
-                        f"Updating time namelist slen: was={was} now {time_.slen}",
+                        f"Updating time namelist slen: was={was} now {time_.slen} to span all particles",
                     )
         else:
             raise ValueError(
