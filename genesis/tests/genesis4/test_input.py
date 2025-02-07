@@ -145,3 +145,32 @@ def test_setup_rootname_fix(tmp_path: pathlib.Path):
 
     main.write_files(tmp_path)
     assert main.setup.rootname == "output"
+
+
+def test_lattice_list_setattr():
+    lat = Lattice(
+        [
+            g4.Quadrupole(L=0.0, label="a"),
+            g4.Quadrupole(L=0.0, label="b"),
+        ]
+    )
+
+    assert lat.quadrupoles.label == ["a", "b"]
+    lat.quadrupoles.label = ["c", "d"]
+    assert lat.quadrupoles.label == ["c", "d"]
+    assert lat.quadrupoles[0].label == "c"
+    assert lat.quadrupoles[1].label == "d"
+
+    assert lat.quadrupoles.L == [0.0, 0.0]
+
+    # broadcasting a single value to all
+    lat.quadrupoles.L = 1.0
+    assert lat.quadrupoles.L == [1.0, 1.0]
+    assert lat.quadrupoles[0].L == 1.0
+    assert lat.quadrupoles[1].L == 1.0
+
+    # setting a list of values
+    lat.quadrupoles.L = [3.0, 4.0]
+    assert lat.quadrupoles.L == [3.0, 4.0]
+    assert lat.quadrupoles[0].L == 3.0
+    assert lat.quadrupoles[1].L == 4.0
