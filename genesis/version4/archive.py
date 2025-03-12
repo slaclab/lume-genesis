@@ -25,7 +25,9 @@ _reserved_h5_attrs = {
 }
 
 
-def _hdf5_dictify(data, encoding: str):
+def _hdf5_dictify(
+    data, encoding: str
+) -> dict[str, Any] | np.ndarray | np.bytes_ | int | float | bool:
     """Convert ``data`` for storing into an HDF5 group."""
     if isinstance(data, dict):
         return {
@@ -78,9 +80,11 @@ def _hdf5_dictify(data, encoding: str):
         adapter = pydantic.TypeAdapter(PydanticPmdUnit)
         return _hdf5_dictify(adapter.dump_python(data, mode="json"), encoding=encoding)
     if isinstance(data, ParticleGroup):
+        particle_data = _hdf5_dictify({"data": data.data}, encoding=encoding)
+        assert isinstance(particle_data, dict)
         return {
             "__python_class_name__": "ParticleGroup",
-            **_hdf5_dictify({"data": data.data}, encoding=encoding),
+            **particle_data,
         }
 
     raise NotImplementedError(type(data))
@@ -159,11 +163,11 @@ def _hdf5_store_dict(group: h5py.Group, data, encoding: str, depth=0) -> None:
                 depth=depth + 1,
                 encoding=encoding,
             )
-        elif isinstance(value, bytes):
-            group.attrs[h5_key] = np.bytes_(value)
         elif isinstance(value, (str, int, float, bool)):
             group.attrs[h5_key] = value
-        elif isinstance(value, (np.ndarray,)):
+        elif isinstance(value, bytes):
+            group.create_dataset(h5_key, data=np.bytes_(value))
+        elif isinstance(value, np.ndarray):
             group.create_dataset(h5_key, data=value)
         else:
             raise NotImplementedError(type(value))
@@ -224,13 +228,16 @@ def _hdf5_restore_dict(
         logger.debug(f"{depth * ' '}|- Restoring class {python_class_name}")
 
     if python_class_name == "pathlib.Path":
-        return pathlib.Path(item.attrs["value"])
+        value = item.attrs["value"]
+        return pathlib.Path(str(value))
 
     if python_class_name == "NoneType":
         return None
 
     if python_class_name == "bytes":
-        return item.attrs["value"]
+        if "value" in item.attrs:
+            return item.attrs["value"]
+        return bytes(item["value"][()])
 
     if python_class_name == "ParticleGroup":
         return ParticleGroup(
@@ -245,7 +252,7 @@ def _hdf5_restore_dict(
         data = dict(item)
         data.update(item.attrs)
         if "__num_items__" in data:
-            num_items = data["__num_items__"]
+            num_items = int(data["__num_items__"])
             items = [
                 _hdf5_restore_dict(
                     data[f"index_{idx}"],
