@@ -273,6 +273,7 @@ def genesis4_elements_and_line_from_tao(
     for ix_ele in tao.lat_list(
         f"{ele_start}:{ele_end}", "ele.ix_ele", ix_uni=universe, ix_branch=branch
     ):
+        ix_ele = f"{universe}@{branch}>>{ix_ele}"
         eles = genesis4_eles_from_tao_ele(tao, ix_ele)
 
         for ele in eles:
