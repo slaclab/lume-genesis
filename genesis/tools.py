@@ -73,7 +73,7 @@ class DisplayOptions(
     jupyter_render_mode: Literal["html", "markdown", "genesis", "repr"] = "repr"
     console_render_mode: Literal["markdown", "genesis", "repr"] = "repr"
     include_description: bool = True
-    ascii_table_type: int = prettytable.MARKDOWN
+    ascii_table_type: int = prettytable.TableStyle.MARKDOWN
     verbose: int = 0
     filter_tab_completion: bool = True
 
