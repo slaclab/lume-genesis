@@ -1,0 +1,39 @@
+&setup
+  rootname = drift_test
+  lattice = genesis.lat
+  beamline = LAT
+  gamma0 = 1000.0
+  lambda0 = 1e-07
+  delz = 0.026
+  seed = 123456
+  npart = 128
+&end
+
+&time
+  slen = 100e-6
+&end
+
+&profile_gauss
+  label = beamcurrent
+  c0 = 1000.0
+  s0 = 30e-6
+  sig = 10e-6
+&end
+
+&beam
+  gamma = 1000.0
+  delgam = 1.0
+  current = @beamcurrent
+&end
+
+&write
+  beam = beg
+&end
+
+&track
+  zstop = 1.0
+&end
+
+&write
+  beam = end
+&end
