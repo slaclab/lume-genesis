@@ -2,7 +2,18 @@ from __future__ import annotations
 
 import abc
 import pathlib
-from typing import Any, Dict, Iterable, List, Optional, Sequence, Tuple, Type, Union
+from typing import (
+    Any,
+    Dict,
+    Iterable,
+    List,
+    Optional,
+    Sequence,
+    Tuple,
+    Type,
+    Union,
+    TYPE_CHECKING,
+)
 
 import numpy as np
 import pydantic
@@ -10,7 +21,9 @@ import pydantic_core
 from pmd_beamphysics import ParticleGroup
 from pmd_beamphysics.units import pmd_unit
 from typing_extensions import Annotated, Literal, NotRequired, TypedDict, override
-from .input.lattice import AnyBeamlineElement
+
+if TYPE_CHECKING:
+    from .input.lattice import AnyBeamlineElement
 
 from .. import tools
 
