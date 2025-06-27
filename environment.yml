@@ -7,7 +7,7 @@ dependencies:
   - eval-type-backport
   - lume-base
   - genesis2=*=mpi_openmpi*
-  - genesis4 >=4.6.8=mpi_openmpi*
+  - genesis4 >=4.6.7=mpi_openmpi*
   - h5py=*=mpi_openmpi*
   - jinja2
   - lark
