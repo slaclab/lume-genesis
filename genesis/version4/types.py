@@ -2,17 +2,17 @@ from __future__ import annotations
 
 import abc
 import pathlib
-from typing import Any, Dict, Iterable, Optional, Sequence, Tuple, Type, Union
+from typing import Any, Dict, Iterable, List, Optional, Sequence, Tuple, Type, Union
 
 import numpy as np
 import pydantic
 import pydantic_core
 from pmd_beamphysics import ParticleGroup
 from pmd_beamphysics.units import pmd_unit
+from typing_extensions import Annotated, Literal, NotRequired, TypedDict, override
+from .input.lattice import AnyBeamlineElement
 
 from .. import tools
-
-from typing_extensions import Annotated, Literal, NotRequired, TypedDict, override
 
 
 class ReprTableData(TypedDict):
@@ -357,7 +357,12 @@ class BeamlineElement(BaseModel, abc.ABC):
     def _to_genesis_params(self) -> Dict[str, ValueType]:
         """Dictionary of parameters to pass to Genesis 4."""
         dump = self.model_dump(by_alias=True, exclude_defaults=True)
-        return {attr: value for attr, value in dump.items() if attr not in {"type"}}
+        params = {attr: value for attr, value in dump.items() if attr not in {"type"}}
+        # NOTE: special-case to rework some day
+        if "sequence_type" in self.model_fields:
+            params["type"] = self.sequence_type
+
+        return params
 
     def to_genesis(self) -> str:
         """Create a Genesis 4 compatible element from this instance."""
@@ -377,6 +382,31 @@ class BeamlineElement(BaseModel, abc.ABC):
                 "};",
             )
         )
+
+    @staticmethod
+    def from_contents(line: str) -> Union[AnyBeamlineElement, List[AnyBeamlineElement]]:
+        """
+        Create element(s) from a Genesis4 style input line.
+
+        Parameters
+        ----------
+        line : str
+
+        Returns
+        -------
+        BeamlineElement or list[BeamlineElement]
+            If the line contains one element, return a single BeamlineElement.
+            If the line contains multiple elements, returns a list of BeamlineElement objects.
+        """
+        from .input import Lattice
+
+        lattice = Lattice.from_contents(f"{line}\n")
+        elements = list(lattice.elements.values())
+        for name, ele in lattice.elements.items():
+            ele.label = name
+        if len(elements) == 1:
+            return elements[0]
+        return elements
 
 
 AnyPath = Union[pathlib.Path, str]
