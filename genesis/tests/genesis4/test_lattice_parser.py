@@ -38,6 +38,21 @@ def test_elements(lattice_parser: lark.Lark, element_source: str) -> None:
 
 
 @pytest.mark.parametrize(
+    "element_source",
+    [
+        pytest.param("VAL: SEQUENCE = {type = const, c0 = 3.5};"),
+        pytest.param(
+            "VAL: SEQUENCE = {type = polynom, c0 = 3.5, c1=0.0, c2=0.0, c3=0.0, c4=0.0};"
+        ),
+        pytest.param("VAL: SEQUENCE = {type = power, c0 = 3.5};"),
+        pytest.param("VAL: SEQUENCE = {type = random, c0 = 3.5, dc=0.001};"),
+    ],
+)
+def test_sequence_types(lattice_parser: lark.Lark, element_source: str) -> None:
+    print(lattice_parser.parse(element_source))
+
+
+@pytest.mark.parametrize(
     "filename", [pytest.param(fn, id=fn.name) for fn in genesis4_lattices]
 )
 def test_load_file(lattice_parser: lark.Lark, filename: pathlib.Path) -> None:

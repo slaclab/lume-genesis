@@ -13,6 +13,7 @@ MODULE_PATH = pathlib.Path(__file__).resolve().parent
 dataclasses_template = MODULE_PATH / "dataclasses.tpl"
 
 renames = {
+    # NOTE: 'type' -> 'sequence_type' is handled elsewhere.
     "l": "L",
     "lambda": "lambda_",
     # Mapping to common bmad names:
@@ -44,6 +45,7 @@ class ManualSection(TypedDict):
 
     header: Optional[str]
     parameters: Dict[str, Parameter]
+    type_discriminator: str
 
 
 class LatticeManual(TypedDict):
@@ -77,7 +79,7 @@ def parse_manual_default(default_: str, type_: str) -> Tuple[str, Set[str]]:
         sequence_label.
     """
     default = default_.strip()
-    if default.lstrip("\\") == "<empty>":
+    if default.lstrip("\\").lower() in ("<empty>", "empty"):
         default = '""'
 
     options: Set[str] = set()
@@ -155,6 +157,13 @@ def parse_manual_parameter(line: str) -> Parameter:
         # Require a label explicitly.
         default_value = "None"
 
+    if name == "type":
+        # Sigh, a patch. Genesis 4 v4.6.8 picked up our reserved keyword 'type'
+        # which I didn't foresee.  Assume for now this is _just_ for lattice
+        # sequence types.
+        name = "sequence_type"
+        options.add("literal")
+
     return {
         "name": name,
         "python_name": renames.get(name, name),
@@ -204,6 +213,7 @@ def parse_manual(path: AnyPath) -> LatticeManual:
             element = {
                 "header": None,
                 "parameters": {},
+                "type_discriminator": section,
             }
             elements[section] = element
             continue
@@ -283,6 +293,10 @@ def make_dataclasses_from_manual(
 
     if "undulator" in manual["elements"]:
         base_class = "BeamlineElement"
+        for section in manual["elements"].values():
+            if "sequence_type" in section["parameters"]:
+                section["type_discriminator"] = "sequence"
+
     elif "setup" in manual["elements"]:
         base_class = "NameList"
     else:

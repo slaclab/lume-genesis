@@ -1536,9 +1536,14 @@ class ImportField(types.NameList):
     harmonic : int, default=1
         defines the harmonic for the given Genesis run.
     time : bool, default=True
-        If the time window hasn’t be defined it allows to run Genesis with the imported
-        distribution in scan mode, when set to `false`. This would disable all slippage
-        and long-range collective effects in the simulation
+        If the time window hasn’t been defined it allows to run Genesis with the
+        imported distribution in scan mode, when set to `false`. This would disable all
+        slippage and long-range collective effects in the simulation
+    attenuation : float, default=1.0
+        apply an on-the-flight scaling factor to the field to be imported, without the
+        need of modifying the original field file.
+    offset : float, default=0.0
+        currently unused.
     """
 
     type: Literal["importfield"] = "importfield"
@@ -1556,10 +1561,21 @@ class ImportField(types.NameList):
     time: bool = pydantic.Field(
         default=True,
         description=(
-            "If the time window hasn’t be defined it allows to run Genesis with the "
+            "If the time window hasn’t been defined it allows to run Genesis with the "
             "imported distribution in scan mode, when set to `false`. This would "
             "disable all slippage and long-range collective effects in the simulation"
         ),
+    )
+    attenuation: float = pydantic.Field(
+        default=1.0,
+        description=(
+            "apply an on-the-flight scaling factor to the field to be imported, without "
+            "the need of modifying the original field file."
+        ),
+    )
+    offset: float = pydantic.Field(
+        default=0.0,
+        description="currently unused.",
     )
 
 

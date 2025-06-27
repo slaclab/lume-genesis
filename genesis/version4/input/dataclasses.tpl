@@ -50,7 +50,7 @@ class {{ name | to_class_name }}(types.{{ base_class }}):
     {{ docstrings[name] | wordwrap | indent(4) }}
     {%- endif %}
 
-    {{ name | to_class_name }} corresponds to Genesis 4 {{ base_class | lower }} `{{ name }}`.
+    {{ name | to_class_name }} corresponds to Genesis 4 {{ base_class | lower }} `{{ element.type_discriminator }}`.
 
     Attributes
     ----------
@@ -61,7 +61,7 @@ class {{ name | to_class_name }}(types.{{ base_class }}):
     {%- endfor %}
     """
 
-    type: Literal["{{ name }}"] = "{{ name }}"
+    type: Literal["{{ element.type_discriminator }}"] = "{{ element.type_discriminator }}"
     {%- for param in element.parameters.values() %}
     {%- set type_ = type_map.get(param.type, param.type) %}
     {%- if "reference" in param.options %}
@@ -69,7 +69,9 @@ class {{ name | to_class_name }}(types.{{ base_class }}):
     {%- else %}
     {%- set ref_suffix = "" %}
     {%- endif %}
-    {%- if "vector" in param.options %}
+    {%- if "literal" in param.options %}
+    {{ param.python_name }}: Literal["{{ param.default }}"] = "{{ param.default }}"
+    {%- elif "vector" in param.options %}
     {{ param.python_name }}: types.NDArray{{ ref_suffix }}{{ field_value(param) }}
     {%- else %}
     {{ param.python_name }}: {{ type_ }}{{ ref_suffix}}{{ field_value(param) }}
