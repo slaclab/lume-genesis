@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import copy
+import functools
 import logging
 import pathlib
 import typing
@@ -1206,6 +1207,38 @@ class Lattice(BaseModel):
         )
 
 
+def get_short_type(type_: str) -> str:
+    # Per the Genesis documents, only the first 4 characters are compared.
+    # For example, this maps the uppercase 'DRIF' to the Drift dataclass.
+    return type_[:4].upper()
+
+
+@functools.lru_cache(maxsize=50)
+def element_class_from_genesis(
+    type_: str, sequence_type: Optional[str]
+) -> Type[BeamlineElement]:
+    def get_key(cls: Type[BeamlineElement]) -> Tuple[str, Optional[str]]:
+        short_type = get_short_type(cls.model_fields["type"].default)
+        # Sequences share the same 'type' and must be differentiated by their
+        # sequence type, which we have to special case:
+        sequence_type = (
+            cls.model_fields["sequence_type"].default.upper()
+            if "sequence_type" in cls.model_fields
+            else None
+        )
+        return (short_type, sequence_type)
+
+    to_class = {get_key(cls): cls for cls in BeamlineElement.__subclasses__()}
+    key = (get_short_type(type_), sequence_type.upper() if sequence_type else None)
+    try:
+        return to_class[key]
+    except KeyError:
+        raise ValueError(
+            f"Unknown element type '{type_}'"
+            + (f" with sequence_type '{sequence_type}'" if sequence_type else "")
+        )
+
+
 class _LatticeTransformer(lark.visitors.Transformer_InPlaceRecursive):
     """
     Grammar transformer which takes lark objects and makes a :class:`Lattice`.
@@ -1221,16 +1254,6 @@ class _LatticeTransformer(lark.visitors.Transformer_InPlaceRecursive):
     def __init__(self, filename: AnyPath) -> None:
         super().__init__()
         self._filename = pathlib.Path(filename)
-
-        # This maps, e.g., "setup" to the Setup dataclass
-        self.type_name_to_class: Dict[str, Type[BeamlineElement]] = {
-            cls.model_fields["type"].default: cls
-            for cls in BeamlineElement.__subclasses__()
-        }
-        # Per the Genesis documents, only the first 4 characters are compared:
-        self.partial_type_name_to_class = {
-            name[:4].upper(): cls for name, cls in self.type_name_to_class.items()
-        }
 
     @lark.v_args(inline=True)
     def line(
@@ -1261,12 +1284,17 @@ class _LatticeTransformer(lark.visitors.Transformer_InPlaceRecursive):
         type_: lark.Token,
         parameter_list: Optional[List[Tuple[str, lark.Token]]],
     ) -> Tuple[str, BeamlineElement]:
-        cls = self.partial_type_name_to_class[type_.upper()[:4]]
-        parameters, unknown = parsers.fix_parameters(cls, dict(parameter_list or []))
+        param_dict = dict(parameter_list or [])
+        cls = element_class_from_genesis(
+            type_=str(type_).strip(),
+            sequence_type=param_dict.pop("type", None),
+        )
+        parameters, unknown = parsers.fix_parameters(cls, param_dict)
         if unknown:
             raise ValueError(
                 f"Beamline element {label} received unexpected parameter(s): {unknown}"
             )
+
         parameters["type"] = cls.model_fields["type"].default.lower()
         element = cls.model_validate(parameters)
         return str(label), element

@@ -52,6 +52,7 @@ CHICANE: /chic[^=]*/i
 PHASESHIFTER: /phas[^=]*/i
 MARKER: /mark[^=]*/i
 LINE: "line"i
+SEQUENCE: /sequ[^=]*/i
 
 BEAMLINE_ELEMENT: UNDULATOR
                 | QUADRUPOLE
@@ -60,10 +61,18 @@ BEAMLINE_ELEMENT: UNDULATOR
                 | CHICANE
                 | PHASESHIFTER
                 | MARKER
+                | SEQUENCE
+
+
+SEQUENCE_TYPE: "const"i
+             | "polynom"i
+             | "power"i
+             | "random"i
 
 VALUE: INTEGER
      | DOUBLE
      | BOOLEAN
+     | SEQUENCE_TYPE
 
 parameter_set: PARAMETER "=" VALUE
 parameter_list: parameter_set ( "," parameter_set )*

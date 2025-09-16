@@ -1,11 +1,26 @@
 import pathlib
 import pprint
+from typing import List, Union
 
 import lark
 import pytest
 
-from ...version4 import Genesis4, Lattice
+from ...version4 import (
+    Drift,
+    DuplicatedLineItem,
+    LatticeSequenceConst,
+    LatticeSequencePolynom,
+    LatticeSequencePower,
+    LatticeSequenceRandom,
+    PositionedLineItem,
+    Genesis4,
+    Lattice,
+    Line,
+    Quadrupole,
+    Undulator,
+)
 from ...version4.input.parsers import new_lattice_parser
+from ...version4.types import BeamlineElement
 
 test_v4_root = pathlib.Path(__file__).resolve().parent
 genesis4_lattices = tuple(test_v4_root.glob("*.lat"))
@@ -16,25 +31,123 @@ def lattice_parser() -> lark.Lark:
     return new_lattice_parser()
 
 
-@pytest.mark.parametrize(
-    "element_source",
+element_sources = pytest.mark.parametrize(
+    ("element_source", "expected_elements"),
     [
-        pytest.param("D1: DRIFT = { l = 0.44};"),
-        pytest.param("D2: DRIFT = { l = 0.24};"),
-        pytest.param("QF: QUADRUPOLE = { l = 0.080000, k1= 2.000000 };"),
-        pytest.param("QD: QUADRUPOLE = { l = 0.080000, k1= -2.000000 };"),
-        pytest.param("QD: QUAD= { l = 0.080000, k1= -2.000000 };"),
+        pytest.param("D1: DRIFT = { l = 0.44};", Drift(label="D1", L=0.44)),
+        pytest.param("D2: DRIFT = { l = 0.24};", Drift(label="D2", L=0.24)),
         pytest.param(
-            "UND: UNDULATOR = { lambdau=0.015000, nwig=266, aw=0.84853, helical= True};"
+            "QF: QUADRUPOLE = { l = 0.080000, k1= 2.000000 };",
+            Quadrupole(label="QF", L=0.080000, k1=2.000000),
         ),
-        pytest.param("FODO: LINE={UND,D1,QF,D2,UND,D1,QD,D2};"),
-        pytest.param("FEL: LINE={6*FODO};"),
-        pytest.param("FODO: Line = {UND,F@0.2,D@1.2,M@2.0}; "),
-        pytest.param("Line1: LINE= {UND}; Line2: Line = {Line1};"),
+        pytest.param(
+            "QD: QUADRUPOLE = { l = 0.080000, k1= -2.000000 };",
+            Quadrupole(label="QD", L=0.080000, k1=-2.000000),
+        ),
+        pytest.param(
+            "QD: QUAD= { l = 0.080000, k1= -2.000000 };",
+            Quadrupole(label="QD", L=0.080000, k1=-2.000000),
+        ),
+        pytest.param(
+            "UND: UNDULATOR = { lambdau=0.015000, nwig=266, aw=0.84853, helical= True};",
+            Undulator(
+                label="UND", lambdau=0.015000, nwig=266, aw=0.84853, helical=True
+            ),
+        ),
+        pytest.param(
+            "FODO: LINE={UND,D1,QF,D2,UND,D1,QD,D2};",
+            Line(
+                label="FODO",
+                elements=["UND", "D1", "QF", "D2", "UND", "D1", "QD", "D2"],
+            ),
+        ),
+        pytest.param(
+            "FEL: LINE={6*FODO};",
+            Line(label="FEL", elements=[DuplicatedLineItem(label="FODO", count=6)]),
+        ),
+        pytest.param(
+            "FODO: Line = {UND,F@0.2,D@1.2,M@2.0}; ",
+            Line(
+                label="FODO",
+                elements=[
+                    "UND",
+                    PositionedLineItem(label="F", position=0.2),
+                    PositionedLineItem(label="D", position=1.2),
+                    PositionedLineItem(label="M", position=2.0),
+                ],
+            ),
+        ),
+        pytest.param(
+            "Line1: LINE= {UND}; Line2: Line = {Line1};",
+            [
+                Line(label="Line1", elements=["UND"]),
+                Line(label="Line2", elements=["Line1"]),
+            ],
+        ),
     ],
 )
-def test_elements(lattice_parser: lark.Lark, element_source: str) -> None:
+
+
+@element_sources
+def test_element_parsing(
+    lattice_parser: lark.Lark,
+    element_source: str,
+    expected_elements: Union[BeamlineElement, List[BeamlineElement]],
+) -> None:
     print(lattice_parser.parse(element_source))
+    assert BeamlineElement.from_contents(element_source) == expected_elements
+
+
+@element_sources
+def test_elements_roundtrip(
+    element_source: str,
+    expected_elements: Union[BeamlineElement, List[BeamlineElement]],
+) -> None:
+    if not isinstance(expected_elements, list):
+        expected_elements = [expected_elements]
+
+    for ele in expected_elements:
+        assert BeamlineElement.from_contents(ele.to_genesis()) == ele
+
+
+sequence_types = pytest.mark.parametrize(
+    ("element_source", "expected_element"),
+    [
+        pytest.param(
+            "VAL: SEQUENCE = {type = const, c0 = 3.5};",
+            LatticeSequenceConst(label="VAL", c0=3.5),
+        ),
+        pytest.param(
+            "VAL: SEQUENCE = {type = polynom, c0 = 3.5, c1=0.0, c2=0.0, c3=0.0, c4=0.0};",
+            LatticeSequencePolynom(label="VAL", c0=3.5, c1=0.0, c2=0.0, c3=0.0, c4=0.0),
+        ),
+        pytest.param(
+            "VAL: SEQUENCE = {type = power, c0 = 3.5};",
+            LatticeSequencePower(label="VAL", c0=3.5),
+        ),
+        pytest.param(
+            "VAL: SEQUENCE = {type = random, c0 = 3.5, dc=0.001};",
+            LatticeSequenceRandom(label="VAL", c0=3.5, dc=0.001),
+        ),
+    ],
+)
+
+
+@sequence_types
+def test_sequence_types_parse(
+    lattice_parser: lark.Lark, element_source: str, expected_element: BeamlineElement
+) -> None:
+    print(lattice_parser.parse(element_source))
+    assert BeamlineElement.from_contents(element_source) == expected_element
+
+
+@sequence_types
+def test_sequence_types_round_trip(
+    element_source: str, expected_element: BeamlineElement
+) -> None:
+    assert (
+        BeamlineElement.from_contents(expected_element.to_genesis()) == expected_element
+    )
 
 
 @pytest.mark.parametrize(

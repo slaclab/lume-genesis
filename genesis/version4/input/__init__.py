@@ -6,6 +6,10 @@ from ._lattice import (
     PhaseShifter,
     Quadrupole,
     Undulator,
+    SequenceConst as LatticeSequenceConst,
+    SequencePolynom as LatticeSequencePolynom,
+    SequencePower as LatticeSequencePower,
+    SequenceRandom as LatticeSequenceRandom,
 )
 from ._main import (
     AlterField,
@@ -62,6 +66,10 @@ __all__ = [
     "Drift",
     "DuplicatedLineItem",
     "Lattice",
+    "LatticeSequenceConst",
+    "LatticeSequencePolynom",
+    "LatticeSequencePower",
+    "LatticeSequenceRandom",
     "Line",
     "LineItem",
     "Marker",
