@@ -6,7 +6,9 @@ import pytest
 from ... import tools
 from ...tools import DisplayOptions
 from ...version4.input import (
+    AlterBeam,
     AlterSetup,
+    AlterField,
     Beam,
     Chicane,
     Corrector,
@@ -87,7 +89,9 @@ def display_options(
         pytest.param(PhaseShifter(), id="PhaseShifter"),
         pytest.param(Quadrupole(), id="Quadrupole"),
         pytest.param(Undulator(), id="Undulator"),
+        pytest.param(AlterBeam(), id="AlterBeam"),
         pytest.param(AlterSetup(), id="AlterSetup"),
+        pytest.param(AlterField(), id="AlterField"),
         pytest.param(Beam(), id="Beam"),
         pytest.param(Efield(), id="Efield"),
         pytest.param(Field(), id="Field"),

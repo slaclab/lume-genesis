@@ -1,5 +1,6 @@
 from .field import FieldFile
 from .input import (
+    AlterBeam,
     AlterField,
     AlterSetup,
     AnyBeamlineElement,
@@ -89,6 +90,7 @@ __all__ = [
     "Genesis4Input",
     "MainInput",
     "Setup",
+    "AlterBeam",
     "AlterField",
     "AlterSetup",
     "LatticeNamelist",
