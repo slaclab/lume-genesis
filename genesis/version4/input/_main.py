@@ -114,6 +114,14 @@ class Setup(types.NameList):
         sorting events the current profile might change. Example are ESASE/HGHG
         schemes. By setting the flag to false the current profile is written out at
         each output step similar to radiation power and bunching profile.
+    exclude_twiss_output : bool, default=True
+        Flag to reduce the size of the twiss (emittance, beta and alpha values) dataset
+        for the electron beam. Under most circumstances the twiss parameters are
+        constant and only the initial values are written out. However, simulation with
+        one-4-one set to `true` and sorting events the twiss parameters might change.
+        Example are ESASE/HGHG schemes. By setting the flag to false the twiss values
+        written out at each output step similar to radiation power and bunching
+        profile.
     exclude_field_dump : bool, default=False
         Exclude the field dump to `.fld.h5`.
     write_meta_file : bool, default=False
@@ -301,6 +309,18 @@ class Setup(types.NameList):
             "are ESASE/HGHG schemes. By setting the flag to false the current profile "
             "is written out at each output step similar to radiation power and bunching "
             "profile."
+        ),
+    )
+    exclude_twiss_output: bool = pydantic.Field(
+        default=True,
+        description=(
+            "Flag to reduce the size of the twiss (emittance, beta and alpha values) "
+            "dataset for the electron beam. Under most circumstances the twiss "
+            "parameters are constant and only the initial values are written out. "
+            "However, simulation with one-4-one set to `true` and sorting events the "
+            "twiss parameters might change. Example are ESASE/HGHG schemes. By setting "
+            "the flag to false the twiss values written out at each output step similar "
+            "to radiation power and bunching profile."
         ),
     )
     exclude_field_dump: bool = pydantic.Field(
@@ -1149,6 +1169,51 @@ class Beam(types.NameList):
     )
 
 
+class AlterBeam(types.NameList):
+    r"""
+    This applies a transformation of the electron beam distribution after its
+    generation. Primary example is the combination of the energy modulation by an
+    external laser and the
+    transformation of a succeeding magnetic chicane. Note that this namelist can
+    applied several times, e.g. to model EEHG.
+    For `one4one` simulation it is recommended to following this namelist with a
+    sort command.
+
+    AlterBeam corresponds to Genesis 4 namelist `alter_beam`.
+
+    Attributes
+    ----------
+    dgamma : float, default=0.0
+        Amplitude of the sinusoidal modulation in units of the electron rest mass
+    phase : float, default=0.0
+        Phase of the energy modulation in units of radians.
+    lambda_ : float, default=8e-07
+        wavelength in $m$ of the external energy modulation
+    r56 : float, default=0.0
+        R56 element of the magnetic chicane in $m$
+    """
+
+    type: Literal["alter_beam"] = "alter_beam"
+    dgamma: float | types.Reference = pydantic.Field(
+        default=0.0,
+        description="Amplitude of the sinusoidal modulation in units of the electron rest mass",
+    )
+    phase: float | types.Reference = pydantic.Field(
+        default=0.0,
+        description="Phase of the energy modulation in units of radians.",
+    )
+    lambda_: float = pydantic.Field(
+        default=8e-07,
+        description="wavelength in $m$ of the external energy modulation",
+        validation_alias=pydantic.AliasChoices("lambda_", "lambda"),
+        serialization_alias="lambda",
+    )
+    r56: float = pydantic.Field(
+        default=0.0,
+        description="R56 element of the magnetic chicane in $m$",
+    )
+
+
 class Field(types.NameList):
     r"""
     This namelist initiate the generation of the field distribution. It differs in
@@ -1827,6 +1892,9 @@ class Wake(types.NameList):
         establish the wakes. For a value of zero the source is right at the undulator
         start, while a negative value prevents any wake, till the interation position
         has passed that point.
+    output : str, default=""
+        Root of the filename, where the single particle wakes are written. The root is
+        extended by `.wake.h5` to form the filename.
     """
 
     type: Literal["wake"] = "wake"
@@ -1923,6 +1991,13 @@ class Wake(types.NameList):
             "interation position has passed that point."
         ),
     )
+    output: str = pydantic.Field(
+        default="",
+        description=(
+            "Root of the filename, where the single particle wakes are written. The "
+            "root is extended by `.wake.h5` to form the filename."
+        ),
+    )
 
 
 class Write(types.NameList):
@@ -2009,6 +2084,9 @@ class Track(types.NameList):
         expanded lattice).
     bunchharm : int, default=1
         Bunching harmonic output setting. Must be >= 1.
+    exclusive_harmonics : bool, default=False
+        If set to true than only the requested bunching harmonic is included in output.
+        Otherwise all harmonic sup and including the specified harmonics are included.
     """
 
     type: Literal["track"] = "track"
@@ -2067,6 +2145,14 @@ class Track(types.NameList):
     bunchharm: int = pydantic.Field(
         default=1,
         description="Bunching harmonic output setting. Must be >= 1.",
+    )
+    exclusive_harmonics: bool = pydantic.Field(
+        default=False,
+        description=(
+            "If set to true than only the requested bunching harmonic is included in "
+            "output. Otherwise all harmonic sup and including the specified harmonics "
+            "are included."
+        ),
     )
 
 
@@ -2251,6 +2337,7 @@ AutogeneratedNameList = Union[
     SequencePower,
     SequenceRandom,
     Beam,
+    AlterBeam,
     Field,
     ImportDistribution,
     ImportBeam,

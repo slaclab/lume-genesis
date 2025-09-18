@@ -9,6 +9,8 @@ from pmd_beamphysics import ParticleGroup
 from pydantic import BaseModel
 
 from ...version4 import (
+    AlterBeam,
+    AlterField,
     AlterSetup,
     Beam,
     Chicane,
@@ -72,7 +74,9 @@ def hdf5_filename(
         pytest.param(PhaseShifter(), id="PhaseShifter"),
         pytest.param(Quadrupole(), id="Quadrupole"),
         pytest.param(Undulator(), id="Undulator"),
+        pytest.param(AlterBeam(), id="AlterBeam"),
         pytest.param(AlterSetup(), id="AlterSetup"),
+        pytest.param(AlterField(), id="AlterField"),
         pytest.param(Beam(), id="Beam"),
         pytest.param(Efield(), id="Efield"),
         pytest.param(Field(), id="Field"),

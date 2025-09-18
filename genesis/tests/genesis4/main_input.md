@@ -26,6 +26,7 @@ The following describes all supported namelist with their variables, including i
     - [sequence_power](#psequence_power)
     - [sequence_random](#profile_random)
   - [beam](#beam)
+  - [alter_beam](#alter_beam)
   - [field](#field)
   - [importdistribution](#importdistribution)
   - [importbeam](#importbeam)
@@ -65,6 +66,7 @@ The namelist `setup` is a mandatory namelist and should be the first in the inpu
 - `exclude_energy_output` (*bool, false*): Flag to suppress the datasets in the output file for the mean energy and energy spread of the electron beam.
 - `exclude_aux_output` (*bool, false*): Flag to suppress the auxiliary datasets in the output file. In the moment it is the long-range longitudinal electric field as seen by the electrons.
 - `exclude_current_output` (*bool, true*): Flag to reduce the size of the current dataset for the electron beam. Under most circumstances the current profile is constant and only the initial current profile is written out. However, simulation with one-4-one set to `true` and sorting events the current profile might change. Example are ESASE/HGHG schemes. By setting the flag to false the current profile is written out at each output step similar to radiation power and bunching profile.
+- `exclude_twiss_output` (*bool, true*): Flag to reduce the size of the twiss (emittance, beta and alpha values) dataset for the electron beam. Under most circumstances the twiss parameters are constant and only the initial values are written out. However, simulation with one-4-one set to `true` and sorting events the twiss parameters might change. Example are ESASE/HGHG schemes. By setting the flag to false the twiss values written out at each output step similar to radiation power and bunching profile.
 - `exclude_field_dump` (*bool, false*): Exclude the field dump to `.fld.h5`.
 - `write_meta_file` (*bool, false*): Write a metadata file.
 - `semaphore_file_name` (*string, <derived from rootname>*): Providing a file name for the semaphore file always switches on writing the "done" semaphore file, overriding 'write_semaphore_file' flag. This allows to switch on semaphore functionality just by specifying corresponding command line argument -- no modification of G4 input file needed.
@@ -244,6 +246,19 @@ This namelist initiates the generation of the particle distribution to be kept i
 
 [Back](#supported-namelists)
 
+
+### alter_beam
+This applies a transformation of the electron beam distribution after its generation. Primary example is the combination of the energy modulation by an external laser and the
+transformation of a succeeding magnetic chicane. Note that this namelist can applied several times, e.g. to model EEHG.
+For `one4one` simulation it is recommended to following this namelist with a sort command.
+
+- `dgamma` (*double, 0 or profile label*): Amplitude of the sinusoidal modulation in units of the electron rest mass
+- `phase` (*double, 0 or profile label*): Phase of the energy modulation in units of radians.
+- `lambda` (*double, 800e-9*):  wavelength in $m$ of the external energy modulation
+- `r56` (*double, 0*): R56 element of the magnetic chicane in $m$
+
+[Back](#supported-namelists)
+
 <div style="page-break-after: always; visibility: hidden"> \pagebreak </div>
 
 ### field
@@ -409,6 +424,7 @@ Genesis supports the calculation of three types of wakefields by specifying the 
 - `lrough` (*double, 1*): period lengthin meters of the sinusoidal corrugation of the surface roughness model.
 - `transient` (*bool, false*): If set to `true`, Genesis includes the catch-up length of the origin of the wakefield to the particle effects. E.g. particles do not see immediatly the wake from those closer ahead of them than those further away. The catch-up distance is the distance in the undulator added to the starting position `ztrans`. If set to false the steady-state model is used, effectively setting `ztrans` to infinity. Enabling transient calculation will update the wakefield at each integration step, which can slow down the calculations.
 - `ztrans` (*double, 0*): Reference location of the first source of the wake fields. A positive value means that the condition for wakes (e.g. a small aperture in the vacuum chamber) has already started and there has been already some length to establish the wakes. For a value of zero the source is right at the undulator start, while a negative value prevents any wake, till the interation position has passed that point.
+- `output` (*string, \<empty>*): Root of the filename, where the single particle wakes are written. The root is extended by `.wake.h5` to form the filename.
 
 [Back](#supported-namelists)
 
@@ -440,11 +456,12 @@ This namelist initiate the actually tracking through the undulator and then writ
 - `output_step` (*int, 1*): Defines the number of integration steps before the particle and field distribution is analyzed for output.
 - `field_dump_step` (*int, 0*): Defines the number of integration steps before a field dump is written. Be careful because for time-dependent simulation it can generate many large output files.
 - `beam_dump_step` (*int, 0*): Defines the number of integration steps before a particle dump is written. Be careful because for time-dependent simulation it can generate many large output files.
--  `sort_step` (*int,0*): Defines the number of steps of integration before the particle distribution is sorted. Works only for one-4-one simulations.
+- `sort_step` (*int,0*): Defines the number of steps of integration before the particle distribution is sorted. Works only for one-4-one simulations.
 - `s0` (*double, <taken from TIME module>*): Option to override the default time window start from the TIME module.
 - `slen` (*double, <taken from TIME module>*): Option to override the default time window length from the TIME module.
 - `field_dump_at_undexit` (*bool, false*): Field dumps at the exit of the undulator (one dump for each undulator in the expanded lattice).
 - `bunchharm` (*int, 1*): Bunching harmonic output setting. Must be >= 1.
+- `exclusive_harmonics` (*bool, false*): If set to true than only the requested bunching harmonic is included in output. Otherwise all harmonic sup and including the specified harmonics are included.
 
 
 [Back](#supported-namelists)

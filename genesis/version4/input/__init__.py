@@ -12,6 +12,7 @@ from ._lattice import (
     SequenceRandom as LatticeSequenceRandom,
 )
 from ._main import (
+    AlterBeam,
     AlterField,
     AlterSetup,
     Beam,
@@ -81,6 +82,7 @@ __all__ = [
     "Genesis4Input",
     "MainInput",
     "Setup",
+    "AlterBeam",
     "AlterField",
     "AlterSetup",
     "LatticeNamelist",
