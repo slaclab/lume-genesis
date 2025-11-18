@@ -58,4 +58,4 @@ runs:
     - name: Setup the environment
       shell: bash -l {0}
       run: |
-        python -m pip install .[${{ inputs.extras }}]
+        python -m pip install --no-deps .[${{ inputs.extras }}]

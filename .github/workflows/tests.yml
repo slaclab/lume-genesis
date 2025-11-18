@@ -8,7 +8,7 @@ on:
       - published
 
 jobs:
-  build:
+  conda-build:
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -28,6 +28,32 @@ jobs:
         shell: bash -l {0}
         run: |
           conda list
+      - name: Run unit tests
+        shell: bash -l {0}
+        run: |
+          echo -e '## Test results\n\n```' >> "$GITHUB_STEP_SUMMARY"
+          pytest -v 2>&1 | tee -a "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+  pypi-build:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.9", "3.10", "3.11", "3.12"]
+
+    name: Test Suite on PyPI
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: ./.github/actions/conda-setup
+        with:
+          python-version: ${{ matrix.python-version }}
+          extras: "dev"
+      - name: Test pip package list
+        shell: bash -l {0}
+        run: |
+          pip list
       - name: Run unit tests
         shell: bash -l {0}
         run: |
