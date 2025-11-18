@@ -51,11 +51,9 @@ jobs:
           python-version: ${{ matrix.python-version }}
           extras: "dev"
       - name: Test pip package list
-        shell: bash -l {0}
         run: |
           pip list
       - name: Run unit tests
-        shell: bash -l {0}
         run: |
           echo -e '## Test results\n\n```' >> "$GITHUB_STEP_SUMMARY"
           pytest -v 2>&1 | tee -a "$GITHUB_STEP_SUMMARY"
