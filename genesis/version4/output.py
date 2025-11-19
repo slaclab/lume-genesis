@@ -1271,7 +1271,7 @@ def _hdf_summary(
             }
         else:
             try:
-                fld = obj.model_fields[attr]
+                fld = type(obj).model_fields[attr]
             except KeyError:
                 logger.error(
                     f"Internal error: unable to find {attr} ({full_attr} from HDF key {full_key})"
@@ -1911,10 +1911,11 @@ class Genesis4Output(Mapping, BaseModel, arbitrary_types_allowed=True):
 
     def _get_array_info(self, key: str) -> _ArrayInfo:
         parent, array_attr = self._split_parent_and_attr(key)
+        parent_cls = type(parent)
         try:
-            field = parent.model_fields[array_attr]
+            field = parent_cls.model_fields[array_attr]
         except KeyError:
-            field = parent.model_computed_fields[array_attr]
+            field = parent_cls.model_computed_fields[array_attr]
 
         try:
             value = getattr(parent, array_attr)
