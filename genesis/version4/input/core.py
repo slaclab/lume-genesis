@@ -259,7 +259,7 @@ class MainInput(BaseModel):
         """Serialize this main input to a list of dictionaries."""
         return [
             {
-                "type": namelist.model_fields["type"].default,
+                "type": type(namelist).model_fields["type"].default,
                 **namelist.model_dump(
                     exclude_defaults=exclude_defaults, by_alias=by_alias, **kwargs
                 ),

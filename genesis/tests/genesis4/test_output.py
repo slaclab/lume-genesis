@@ -112,7 +112,7 @@ def test_typed_dictionaries(
     model = getattr(output, attr)
     assert not model.model_extra
 
-    for fld in model.model_fields:
+    for fld in type(model).model_fields:
         value = getattr(model, fld)
         print(f"Checking {model_cls.__name__}.{fld} = {pretty_repr(value)}")
         # NOTE: ssc_field may raise on Genesis4 < 4.6.6
