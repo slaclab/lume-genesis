@@ -54,6 +54,7 @@ jobs:
         run: |
           pip list
       - name: Run unit tests
+        shell: bash -e -u -o pipefail
         run: |
           echo -e '## Test results\n\n```' >> "$GITHUB_STEP_SUMMARY"
           pytest -v 2>&1 | tee -a "$GITHUB_STEP_SUMMARY"
