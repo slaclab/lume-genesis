@@ -55,7 +55,7 @@ class DisplayOptions(
     include_description : bool, default=True
         Include descriptions in table representations.
         Environment variable: LUME_INCLUDE_DESCRIPTION.
-    ascii_table_type : int, default=prettytable.MARKDOWN
+    ascii_table_type : int, default=prettytable.TableStyle.MARKDOWN
         Default to a PrettyTable markdown ASCII table.
         Environment variable: LUME_ASCII_TABLE_TYPE.
     filter_tab_completion : bool, default=True

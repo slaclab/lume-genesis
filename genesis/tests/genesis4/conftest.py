@@ -461,7 +461,7 @@ def display_options_ctx(
     verbose: int = 1,
     include_description: bool = True,
     filter_tab_completion: bool = True,
-    ascii_table_type: int = prettytable.MARKDOWN,
+    ascii_table_type: int = prettytable.TableStyle.MARKDOWN,
 ):
     tools.global_display_options = DisplayOptions(
         jupyter_render_mode=jupyter_render_mode,
