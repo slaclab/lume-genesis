@@ -58,7 +58,7 @@ def _check_equality(obj1: Any, obj2: Any) -> bool:
                 getattr(obj1, attr),
                 getattr(obj2, attr),
             )
-            for attr, fld in obj1.model_fields.items()
+            for attr, fld in type(obj1).model_fields.items()
             if not fld.exclude
         )
 
@@ -372,7 +372,7 @@ class BeamlineElement(BaseModel, abc.ABC):
         dump = self.model_dump(by_alias=True, exclude_defaults=True)
         params = {attr: value for attr, value in dump.items() if attr not in {"type"}}
         # NOTE: special-case to rework some day
-        if "sequence_type" in self.model_fields:
+        if "sequence_type" in type(self).model_fields:
             params["type"] = self.sequence_type
 
         return params

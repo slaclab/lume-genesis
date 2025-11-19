@@ -51,7 +51,7 @@ def compare(obj, expected, history=()):
     assert isinstance(obj, type(expected))
     # assert repr(obj) == repr(expected)
     if isinstance(obj, pydantic.BaseModel):
-        for attr, fld in obj.model_fields.items():
+        for attr, fld in type(obj).model_fields.items():
             value = getattr(obj, attr)
             if isinstance(value, np.ndarray):
                 assert fld.annotation is np.ndarray

@@ -108,7 +108,7 @@ class ElementListProxy(List[T_BeamlineElement]):
         # eles = typing.get_args(AnyBeamlineElement)
         all_fields = {}
         for ele in eles:
-            for name, fld in ele.model_fields.items():
+            for name, fld in type(ele).model_fields.items():
                 all_fields.setdefault(name, []).append(fld)
 
         for name, flds in sorted(all_fields.items()):

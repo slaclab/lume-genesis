@@ -412,20 +412,20 @@ def _get_table_fields(
 ):
     """Get values, descriptions, and annotations for a table."""
     if isinstance(obj, pydantic.BaseModel):
+        model_fields = type(obj).model_fields
         fields = {
             attr: getattr(obj, attr, None)
-            for attr, field_info in obj.model_fields.items()
+            for attr, field_info in model_fields.items()
             if field_info.repr
         }
         if annotations is None:
             annotations = {
-                attr: field_info.annotation
-                for attr, field_info in obj.model_fields.items()
+                attr: field_info.annotation for attr, field_info in model_fields.items()
             }
         if descriptions is None:
             descriptions = {
                 attr: field_info.description
-                for attr, field_info in obj.model_fields.items()
+                for attr, field_info in model_fields.items()
             }
     else:
         fields = obj
@@ -711,12 +711,13 @@ def pretty_repr(
     str
     """
     if isinstance(obj, pydantic.BaseModel):
+        model_fields = type(obj).model_fields
         values = {
             attr: getattr(obj, attr, None)
-            for attr, field in obj.model_fields.items()
+            for attr, field in model_fields.items()
             if field.repr
         }
-        defaults = {attr: field.default for attr, field in obj.model_fields.items()}
+        defaults = {attr: field.default for attr, field in model_fields.items()}
         attr_prefix = "{attr}="
         if hasattr(obj, "_pretty_repr_"):
             # Always make the pretty repr
@@ -848,7 +849,8 @@ def get_attrs_of_type(
     str
         The dotted attribute name.
     """
-    for attr in list(inst.model_fields) + list(inst.model_computed_fields):
+    cls = type(inst)
+    for attr in list(cls.model_fields) + list(cls.model_computed_fields):
         try:
             value = getattr(inst, attr, None)
         except Exception:

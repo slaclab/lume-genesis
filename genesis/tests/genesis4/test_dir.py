@@ -23,4 +23,4 @@ def test_render(
     else:
         assert "model_validate" in items
         assert "__init__" in items
-    assert all(fld in items for fld in element_or_namelist.model_fields)
+    assert all(fld in items for fld in type(element_or_namelist).model_fields)

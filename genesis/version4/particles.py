@@ -73,7 +73,7 @@ class Genesis4Slice(BaseModel):
             if units is not None:
                 h5[key].attrs["unit"] = np.bytes_(units)
 
-        to_write = set(self.model_fields) - {"index", "units"}
+        to_write = set(type(self).model_fields) - {"index", "units"}
         for attr in to_write:
             write_array(attr)
 
@@ -178,7 +178,7 @@ class Genesis4ParticleData(BaseModel):
             if units is not None:
                 h5[key].attrs["unit"] = np.bytes_(units)
 
-        to_write = set(self.model_fields) - {"slices", "units"}
+        to_write = set(type(self).model_fields) - {"slices", "units"}
         for key in to_write:
             write_scalar(key)
 
