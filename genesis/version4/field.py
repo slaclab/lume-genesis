@@ -9,12 +9,16 @@ import numpy as np
 
 from . import readers
 from .types import (
+    TYPE_CHECKING,
     AnyPath,
     BaseModel,
     FieldFileParams,
     FileKey,
     NDArray,
 )
+
+if TYPE_CHECKING:
+    from pmd_beamphysics.wavefront import Wavefront
 
 
 def get_key_from_filename(fn: str) -> FileKey:
@@ -62,6 +66,21 @@ class FieldFile(BaseModel):
         str
         """
         return f"{self.label}.fld.h5"
+
+    def to_wavefront(self) -> Wavefront:
+        try:
+            from pmd_beamphysics.wavefront import Wavefront
+        except ImportError as ex:
+            raise RuntimeError(
+                "pmd_beamphysics Wavefront is not available.  You may need to upgrade the package."
+            ) from ex
+
+        return Wavefront.from_genesis4_data(
+            dfl=self.dfl,
+            gridsize=self.param.gridsize,
+            slicespacing=self.param.slicespacing,
+            wavelength=self.param.wavelength,
+        )
 
     @classmethod
     def from_file(
