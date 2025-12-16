@@ -1,5 +1,5 @@
 # conda env create -f environment.yml
-name: lume-genesis-dev
+name: lume-genesis-dev2
 channels:
   - conda-forge
 dependencies:
@@ -12,7 +12,7 @@ dependencies:
   - jinja2
   - lark
   - numpy
-  - openpmd-beamphysics >=0.9.10
+  - openpmd-beamphysics >=0.11.0
   - prettytable
   - psutil
   - pydantic >2
