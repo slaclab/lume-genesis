@@ -3,7 +3,7 @@ name: lume-genesis-dev2
 channels:
   - conda-forge
 dependencies:
-  - python>=3.9
+  - python>=3.10
   - eval-type-backport
   - lume-base
   - genesis2=*=mpi_openmpi*
