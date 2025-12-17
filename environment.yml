@@ -1,5 +1,5 @@
 # conda env create -f environment.yml
-name: lume-genesis-dev2
+name: lume-genesis-dev
 channels:
   - conda-forge
 dependencies:
