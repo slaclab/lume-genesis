@@ -143,8 +143,6 @@ class _OutputBase(BaseModel):
             pass
         else:
             for key, unit_ in list(units.items()):
-                if key == "energy":
-                    print(key, unit_)
                 # Manually check for this energy unit. TODO: fix upstream in openPMD-beamphysics for equivalent units.
                 if (
                     unit_.unitSI == parsers.known_unit["mec2"].unitSI
