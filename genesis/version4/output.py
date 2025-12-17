@@ -143,7 +143,11 @@ class _OutputBase(BaseModel):
             pass
         else:
             for key, unit_ in list(units.items()):
-                if unit_ == parsers.known_unit["mec2"]:
+                # Manually check for this energy unit. TODO: fix upstream in openPMD-beamphysics for equivalent units.
+                if (
+                    unit_.unitSI == parsers.known_unit["mec2"].unitSI
+                    and unit_.unitDimension == parsers.known_unit["mec2"].unitDimension
+                ):
                     if isinstance(dct[key], (float, np.ndarray, int)):
                         dct[key] = dct[key] * parsers.mec2
                         units[key] = parsers.known_unit["eV"]

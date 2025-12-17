@@ -9,7 +9,7 @@ import numpy as np
 import pydantic.alias_generators
 from lume import tools
 from lume.parsers.namelist import parse_simple_namelist, parse_unrolled_namelist
-from pmd_beamphysics.units import e_charge, known_unit, mec2, pmd_unit, unit
+from pmd_beamphysics.units import e_charge, known_unit, mec2, pmd_unit
 
 # Patch these into the lookup dict.
 known_unit["mec2"] = pmd_unit("m_ec^2", mec2 * e_charge, "energy")
@@ -110,7 +110,9 @@ def try_pmd_unit(unit_str: str) -> Union[pmd_unit, str, None]:
         s = "mec2"  # electrons here
 
     try:
-        return unit(s)
+        # Use pmd_unit directly instead of deprecated unit()
+        u = pmd_unit(s)
+        return u
     except Exception:
         warnings.warn(f"unknown unit '{s}'")
         return None
