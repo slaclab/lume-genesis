@@ -109,10 +109,6 @@ def try_pmd_unit(unit_str: str) -> Union[pmd_unit, str, None]:
     if s == "mc^2":
         s = "mec2"  # electrons here
 
-    # Check known_unit first to ensure we use the patched version
-    if s in known_unit:
-        return known_unit[s]
-
     try:
         # Use pmd_unit directly instead of deprecated unit()
         u = pmd_unit(s)
