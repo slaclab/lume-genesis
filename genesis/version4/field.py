@@ -4,6 +4,9 @@ import pathlib
 import pydantic
 from typing import Union
 
+from pmd_beamphysics import Wavefront
+from pmd_beamphysics.units import Z0
+
 import h5py
 import numpy as np
 
@@ -62,6 +65,18 @@ class FieldFile(BaseModel):
         str
         """
         return f"{self.label}.fld.h5"
+
+    def to_wavefront(self) -> Wavefront:
+        """
+        Access this field data as an OpenPMD-beamphysics Wavefront.
+        """
+        return Wavefront(
+            Ex=self.dfl * np.sqrt(2 * Z0) / self.param.gridsize,
+            dx=self.param.gridsize,
+            dy=self.param.gridsize,
+            dz=self.param.slicespacing,
+            wavelength=self.param.wavelength,
+        )
 
     @classmethod
     def from_file(

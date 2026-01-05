@@ -7,7 +7,7 @@ import pytest
 
 from ... import version4 as g4
 from ...tools import pretty_repr
-from ...version4 import Genesis4
+from ...version4 import Genesis4, Genesis4Input
 from ...version4.output import (
     Genesis4Output,
     OutputBeam,
@@ -18,9 +18,28 @@ from ...version4.output import (
     OutputMetaVersion,
 )
 from ..conftest import test_root, genesis4_example1_path
+from .conftest import create_run_basic_main_input, create_run_basic_lattice
 
 
-@pytest.fixture(scope="function")
+@pytest.fixture(
+    params=[
+        Genesis4Input(
+            main=create_run_basic_main_input(),
+            lattice=create_run_basic_lattice(),
+        )
+    ],
+    scope="module",
+)
+def genesis4_input(request: pytest.FixtureRequest) -> Genesis4Input:
+    return copy.deepcopy(request.param)
+
+
+@pytest.fixture(scope="module")
+def genesis4(genesis4_input: Genesis4Input) -> Genesis4:
+    return Genesis4(genesis4_input)
+
+
+@pytest.fixture(scope="module")
 def output(
     genesis4: Genesis4,
 ) -> Genesis4Output:
@@ -278,6 +297,7 @@ def test_field_harmonic_alias_access():
             g4.Field(dgrid=0.002, ngrid=255, accumulate=True),
             g4.Field(dgrid=0.002, ngrid=255, harm=3, accumulate=True),
             g4.Track(zstop=0.001),
+            g4.Write(field="fld"),
             g4.Write(beam="end"),
         ],
     )
@@ -304,3 +324,8 @@ def test_field_harmonic_alias_access():
         y2=["beam_xsize", "beam_ysize"],
     )
     output.info()
+    output.load_fields()
+
+    W = output.field3d["fld"].to_wavefront()
+    assert np.isclose(W.wavelength, output.field3d["fld"].param.wavelength)
+    assert np.isclose(W.energy, G.output.field.stat.energy[-1])
