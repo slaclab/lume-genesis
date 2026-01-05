@@ -328,3 +328,4 @@ def test_field_harmonic_alias_access():
 
     W = output.field3d["fld"].to_wavefront()
     assert np.isclose(W.wavelength, output.field3d["fld"].param.wavelength)
+    assert np.isclose(W.energy, G.output.field.stat.energy[-1])
