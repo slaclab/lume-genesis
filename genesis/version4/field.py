@@ -4,21 +4,20 @@ import pathlib
 import pydantic
 from typing import Union
 
+from pmd_beamphysics import Wavefront
+from pmd_beamphysics.units import Z0
+
 import h5py
 import numpy as np
 
 from . import readers
 from .types import (
-    TYPE_CHECKING,
     AnyPath,
     BaseModel,
     FieldFileParams,
     FileKey,
     NDArray,
 )
-
-if TYPE_CHECKING:
-    from pmd_beamphysics.wavefront import Wavefront
 
 
 def get_key_from_filename(fn: str) -> FileKey:
@@ -68,17 +67,14 @@ class FieldFile(BaseModel):
         return f"{self.label}.fld.h5"
 
     def to_wavefront(self) -> Wavefront:
-        try:
-            from pmd_beamphysics.wavefront import Wavefront
-        except ImportError as ex:
-            raise RuntimeError(
-                "pmd_beamphysics Wavefront is not available.  You may need to upgrade the package."
-            ) from ex
-
-        return Wavefront.from_genesis4_data(
-            dfl=self.dfl,
-            gridsize=self.param.gridsize,
-            slicespacing=self.param.slicespacing,
+        """
+        Access this field data as an OpenPMD-beamphysics Wavefront.
+        """
+        return Wavefront(
+            Ex=self.dfl * np.sqrt(2 * Z0) / self.param.gridsize,
+            dx=self.param.gridsize,
+            dy=self.param.gridsize,
+            dz=self.param.slicespacing,
             wavelength=self.param.wavelength,
         )
 
