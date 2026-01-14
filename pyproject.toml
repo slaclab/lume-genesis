@@ -62,8 +62,8 @@ file = "LICENSE"
 
 [tool.pytest.ini_options]
 addopts = "--cov=genesis/"
-log_cli_level = "info"
-log_level = "debug"
+log_cli_level = "INFO"
+log_level = "DEBUG"
 testpaths = ["genesis/tests"]
 
 [tool.setuptools_scm]
