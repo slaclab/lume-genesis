@@ -196,7 +196,13 @@ def test_example2() -> None:
     anim = animation.FuncAnimation(
         fig, animate, init_func=init, blit=False, interval=20, frames=500
     )
-    anim.save("Animation1.mp4")
+
+    try:
+        anim.save("Animation1.mp4")
+    except ValueError:
+        # With the pypi installation, we might not have ffmpeg/mp4 support.
+        # Allow it to fail.
+        pass
 
     fig = plt.figure()
     ax = plt.axes(xlim=(0, 2 * np.pi), ylim=(xmin, xmax))
@@ -212,7 +218,12 @@ def test_example2() -> None:
     anim = animation.FuncAnimation(
         fig, animate2, init_func=init, blit=False, interval=20, frames=500
     )
-    anim.save("Animation2.mp4")
+    try:
+        anim.save("Animation2.mp4")
+    except ValueError:
+        # With the pypi installation, we might not have ffmpeg/mp4 support.
+        # Allow it to fail.
+        pass
 
 
 def test_fodo(_shorten_zstop, tmp_path: pathlib.Path) -> None:
