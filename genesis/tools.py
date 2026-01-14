@@ -23,18 +23,11 @@ import prettytable
 import pydantic
 import pydantic_settings
 
-try:
-    from typing import Literal
-except ImportError:
-    from typing_extensions import Literal
+from typing import Literal
 
-try:
-    from types import UnionType
-except ImportError:
-    # Python < 3.10
-    union_types = {Union}
-else:
-    union_types = {UnionType, Union}
+from types import UnionType
+
+union_types = {UnionType, Union}
 
 
 logger = logging.getLogger(__name__)

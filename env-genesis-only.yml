@@ -1,0 +1,8 @@
+# conda env create -f environment.yml
+name: genesis
+channels:
+  - conda-forge
+dependencies:
+  - genesis2=*=mpi_openmpi*
+  - genesis4 >=4.6.8=mpi_openmpi*
+  - h5py=*=mpi_openmpi*

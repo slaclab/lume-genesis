@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import pathlib
-from typing import Any
+from typing import Any, Literal
 
 import h5py
 from pmd_beamphysics import ParticleGroup
@@ -9,11 +9,6 @@ from pmd_beamphysics import ParticleGroup
 from .field import FieldFile
 from .particles import load_particle_group
 from .types import BaseModel, FileKey
-
-try:
-    from typing import Literal
-except ImportError:
-    from typing_extensions import Literal
 
 
 class HDF5ReferenceFile(BaseModel):

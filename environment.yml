@@ -4,34 +4,34 @@ channels:
   - conda-forge
 dependencies:
   - python>=3.10
-  - eval-type-backport
-  - lume-base
   - genesis2=*=mpi_openmpi*
   - genesis4 >=4.6.8=mpi_openmpi*
   - h5py=*=mpi_openmpi*
-  - jinja2
   - lark
+  - lume-base
+  - matplotlib
   - numpy
   - openpmd-beamphysics >=0.11.0
   - prettytable
   - psutil
   - pydantic >2
   - pydantic-settings
-  # Developer
-  - pytao
-  - ffmpeg
+  - typing-extensions
+  # Required for all codebase features:
+  - ffmpeg # genesis2 example movie
+  - pytao # from_tao
+  - ruff # dataclass regeneration
+  - jinja2 # dataclass regeneration
+  # Running the test suite
   - pytest
   - pytest-cov
+  # Notebooks
   - jupyterlab >=3
-  - jupyterlab-lsp
-  - python-lsp-server
-  - matplotlib
-  - pygments
+  # - pygments
+  # Documentation building
   - mkdocs
   - mkdocstrings
   - mkdocs-jupyter
   - mkdocs-material
   - mkdocstrings-python
-  - ruff
-  - typing-extensions
   - pip

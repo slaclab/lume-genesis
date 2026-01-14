@@ -5,8 +5,6 @@ import functools
 import pathlib
 from typing import Dict, Optional, Set, Tuple, TypedDict, Union
 
-import jinja2
-
 AnyPath = Union[pathlib.Path, str]
 
 MODULE_PATH = pathlib.Path(__file__).resolve().parent
@@ -309,6 +307,8 @@ def make_dataclasses_from_manual(
         if "\\" in value:
             return "r"
         return ""
+
+    import jinja2
 
     env = jinja2.Environment()
     env.filters["repr"] = _custom_repr
