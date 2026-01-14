@@ -36,9 +36,9 @@ class Genesis2(CommandWrapper):
         # Call configure
         if self.input_file:
             infile = lume_tools.full_path(self.input_file)
-            assert os.path.exists(
-                infile
-            ), f"Genesis2 input file does not exist: {infile}"
+            assert os.path.exists(infile), (
+                f"Genesis2 input file does not exist: {infile}"
+            )
             self.load_input(self.input_file)
 
         else:

@@ -23,7 +23,7 @@ def write_beam_file(fname, beam_columns, verbose=False):
     size = len(beam_columns[names[0]])
     header = f"""? VERSION=1.0
 ? SIZE={size}
-? COLUMNS {' '.join([n.upper() for n in names])}"""
+? COLUMNS {" ".join([n.upper() for n in names])}"""
 
     dat = np.array([beam_columns[name] for name in names]).T
 
@@ -81,7 +81,7 @@ def pmd_wavefront_init(h5, photon_energy=0):
 
     wavefront_series_attrs = {
         # optiona
-        "beamline": "(optional) The string representation " "of the optical beamline",
+        "beamline": "(optional) The string representation of the optical beamline",
         "temporalDomain": "time",
         "spatialDomain": "r",
         "zCoordinate": 0.0,

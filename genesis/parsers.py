@@ -181,7 +181,7 @@ def parse_main_input(rawtext, strict=True, fill_defaults=True):
             # OLD: input_parameters[key] = [number(z) for z in x[1].split()]
             # Expand key(1), key(2), etc.
             for i, z in enumerate(x[1].split()):
-                nkey = f"{key}({i+1})"
+                nkey = f"{key}({i + 1})"
                 input_parameters[nkey] = number(z)
 
     # Check that all keys are in MAIN_INPUT_DEFAULT
@@ -515,9 +515,9 @@ def parse_beam_file(fname, verbose=False):
 
     # Check size
     if "size" in params:
-        assert (
-            size == params["size"]
-        ), f"Mismatch with SIZE = {params['size']} and found column size {size}"
+        assert size == params["size"], (
+            f"Mismatch with SIZE = {params['size']} and found column size {size}"
+        )
 
     cdat = {}
     for i, name in enumerate(params["columns"]):

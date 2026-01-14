@@ -74,7 +74,7 @@ def quadrupole_and_corrector_steps(quad: Quadrupole, cx=0, cy=0, num_steps=1):
             cy = cy1
 
         eles.append(
-            Corrector(cx=cx, cy=cy, label=f"{label}_kick{step+1}", L=L_corrector)
+            Corrector(cx=cx, cy=cy, label=f"{label}_kick{step + 1}", L=L_corrector)
         )
         eles.append(
             Quadrupole(
@@ -82,13 +82,15 @@ def quadrupole_and_corrector_steps(quad: Quadrupole, cx=0, cy=0, num_steps=1):
                 k1=quad.k1,
                 x_offset=quad.x_offset,
                 y_offset=quad.y_offset,
-                label=f"{label}_step{step+1}",
+                label=f"{label}_step{step + 1}",
             )
         )
 
     # Final half step
     eles.append(
-        Corrector(cx=cx1 / 2, cy=cy1 / 2, label=f"{label}_kick{step+2}", L=L_corrector)
+        Corrector(
+            cx=cx1 / 2, cy=cy1 / 2, label=f"{label}_kick{step + 2}", L=L_corrector
+        )
     )
     return eles
 
