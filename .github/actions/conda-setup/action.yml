@@ -27,7 +27,7 @@ runs:
     - name: Update Python version in environment.yml
       shell: bash -l {0}
       run: |
-        if [[ -f "${{ inputs.filename }}" && -n "${{ input.python-version }}" ]]; then
+        if [[ -f "${{ inputs.filename }}" && -n "${{ inputs.python-version }}" ]]; then
           sed -i -e "s/- python>=.*/- python=${{ inputs.python-version }}/" ${{ inputs.filename }}
           echo "Updated Python spec in environment file:"
           grep "python=" ${{ inputs.filename }}
