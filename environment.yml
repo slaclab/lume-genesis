@@ -4,9 +4,7 @@ channels:
   - conda-forge
 dependencies:
   - python>=3.10
-  - genesis2=*=mpi_openmpi*
-  - genesis4 >=4.6.8=mpi_openmpi*
-  - h5py=*=mpi_openmpi*
+  # Core python dependencies
   - lark
   - lume-base
   - matplotlib
@@ -17,6 +15,11 @@ dependencies:
   - pydantic >2
   - pydantic-settings
   - typing-extensions
+  # Genesis - OpenMPI variants
+  - genesis2=*=mpi_openmpi*
+  - genesis4 >=4.6.8=mpi_openmpi*
+  - h5py=*=mpi_openmpi*
+  - openmpi
   # Required for all codebase features:
   - ffmpeg # genesis2 example movie
   - pytao # from_tao
