@@ -13,10 +13,6 @@ inputs:
     description: "Conda environment name to create"
     required: false
     default: "lume-genesis-dev"
-  extras:
-    description: "Package extras to install"
-    required: true
-    default: "dev"
 runs:
   using: "composite"
   steps:
@@ -31,7 +27,7 @@ runs:
     - name: Update Python version in environment.yml
       shell: bash -l {0}
       run: |
-        if [ -f "${{ inputs.filename }}" ]; then
+        if [[ -f "${{ inputs.filename }}" && -n "${{ inputs.python-version }}" ]]; then
           sed -i -e "s/- python>=.*/- python=${{ inputs.python-version }}/" ${{ inputs.filename }}
           echo "Updated Python spec in environment file:"
           grep "python=" ${{ inputs.filename }}
@@ -55,7 +51,3 @@ runs:
           mamba install -n ${{ inputs.env_name }} python=${{ inputs.python-version }}
         fi
       if: steps.cache.outputs.cache-hit != 'true'
-    - name: Setup the environment
-      shell: bash -l {0}
-      run: |
-        python -m pip install .[${{ inputs.extras }}]

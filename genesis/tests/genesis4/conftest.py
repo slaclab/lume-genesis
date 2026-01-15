@@ -1,5 +1,4 @@
 import copy
-import sys
 from contextlib import contextmanager
 from typing import Sequence
 
@@ -10,6 +9,7 @@ import numpy as np
 import prettytable
 import pytest
 
+from typing import Literal
 from ... import tools
 from ...tools import DisplayOptions
 from ...version4 import Genesis4, Genesis4Input
@@ -35,12 +35,6 @@ from ...version4.input import _main as auto_main
 from ...version4.input import AnyBeamlineElement, AnyNameList
 from ...version4.types import Reference
 from ..conftest import test_artifacts, test_root
-
-if sys.version_info >= (3, 12):
-    from typing import Literal
-else:
-    # Pydantic specifically requires this for Python < 3.12
-    from typing_extensions import Literal
 
 
 run_basic = test_root / "genesis4" / "run_basic"

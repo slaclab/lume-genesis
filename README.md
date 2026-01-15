@@ -40,6 +40,18 @@ git clone https://github.com/slaclab/lume-genesis
 cd lume-genesis
 conda env create -n lume-genesis-dev -f environment.yml
 conda activate lume-genesis-dev
+python -m pip install --no-deps -e .
+```
+
+Alternatively, with a virtualenv and pip:
+
+```bash
+git clone https://github.com/slaclab/lume-genesis
+cd lume-genesis
+
+python -m venv genesis-venv
+source genesis-venv/bin/activate
+python -m pip install -e .
 ```
 
 ## Related Publications

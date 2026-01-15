@@ -114,9 +114,9 @@ def make_dummies_for_single_type(eles, smax):
         zbeg = ref["s"]
         zend = s0(ele)
         L = zend - zbeg
-        assert (
-            L >= 0
-        ), "Overlapping eles!"  # + ref['name']+' overlaps '+ele['name']+' by '+str(L)
+        assert L >= 0, (
+            "Overlapping eles!"
+        )  # + ref['name']+' overlaps '+ele['name']+' by '+str(L)
 
         dummy = {"type": my_type, "strength": 0, "L": L, "s": zend}
         dummies.append(dummy)

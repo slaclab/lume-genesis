@@ -18,13 +18,16 @@ jobs:
     runs-on: ubuntu-latest
     name: "Build docs"
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           fetch-depth: 0
       - uses: ./.github/actions/conda-setup
         with:
           python-version: ${{ matrix.python-version }}
-          extras: "doc"
+      - name: Install LUME-Genesis
+        shell: bash -l -e -o pipefail {0}
+        run: |
+          python -m pip install .[doc]
       - name: Execute notebooks
         shell: bash -l {0}
         run: |

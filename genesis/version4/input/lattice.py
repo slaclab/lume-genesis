@@ -44,10 +44,7 @@ from . import parsers
 from ..interfaces.bmad import genesis4_elements_and_line_from_tao
 
 
-try:
-    from typing import Literal
-except ImportError:
-    from typing_extensions import Literal
+from typing import Literal
 
 
 AnyBeamlineElement = Union[

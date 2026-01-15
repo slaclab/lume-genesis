@@ -196,7 +196,13 @@ def test_example2() -> None:
     anim = animation.FuncAnimation(
         fig, animate, init_func=init, blit=False, interval=20, frames=500
     )
-    anim.save("Animation1.mp4")
+
+    try:
+        anim.save("Animation1.mp4")
+    except ValueError:
+        # With the pypi installation, we might not have ffmpeg/mp4 support.
+        # Allow it to fail.
+        pass
 
     fig = plt.figure()
     ax = plt.axes(xlim=(0, 2 * np.pi), ylim=(xmin, xmax))
@@ -212,7 +218,12 @@ def test_example2() -> None:
     anim = animation.FuncAnimation(
         fig, animate2, init_func=init, blit=False, interval=20, frames=500
     )
-    anim.save("Animation2.mp4")
+    try:
+        anim.save("Animation2.mp4")
+    except ValueError:
+        # With the pypi installation, we might not have ffmpeg/mp4 support.
+        # Allow it to fail.
+        pass
 
 
 def test_fodo(_shorten_zstop, tmp_path: pathlib.Path) -> None:
@@ -409,7 +420,7 @@ def test_fodo_scan_model(_shorten_zstop, tmp_path: pathlib.Path) -> None:
         Ksq = 2 * (2 * gamma**2 * lambdar / lambdau - 1)
         if Ksq <= 0:
             raise ValueError(
-                f"No resonance available, lambdau must be < {2*gamma**2*lambdar*1e3:0.1f}1e-3 m"
+                f"No resonance available, lambdau must be < {2 * gamma**2 * lambdar * 1e3:0.1f}1e-3 m"
             )
 
         return sqrt(Ksq)
@@ -588,7 +599,7 @@ def test_fodo_scan_model(_shorten_zstop, tmp_path: pathlib.Path) -> None:
     for k, g in zip(lambdaulist, Glist):
         x = g.stat("zplot")
         y = g.stat("field_peak_power")
-        ax.plot(x, y / 1e6, label=f"{k*1e3:0.1f}")
+        ax.plot(x, y / 1e6, label=f"{k * 1e3:0.1f}")
     ax.set_yscale("log")
     ax.set_xlabel(r"$z$ (m)")
     ax.set_ylabel("power (MW)")
