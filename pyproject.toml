@@ -68,3 +68,5 @@ testpaths = ["genesis/tests"]
 
 [tool.setuptools_scm]
 version_file = "genesis/_version.py"
+# For publishing to testpypi (no local dev+hash suffix)
+local_scheme = "no-local-version"
