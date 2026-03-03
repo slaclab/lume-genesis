@@ -629,7 +629,13 @@ class Genesis4(CommandWrapper):
 
     @classmethod
     def from_tao(
-        cls, tao, ele_start="beginning", ele_end="end", universe=1, branch=0
+        cls,
+        tao,
+        ele_start="beginning",
+        ele_end="end",
+        universe=1,
+        branch=0,
+        line_label: str | None = None,
     ) -> Genesis4:
         """
         Create a new Genesis4 object from a pytao.Tao instance
@@ -646,6 +652,9 @@ class Genesis4(CommandWrapper):
             The branch index within the specified Tao universe. Defaults to 0.
         universe : int, optional
             The universe index within the Tao object. Defaults to 1.
+        line_label: str, default = None
+            Name of the line element.
+            If not given, the Tao branch name will be used.
 
         Returns
         -------
@@ -656,7 +665,12 @@ class Genesis4(CommandWrapper):
             tao, ele_start=ele_start, universe=universe, branch=branch
         )
         lattice = Lattice.from_tao(
-            tao, ele_start=ele_start, ele_end=ele_end, universe=universe, branch=branch
+            tao,
+            ele_start=ele_start,
+            ele_end=ele_end,
+            universe=universe,
+            branch=branch,
+            line_label=line_label,
         )
         return cls(input=input, lattice=lattice)
 
