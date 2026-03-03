@@ -1145,7 +1145,7 @@ class Lattice(BaseModel):
         ele_end="end",
         universe: int = 1,
         branch: int = 0,
-        line_label: str = None,
+        line_label: str | None = None,
     ):
         """
         Creates a Genesis4 Lattice from a running PyTao Tao instance.
