@@ -4,8 +4,8 @@ import pathlib
 import pydantic
 from typing import Union
 
-from pmd_beamphysics import Wavefront
-from pmd_beamphysics.units import Z0
+from beamphysics import Wavefront
+from beamphysics.units import Z0
 
 import h5py
 import numpy as np

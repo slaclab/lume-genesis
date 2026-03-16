@@ -1,7 +1,7 @@
 from ..input import Quadrupole, Corrector, Drift, Marker, Undulator
 from ..input import Setup, Field, Track, Beam
 
-from pmd_beamphysics.units import mec2
+from beamphysics.units import mec2
 
 from scipy.constants import c
 

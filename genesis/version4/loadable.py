@@ -4,7 +4,7 @@ import pathlib
 from typing import Any, Literal
 
 import h5py
-from pmd_beamphysics import ParticleGroup
+from beamphysics import ParticleGroup
 
 from .field import FieldFile
 from .particles import load_particle_group

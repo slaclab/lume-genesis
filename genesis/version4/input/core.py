@@ -26,8 +26,8 @@ import numpy as np
 import pydantic
 import pydantic.alias_generators
 from lume import tools as lume_tools
-from pmd_beamphysics import ParticleGroup
-from pmd_beamphysics.units import c_light
+from beamphysics import ParticleGroup
+from beamphysics.units import c_light
 from typing_extensions import override
 
 from ... import tools

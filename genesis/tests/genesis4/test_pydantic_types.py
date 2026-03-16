@@ -3,7 +3,7 @@ from typing import Sequence
 
 import numpy as np
 import pytest
-from pmd_beamphysics.units import pmd_unit
+from beamphysics.units import pmd_unit
 from pydantic import TypeAdapter
 
 from ...version4.types import NDArray, PydanticPmdUnit, Reference

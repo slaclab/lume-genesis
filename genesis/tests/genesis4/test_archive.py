@@ -5,7 +5,7 @@ from typing import Union
 
 import h5py
 import pytest
-from pmd_beamphysics import ParticleGroup
+from beamphysics import ParticleGroup
 from pydantic import BaseModel
 
 from ...version4 import (

@@ -9,7 +9,7 @@ dependencies:
   - lume-base
   - matplotlib
   - numpy
-  - openpmd-beamphysics >=0.11.0
+  - openpmd-beamphysics >=0.14.1
   - ormsgpack
   - prettytable
   - psutil

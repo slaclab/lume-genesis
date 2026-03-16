@@ -26,8 +26,8 @@ import matplotlib.figure
 import matplotlib.pyplot as plt
 import numpy as np
 import pydantic
-from pmd_beamphysics import ParticleGroup
-from pmd_beamphysics.units import c_light, pmd_unit
+from beamphysics import ParticleGroup
+from beamphysics.units import c_light, pmd_unit
 from typing_extensions import override
 
 from .. import tools

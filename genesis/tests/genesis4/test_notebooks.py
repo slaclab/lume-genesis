@@ -20,7 +20,7 @@ import matplotlib.animation as animation
 import matplotlib.pyplot as plt
 import numpy as np
 import pytest
-from pmd_beamphysics import ParticleGroup
+from beamphysics import ParticleGroup
 
 from ... import version4 as g4
 from ...version4 import Genesis4, Lattice, MainInput, Track, Write

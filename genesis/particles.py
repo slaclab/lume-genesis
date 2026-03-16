@@ -1,5 +1,5 @@
-from pmd_beamphysics import ParticleGroup
-from pmd_beamphysics.interfaces.genesis import genesis2_dpa_to_data
+from beamphysics import ParticleGroup
+from beamphysics.interfaces.genesis import genesis2_dpa_to_data
 
 
 def final_particles(genesis_object):
