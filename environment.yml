@@ -10,6 +10,7 @@ dependencies:
   - matplotlib
   - numpy
   - openpmd-beamphysics >=0.11.0
+  - ormsgpack
   - prettytable
   - psutil
   - pydantic >2
