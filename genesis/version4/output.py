@@ -108,8 +108,13 @@ class RunInfo(BaseModel):
         return not self.error
 
 
+class _EmptyEqualityCheckNDArray(np.ndarray):
+    def __eq__(self, other):
+        return len(other) == 0 and other.dtype == self.dtype
+
+
 def _empty_ndarray():
-    return np.zeros(0)
+    return _EmptyEqualityCheckNDArray(0)
 
 
 class _OutputBase(BaseModel):
@@ -1770,34 +1775,49 @@ class Genesis4Output(Mapping, BaseModel, arbitrary_types_allowed=True):
         """
         return self[key]
 
-    def archive(self, h5: h5py.Group) -> None:
+    def archive(
+        self,
+        dest: h5py.Group | str | pathlib.Path,
+        *,
+        format: _archive.ArchiveFormat = "hdf5",
+    ) -> None:
         """
-        Dump outputs into the given HDF5 group.
+        Dump output data into the given file or HDF5 group.
 
         Parameters
         ----------
-        h5 : h5py.Group
+        dest : h5py.Group
             The HDF5 file in which to write the information.
         """
-        _archive.store_in_hdf5_file(h5, self)
+        if format == "hdf5":
+            if isinstance(dest, (str, pathlib.Path)):
+                with h5py.File(dest, "w") as fp:
+                    _archive.store_in_hdf5_file(fp, self)
+            else:
+                _archive.store_in_hdf5_file(dest, self)
+
+        else:
+            if isinstance(dest, h5py.Group):
+                raise ValueError(f"Unable to store HDF5 data into format {format}")
+
+            _archive.dump_model(dest, self)
 
     @classmethod
-    def from_archive(cls, h5: h5py.Group) -> Genesis4Output:
+    def from_archive(
+        cls,
+        arch: h5py.Group | pathlib.Path | str,
+        *,
+        format: _archive.ArchiveFormat | None = None,
+    ) -> Genesis4Output:
         """
-        Loads output from the given HDF5 group.
+        Loads output from archived file.
 
         Parameters
         ----------
-        h5 : str or h5py.File
-            The key to use when restoring the data.
+        arch : str, pathlib.Path or h5py.File
+            The filename or handle on h5py.File from which to load data.
         """
-        loaded = _archive.restore_from_hdf5_file(h5)
-        if not isinstance(loaded, Genesis4Output):
-            raise ValueError(
-                f"Loaded {loaded.__class__.__name__} instead of a "
-                f"Genesis4Output instance.  Was the HDF group correct?"
-            )
-        return loaded
+        return _archive.load_model(arch, cls, format=format)
 
     def plot(
         self,
