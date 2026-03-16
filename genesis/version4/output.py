@@ -108,13 +108,26 @@ class RunInfo(BaseModel):
         return not self.error
 
 
+_zeros = np.zeros(0)
+
+
 class _EmptyEqualityCheckNDArray(np.ndarray):
+    def __repr__(self):
+        return repr(_zeros)
+
+    def __str__(self):
+        return str(_zeros)
+
     def __eq__(self, other):
+        # NOTE: this is strictly for equality checks when 'exclude_defaults" is
+        # set for pydantic.
+        if isinstance(other, np.ndarray):
+            return len(other.shape) == 0 and other.dtype == self.dtype
         return len(other) == 0 and other.dtype == self.dtype
 
 
 def _empty_ndarray():
-    return _EmptyEqualityCheckNDArray(0)
+    return _EmptyEqualityCheckNDArray([], dtype=np.float64)
 
 
 class _OutputBase(BaseModel):
