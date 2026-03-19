@@ -122,12 +122,16 @@ class _EmptyEqualityCheckNDArray(np.ndarray):
         # NOTE: this is strictly for equality checks when 'exclude_defaults" is
         # set for pydantic.
         if isinstance(other, np.ndarray):
-            return len(other.shape) == 0 and other.dtype == self.dtype
-        return len(other) == 0 and other.dtype == self.dtype
+            if other.size == 0 and self.size == 0:
+                return True
+            return False
+        if np.isscalar(other):
+            return False
+        return len(other) == 0
 
 
 def _empty_ndarray():
-    return _EmptyEqualityCheckNDArray([], dtype=np.float64)
+    return np.zeros(0).view(_EmptyEqualityCheckNDArray)
 
 
 class _OutputBase(BaseModel):
