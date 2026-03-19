@@ -37,6 +37,21 @@ _reserved_h5_attrs = {
 }
 
 
+def _msgpack_default(obj: Any) -> Any:
+    """Fallback serializer for types ormsgpack doesn't handle natively."""
+    if isinstance(obj, pmd_unit):
+        return {
+            "unitSI": obj.unitSI,
+            "unitSymbol": obj.unitSymbol,
+            "unitDimension": tuple(obj.unitDimension),
+        }
+    if isinstance(obj, ParticleGroup):
+        return obj.data
+    if isinstance(obj, pathlib.Path):
+        return str(obj)
+    raise TypeError(f"Type is not msgpack serializable: {type(obj).__name__}")
+
+
 def load_model_data(
     arch: str | pathlib.Path | h5py.Group,
     *,
@@ -63,7 +78,7 @@ def load_model_data(
         import ormsgpack
 
         assert not isinstance(arch, h5py.Group)
-        return ormsgpack.unpackb(arch.read_bytes())
+        return ormsgpack.unpackb(arch.read_bytes(), option=ormsgpack.OPT_NON_STR_KEYS)
 
     if format == "hdf5":
         if isinstance(arch, h5py.Group):
@@ -174,21 +189,23 @@ def dump_model(
         with h5py.File(dest, "w") as fp:
             store_in_hdf5_file(fp, model)
         return None
-    else:
+    elif format == "msgpack":
+        import ormsgpack
+
         data = model.model_dump(
             exclude_defaults=exclude_defaults,
             exclude_computed_fields=True,
-            mode="json",
+            mode="python",
         )
-        if format == "msgpack":
-            import ormsgpack
-
-            dumped = ormsgpack.packb(data, option=ormsgpack.OPT_SERIALIZE_NUMPY)
-            pathlib.Path(fname).write_bytes(dumped)
-        else:
-            raise NotImplementedError(format)
-
+        dumped = ormsgpack.packb(
+            data,
+            default=_msgpack_default,
+            option=ormsgpack.OPT_SERIALIZE_NUMPY | ormsgpack.OPT_NON_STR_KEYS,
+        )
+        pathlib.Path(fname).write_bytes(dumped)
         return data
+    else:
+        raise NotImplementedError(format)
 
 
 def _hdf5_dictify(
