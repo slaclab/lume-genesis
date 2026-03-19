@@ -43,6 +43,7 @@ from .types import (
     FileKey,
     NDArray,
     OutputDataType,
+    PydanticParticleGroup,
     PydanticPmdUnit,
 )
 
@@ -1406,7 +1407,7 @@ class Genesis4Output(Mapping, BaseModel, arbitrary_types_allowed=True):
         exclude=True,
         description="Loaded field data, keyed by filename base (e.g., 'end' of 'end.fld.h5').",
     )
-    particles: Dict[FileKey, ParticleGroup] = pydantic.Field(
+    particles: Dict[FileKey, PydanticParticleGroup] = pydantic.Field(
         default_factory=dict,
         description="Loaded particle data, keyed by integration step number or filename base.",
     )
