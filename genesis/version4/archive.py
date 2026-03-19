@@ -37,6 +37,9 @@ _reserved_h5_attrs = {
 }
 
 
+_MSGPACK_NDARRAY_MARKER = "__ndarray__"
+
+
 def _msgpack_default(obj: Any) -> Any:
     """Fallback serializer for types ormsgpack doesn't handle natively."""
     if isinstance(obj, pmd_unit):
@@ -47,9 +50,33 @@ def _msgpack_default(obj: Any) -> Any:
         }
     if isinstance(obj, ParticleGroup):
         return obj.data
+    if isinstance(obj, np.ndarray):
+        if obj.ndim == 0:
+            return obj.item()
+        arr = np.ascontiguousarray(obj)
+        return {
+            _MSGPACK_NDARRAY_MARKER: arr.tobytes(),
+            "dtype": str(arr.dtype),
+            "shape": list(arr.shape),
+        }
+    if isinstance(obj, np.generic):
+        return obj.item()
     if isinstance(obj, pathlib.Path):
         return str(obj)
     raise TypeError(f"Type is not msgpack serializable: {type(obj).__name__}")
+
+
+def _msgpack_restore_ndarrays(obj: Any) -> Any:
+    """Restore numpy arrays from the ``__ndarray__`` marker dicts."""
+    if isinstance(obj, dict):
+        if _MSGPACK_NDARRAY_MARKER in obj:
+            return np.frombuffer(
+                obj[_MSGPACK_NDARRAY_MARKER], dtype=obj["dtype"]
+            ).reshape(obj["shape"])
+        return {key: _msgpack_restore_ndarrays(value) for key, value in obj.items()}
+    if isinstance(obj, list):
+        return [_msgpack_restore_ndarrays(item) for item in obj]
+    return obj
 
 
 def load_model_data(
@@ -78,7 +105,8 @@ def load_model_data(
         import ormsgpack
 
         assert not isinstance(arch, h5py.Group)
-        return ormsgpack.unpackb(arch.read_bytes(), option=ormsgpack.OPT_NON_STR_KEYS)
+        data = ormsgpack.unpackb(arch.read_bytes(), option=ormsgpack.OPT_NON_STR_KEYS)
+        return _msgpack_restore_ndarrays(data)
 
     if format == "hdf5":
         if isinstance(arch, h5py.Group):
@@ -200,7 +228,7 @@ def dump_model(
         dumped = ormsgpack.packb(
             data,
             default=_msgpack_default,
-            option=ormsgpack.OPT_SERIALIZE_NUMPY | ormsgpack.OPT_NON_STR_KEYS,
+            option=ormsgpack.OPT_NON_STR_KEYS,
         )
         pathlib.Path(fname).write_bytes(dumped)
         return data
