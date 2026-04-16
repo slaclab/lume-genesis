@@ -20,6 +20,7 @@ The following describes all supported namelist with their variables, including i
     - [profile_step](#profile_step)
     - [profile_polynom](#profile_polynom)
     - [profile_file](#profile_file)
+    - [profile_file_multi](#profile_file_multi)
   - [sequence](#sequences)
     - [sequence_const](#sequence_const)
     - [sequence_polynom](#sequence_polynom)
@@ -164,12 +165,25 @@ Profiles are defining a dependence on the position in the time frame, which then
 
 #### profile_file
 
+Reading look-up tables from an HDF5 file.
 - `label`(*string, \<empty>*): Name of the profile, which is used to refer to it in later calls of namelists
 - `xdata` (*string, \<empty>*): Points to a dataset in an HDF5 file to define the `s`-position for the look-up table. The format is `filename/group1/.../groupn/datasetname`, where the naming of groups is not required if the dataset is at root level of the HDF file
 - `ydata` (*string, \<empty>*): Same as y data but for the function values of the look-up table.
 - `isTime` (*bool, false*): If true the `s`-position is a time variable and therefore multiplied with the speed of light `c` to get the position in meters.
 - `reverse`(*bool, false*): if true the order in the look-up table is reverse. This is sometimes needed because time and spatial coordinates differ sometimes by a minus sign.
-- `autoassign`(*bool, false*): use the HDF5 file from `xdata` (TODO more details).
+- `autoassign`(*bool, false*): use the dataset name of `ydata` as the label. I does not overwrite the label if it is explicitly defined in the namelist
+
+#### profile_file_multi
+
+A wrapper around `profile_file`.
+
+- `file`(*string, \<empty>*): Name of the HDF5 file, which contains all the dataset
+- `xdata` (*string, \<empty>*): Points to a dataset in an HDF5 file to define the `s`-position for the look-up table. The format is `group1/.../groupn/datasetname`, where the naming of groups is not required if the dataset is at root level of the HDF file
+- `ydata` (*string, \<empty>*): A comma separated list of multiple dataset names. The individual format is the same as `xdata` but for the function values of the look-up table.
+- `label_prefix` (*string,\<empty>*): The labels are generated with this prefix, a comma and the individual name of the dataset, given in `ydata`
+- `isTime` (*bool, false*): If true the `s`-position is a time variable and therefore multiplied with the speed of light `c` to get the position in meters.
+- `reverse`(*bool, false*): if true the order in the look-up table is reverse. This is sometimes needed because time and spatial coordinates differ sometimes by a minus sign.
+
 
 [Back](#supported-namelists)
 
@@ -354,7 +368,7 @@ The modules controls the import of a Genesis 1.3 field file to replace the inter
 - `harmonic` (*int, 1*) defines the harmonic for the given Genesis run.
 - `time` (*bool, true*): If the time window hasn’t been defined it allows to run Genesis with the imported distribution in scan mode, when set to `false`. This would disable all slippage and long-range collective effects in the simulation
 - `attenuation` (*double, 1.0*): apply an on-the-flight scaling factor to the field to be imported, without the need of modifying the original field file.
-- `offset` (*double, 0*): currently unused.
+- `offset` (*double, 0*): Additional offset of the field with respect to the time frame. It should be an integer of the slice length as defined in the field dump file
 
 [Back](#supported-namelists)
 
@@ -451,7 +465,9 @@ With this name list the field or particle distributions are dumped. The placehol
 ### track
 
 This namelist initiate the actually tracking through the undulator and then writing out the results. Normally all parameter should be defined before or defined in the lattice but the namelist allows some ’last minute’ change of the behavior of the code
-
+It allows also to chose the type of field solver. The default behaviour is the alternate direction implicit solver, which works for the majority of the cases. Some improvement in the field propagation of strongly divergent fields are better described by an FFT based solver. However it takes more computational time
+The fft methods allows also to filter the source term to exclude unphysical strongly divergent modes, which can bounce of the grid edge, resulting in model pattern of the wavefront. However a very agressive filtering can also
+affect the actual FEL process. It is recommended to not use it unless you are very familiar with the code and its affect.
 - `zstop` (*double, 1e9*): If `zstop` is shorter than the lattice length the tracking stops at the specified position.
 - `output_step` (*int, 1*): Defines the number of integration steps before the particle and field distribution is analyzed for output.
 - `field_dump_step` (*int, 0*): Defines the number of integration steps before a field dump is written. Be careful because for time-dependent simulation it can generate many large output files.
@@ -462,7 +478,11 @@ This namelist initiate the actually tracking through the undulator and then writ
 - `field_dump_at_undexit` (*bool, false*): Field dumps at the exit of the undulator (one dump for each undulator in the expanded lattice).
 - `bunchharm` (*int, 1*): Bunching harmonic output setting. Must be >= 1.
 - `exclusive_harmonics` (*bool, false*): If set to true than only the requested bunching harmonic is included in output. Otherwise all harmonic sup and including the specified harmonics are included.
-
+- `fft_fieldsolver` (*bool, false*): Selects an FFT based field solver to propagate the field instead of the Alternating Direction Implicit (ADI) method. The methods is more accurate for stronger divergent modes but increases the calculation time. The core routine to advance the field takes about a factor 3 more time
+- `source_filter` (*bool, false*): Allows to filter the source term  in the field equation with a 2D sigmoid function to supress strongly diffracting modes, e.g. in the case of a very granual electron distribution. This option is only supported for the FFT based field solver
+- `xcut` (*double,1.*): relative cut in the spatial frequency components in the x-direction. A value of 1 aligns the edge of the sigmoid filter to half of the maximum resolvable frequency
+- `ycut` (*double, 1.*): same for the y direction
+- `sigmoid` (*double, 1.*): relative steepnes of the sigmoid filter.
 
 [Back](#supported-namelists)
 
