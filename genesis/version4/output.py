@@ -1976,11 +1976,21 @@ class Genesis4Output(Mapping, BaseModel, arbitrary_types_allowed=True):
             shape=shape,
         )
 
-    def info(self):
+    def info(self, limit: int | None = None):
         """
         Get information about available string keys for the output.
+
+        Parameters
+        ----------
+        limit : int or None, optional
+            Limit the number of items shown.
         """
-        array_info = {key: self._get_array_info(key) for key in sorted(self.keys())}
+
+        keys = sorted(self.keys())
+        if limit:
+            keys = keys[:limit]
+
+        array_info = {key: self._get_array_info(key) for key in keys}
         shapes = {
             key: str(array_info.shape or "") for key, array_info in array_info.items()
         }
