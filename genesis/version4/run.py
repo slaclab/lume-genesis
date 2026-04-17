@@ -14,13 +14,20 @@ import h5py
 import psutil
 from lume import tools as lume_tools
 from lume.base import CommandWrapper
-from pmd_beamphysics import ParticleGroup
-from pmd_beamphysics.units import pmd_unit
+import pydantic
+from beamphysics import ParticleGroup
+from beamphysics.units import pmd_unit
 from typing_extensions import override
 
 from .. import tools
 from ..errors import Genesis4RunFailure
 from . import parsers
+from .archive import (
+    DEFAULT_DATEFMT,
+    ArchiveFormat,
+    dump_model,
+    load_model,
+)
 from .field import FieldFile
 from .input import Genesis4Input, Lattice, MainInput
 from .output import Genesis4Output, RunInfo
@@ -126,6 +133,11 @@ def _make_genesis4_input(
         lattice_filename=lattice_fn,
         source_path=source_path,
     )
+
+
+class _Genesis4Archive(pydantic.BaseModel):
+    input: Genesis4Input
+    output: Optional[Genesis4Output] = None
 
 
 class Genesis4(CommandWrapper):
@@ -569,13 +581,21 @@ class Genesis4(CommandWrapper):
     def initial_field(self, value: Optional[FieldFile]) -> None:
         self.input.initial_field = value
 
-    def _archive(self, h5: h5py.Group):
+    def _archive_to_hdf5(self, h5: h5py.Group):
         self.input.archive(h5.create_group("input"))
         if self.output is not None:
             self.output.archive(h5.create_group("output"))
 
     @override
-    def archive(self, dest: Union[AnyPath, h5py.Group]) -> None:
+    def archive(
+        self,
+        dest: Union[AnyPath, h5py.Group],
+        *,
+        format: ArchiveFormat | None = None,
+        exclude_defaults: bool = True,
+        backup_existing: bool = True,
+        datefmt: str = DEFAULT_DATEFMT,
+    ) -> None:
         """
         Archive the latest run, input and output, to a single HDF5 file.
 
@@ -583,11 +603,15 @@ class Genesis4(CommandWrapper):
         ----------
         dest : filename or h5py.Group
         """
-        if isinstance(dest, (str, pathlib.Path)):
-            with h5py.File(dest, "w") as fp:
-                self._archive(fp)
-        elif isinstance(dest, (h5py.File, h5py.Group)):
-            self._archive(dest)
+
+        dump_model(
+            dest,
+            _Genesis4Archive(input=self.input, output=self.output),
+            format=format,
+            exclude_defaults=exclude_defaults,
+            backup_existing=backup_existing,
+            datefmt=datefmt,
+        )
 
     to_hdf5 = archive
 
@@ -599,7 +623,9 @@ class Genesis4(CommandWrapper):
             self.output = None
 
     @override
-    def load_archive(self, arch: Union[AnyPath, h5py.Group]) -> None:
+    def load_archive(
+        self, arch: AnyPath | h5py.Group, *, format: ArchiveFormat | None = None
+    ) -> None:
         """
         Load an archive from a single HDF5 file into this Genesis4 object.
 
@@ -607,15 +633,15 @@ class Genesis4(CommandWrapper):
         ----------
         arch : filename or h5py.Group
         """
-        if isinstance(arch, (str, pathlib.Path)):
-            with h5py.File(arch, "r") as fp:
-                self._load_archive(fp)
-        elif isinstance(arch, (h5py.File, h5py.Group)):
-            self._load_archive(arch)
+        data = load_model(arch, _Genesis4Archive, format=format)
+        self._input = data.input
+        self.output = data.output
 
     @override
     @classmethod
-    def from_archive(cls, arch: Union[AnyPath, h5py.Group]) -> Genesis4:
+    def from_archive(
+        cls, arch: Union[AnyPath, h5py.Group], *, format: ArchiveFormat | None = None
+    ) -> Genesis4:
         """
         Create a new Genesis4 object from an archive file.
 
@@ -624,7 +650,7 @@ class Genesis4(CommandWrapper):
         arch : filename or h5py.Group
         """
         inst = cls()
-        inst.load_archive(arch)
+        inst.load_archive(arch, format=format)
         return inst
 
     @classmethod

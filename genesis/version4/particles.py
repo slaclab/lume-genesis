@@ -6,8 +6,8 @@ from typing import Dict, List, Optional, Type, TypeVar, Union
 import h5py
 import numpy as np
 import pydantic
-from pmd_beamphysics import ParticleGroup
-from pmd_beamphysics.interfaces.genesis import genesis4_par_to_data
+from beamphysics import ParticleGroup
+from beamphysics.interfaces.genesis import genesis4_par_to_data
 
 from .types import BaseModel, AnyPath, NDArray
 

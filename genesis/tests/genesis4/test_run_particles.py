@@ -5,7 +5,7 @@ from math import pi, sqrt
 import matplotlib.pyplot as plt
 import numpy as np
 import pytest
-from pmd_beamphysics import ParticleGroup
+from beamphysics import ParticleGroup
 from scipy.constants import c
 
 from ...version4 import Genesis4, Genesis4Input, Lattice, MainInput, Reference

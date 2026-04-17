@@ -1,15 +1,24 @@
 from __future__ import annotations
 
+import datetime
 import json
 import logging
 import pathlib
-from typing import Any, Dict, Optional, Tuple, Union
+from typing import (
+    Any,
+    Dict,
+    Literal,
+    Optional,
+    Tuple,
+    TypeVar,
+    Union,
+)
 
 import h5py
 import numpy as np
 import pydantic
-from pmd_beamphysics import ParticleGroup
-from pmd_beamphysics.units import pmd_unit
+from beamphysics import ParticleGroup
+from beamphysics.units import pmd_unit
 
 from .. import tools
 from .types import PydanticPmdUnit
@@ -17,12 +26,214 @@ from .types import PydanticPmdUnit
 logger = logging.getLogger(__name__)
 
 
+DEFAULT_DATEFMT = "%Y%m%d_%H%M%S"
+T = TypeVar("T", bound=pydantic.BaseModel)
+ArchiveFormat = Literal["hdf5", "msgpack"]
 _reserved_h5_attrs = {
     "__python_class_name__",
     "__python_key_map__",
     "__python_key_order__",
     "__num_items__",
 }
+
+
+_MSGPACK_NDARRAY_MARKER = "__ndarray__"
+
+
+def _msgpack_default(obj: Any) -> Any:
+    """Fallback serializer for types ormsgpack doesn't handle natively."""
+    if isinstance(obj, pmd_unit):
+        return {
+            "unitSI": obj.unitSI,
+            "unitSymbol": obj.unitSymbol,
+            "unitDimension": tuple(obj.unitDimension),
+        }
+    if isinstance(obj, ParticleGroup):
+        return obj.data
+    if isinstance(obj, np.ndarray):
+        if obj.ndim == 0:
+            return obj.item()
+        arr = np.ascontiguousarray(obj)
+        return {
+            _MSGPACK_NDARRAY_MARKER: arr.tobytes(),
+            "dtype": str(arr.dtype),
+            "shape": list(arr.shape),
+        }
+    if isinstance(obj, np.generic):
+        return obj.item()
+    if isinstance(obj, pathlib.Path):
+        return str(obj)
+    raise TypeError(f"Type is not msgpack serializable: {type(obj).__name__}")
+
+
+def _msgpack_restore_ndarrays(obj: Any) -> Any:
+    """Restore numpy arrays from the ``__ndarray__`` marker dicts."""
+    if isinstance(obj, dict):
+        if _MSGPACK_NDARRAY_MARKER in obj:
+            return np.frombuffer(
+                obj[_MSGPACK_NDARRAY_MARKER], dtype=obj["dtype"]
+            ).reshape(obj["shape"])
+        return {key: _msgpack_restore_ndarrays(value) for key, value in obj.items()}
+    if isinstance(obj, list):
+        return [_msgpack_restore_ndarrays(item) for item in obj]
+    return obj
+
+
+def load_model_data(
+    arch: str | pathlib.Path | h5py.Group,
+    *,
+    format: ArchiveFormat | None = None,
+):
+    """
+    Read the raw model data from a file in JSON, YAML, msgpack, or HDF5 format.
+
+    Parameters
+    ----------
+    arch : str or pathlib.Path or h5py.Group
+        The path to the file or an h5py.Group where the model data should be read from.
+        The file format is determined by the extension if a path is provided.
+    format : ArchiveFormat or None, optional
+        File format. If not specified, determined by file extension.
+    """
+    if isinstance(arch, h5py.Group):
+        format = "hdf5"
+    else:
+        arch = pathlib.Path(arch)
+        format = format or format_from_filename(arch)
+
+    if format == "msgpack":
+        import ormsgpack
+
+        assert not isinstance(arch, h5py.Group)
+        data = ormsgpack.unpackb(arch.read_bytes(), option=ormsgpack.OPT_NON_STR_KEYS)
+        return _msgpack_restore_ndarrays(data)
+
+    if format == "hdf5":
+        if isinstance(arch, h5py.Group):
+            return restore_from_hdf5_file(arch)
+
+        with h5py.File(arch, "r") as fp:
+            return restore_from_hdf5_file(fp)
+
+    raise NotImplementedError(format)
+
+
+def format_from_filename(fn: pathlib.Path) -> ArchiveFormat:
+    if fn.suffix.lower() in (".msgpack", ".mpk"):
+        return "msgpack"
+
+    return "hdf5"
+
+
+def load_model(
+    arch: str | pathlib.Path | h5py.Group,
+    cls: type[T],
+    *,
+    format: ArchiveFormat | None = None,
+) -> T:
+    """
+    Read the model from a file in JSON, YAML, or msgpack format.
+
+    Parameters
+    ----------
+    arch : str, pathlib.Path, or h5py.Group
+        The path to the file where the model data should be written.
+        The file format is determined by the extension.
+    cls : pydantic.BaseModel class
+
+    format : ArchiveFormat or None, optional
+        File format.  If not specified, determined by file extension.
+    """
+    data = load_model_data(arch, format=format)
+    if isinstance(data, pydantic.BaseModel):
+        if not isinstance(data, cls):
+            raise TypeError(
+                f"Unexpected class returned from restore process. Expected {cls.__name__} "
+                f"got {type(data).__name__}"
+            )
+        return data
+    return cls.model_validate(data)
+
+
+def date_coded_rename(
+    dest: pathlib.Path, datefmt: str = "%Y%m%d_%H%M%S"
+) -> pathlib.Path | None:
+    """
+    Rename a destination path, adding a date-coded name suffix.
+
+    This is used in place of overwriting files, saving backups of the previous
+    data.
+    """
+    if not dest.exists():
+        return None
+
+    dt = datetime.datetime.now().strftime(datefmt)
+    backup_fn = f"{dest.stem}-{dt}{dest.suffix}"
+    dest.rename(dest.with_name(backup_fn))
+    return dest
+
+
+def dump_model(
+    dest: str | pathlib.Path | h5py.Group,
+    model: pydantic.BaseModel,
+    *,
+    exclude_defaults: bool = True,
+    backup_existing: bool = True,
+    datefmt: str = DEFAULT_DATEFMT,
+    format: ArchiveFormat | None = None,
+):
+    """
+    Write the model data to a file in JSON, YAML, or msgpack format.
+
+    Parameters
+    ----------
+    dest : str, pathlib.Path, or h5py.Group
+        The path to the file where the model data should be written.
+        The file format is determined by the extension.
+    model : pydantic.BaseModel
+
+    exclude_defaults : bool, optional
+        Exclude model defaults from the output. Defaults to True.
+    backup_existing : bool, optional
+        If a file exists at the target, rename it using `datefmt` as a backup.
+        Defaults to True.
+    datefmt : str, optional
+        The date format for the backup file.
+    format : ArchiveFormat or None, optional
+        File format.  If not specified, determined by file extension.
+    """
+
+    if isinstance(dest, h5py.Group):
+        store_in_hdf5_file(dest, model)
+        return
+
+    fname = pathlib.Path(dest)
+    format = format or format_from_filename(fname)
+
+    if backup_existing:
+        date_coded_rename(fname, datefmt=datefmt)
+
+    if format == "hdf5":
+        with h5py.File(dest, "w") as fp:
+            store_in_hdf5_file(fp, model)
+        return None
+    elif format == "msgpack":
+        import ormsgpack
+
+        data = model.model_dump(
+            exclude_defaults=exclude_defaults,
+            exclude_computed_fields=True,
+            mode="python",
+        )
+        dumped = ormsgpack.packb(
+            data,
+            default=_msgpack_default,
+            option=ormsgpack.OPT_NON_STR_KEYS,
+        )
+        pathlib.Path(fname).write_bytes(dumped)
+        return data
+    else:
+        raise NotImplementedError(format)
 
 
 def _hdf5_dictify(

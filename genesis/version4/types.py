@@ -20,8 +20,8 @@ from typing import (
 import numpy as np
 import pydantic
 import pydantic_core
-from pmd_beamphysics import ParticleGroup
-from pmd_beamphysics.units import pmd_unit
+from beamphysics import ParticleGroup
+from beamphysics.units import pmd_unit
 from typing_extensions import NotRequired, TypedDict, override
 
 if TYPE_CHECKING:
@@ -276,6 +276,8 @@ class _PydanticNDArray:
             return value
         if isinstance(value, Sequence):
             return np.asarray(value)
+        if np.isscalar(value):
+            return np.asarray([value])
         raise ValueError(f"No conversion from {value!r} to numpy ndarray")
 
 
@@ -301,6 +303,12 @@ class Reference(str):
 
 class NameList(BaseModel, abc.ABC):
     """Base class for name lists used in Genesis 4 main input files."""
+
+    @pydantic.model_serializer(mode="wrap")
+    def _always_include_type(self, next_serializer):
+        dumped = next_serializer(self)
+        dumped["type"] = self.type
+        return dumped
 
     @property
     def _to_genesis_params(self) -> Dict[str, ValueType]:
@@ -367,6 +375,12 @@ class BeamlineElement(BaseModel, abc.ABC):
     """Base class for beamline elements used in Genesis 4 lattice files."""
 
     label: str
+
+    @pydantic.model_serializer(mode="wrap")
+    def _always_include_type(self, next_serializer):
+        dumped = next_serializer(self)
+        dumped["type"] = self.type
+        return dumped
 
     @property
     def _to_genesis_params(self) -> Dict[str, ValueType]:

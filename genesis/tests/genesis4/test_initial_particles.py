@@ -1,7 +1,7 @@
 from typing import Optional
 
 import numpy as np
-from pmd_beamphysics import ParticleGroup
+from beamphysics import ParticleGroup
 
 from ...version4 import (
     Genesis4,

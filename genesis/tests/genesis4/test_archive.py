@@ -5,7 +5,7 @@ from typing import Union
 
 import h5py
 import pytest
-from pmd_beamphysics import ParticleGroup
+from beamphysics import ParticleGroup
 from pydantic import BaseModel
 
 from ...version4 import (
@@ -54,6 +54,14 @@ from ...version4.archive import (
 from ...version4.types import BeamlineElement, NameList
 from ..conftest import test_artifacts
 from . import util
+
+
+@pytest.fixture
+def msgpack_filename(
+    tmp_path: pathlib.Path,
+    request: pytest.FixtureRequest,
+) -> pathlib.Path:
+    return tmp_path / f"{request.node.name}.msgpack"
 
 
 @pytest.fixture
@@ -142,6 +150,20 @@ def test_hdf_archive(
     print("Took", t2 - t1, "s to restore")
     assert genesis4.output is not None
 
+    with open(test_artifacts / "hdf_orig_input.json", "wt") as fp:
+        print(json_for_comparison(orig_input), file=fp)
+    with open(test_artifacts / "hdf_restored_input.json", "wt") as fp:
+        print(json_for_comparison(genesis4.input), file=fp)
+    with open(test_artifacts / "hdf_orig_output.json", "wt") as fp:
+        print(json_for_comparison(orig_output), file=fp)
+    with open(test_artifacts / "hdf_restored_output.json", "wt") as fp:
+        print(json_for_comparison(genesis4.output), file=fp)
+
+    with open(test_artifacts / "hdf_orig_output_repr.txt", "wt") as fp:
+        print(repr(orig_output), file=fp)
+    with open(test_artifacts / "hdf_restored_output_repr.txt", "wt") as fp:
+        print(repr(genesis4.output), file=fp)
+
     # assert orig_input.model_dump_json(indent=True) == genesis4.input.model_dump_json(indent=True)
     # assert orig_output.model_dump_json(indent=True) == genesis4.output.model_dump_json(indent=True)
     orig_input_repr = repr(orig_input)
@@ -158,15 +180,6 @@ def test_hdf_archive(
     if orig_output != genesis4.output:
         util.compare(orig_output, genesis4.output)
         assert False, "Verbose comparison should have failed?"
-
-    with open(test_artifacts / "orig_input.json", "wt") as fp:
-        print(json_for_comparison(orig_input), file=fp)
-    with open(test_artifacts / "restored_input.json", "wt") as fp:
-        print(json_for_comparison(genesis4.input), file=fp)
-    with open(test_artifacts / "orig_output.json", "wt") as fp:
-        print(json_for_comparison(orig_output), file=fp)
-    with open(test_artifacts / "restored_output.json", "wt") as fp:
-        print(json_for_comparison(genesis4.output), file=fp)
 
     assert json_for_comparison(orig_input) == json_for_comparison(genesis4.input)
     assert json_for_comparison(orig_output) == json_for_comparison(genesis4.output)
@@ -233,7 +246,8 @@ def test_pick_from_archive(
 def json_for_comparison(model: BaseModel) -> str:
     # Assuming dictionary keys can't be assumed to be sorted
     data = json.loads(model.model_dump_json())
-    return json.dumps(data, sort_keys=True, indent=True)
+    data = json.dumps(data, sort_keys=True, indent=True)
+    return data.replace("array(shape=(0,), dtype=float64)", "array([], dtype=float64)")
 
 
 def test_hdf_archive_using_group(
@@ -270,10 +284,12 @@ def test_hdf_archive_using_group(
     # with open("restored_output.json", "wt") as fp:
     #     print(json_for_comparison(genesis4.output), file=fp)
 
+    assert orig_input == genesis4.input
     orig_input_repr = repr(orig_input)
     restored_input_repr = repr(genesis4.input)
     assert orig_input_repr == restored_input_repr
 
+    assert orig_output == genesis4.output
     orig_output_repr = repr(orig_output)
     restored_output_repr = repr(genesis4.output)
     assert orig_output_repr == restored_output_repr
@@ -295,3 +311,88 @@ def test_null_bytes_storage(hdf5_filename: pathlib.Path):
     print(orig)
     print(output)
     assert orig == output
+
+
+def test_msgpack_archive(
+    genesis4: Genesis4,
+    msgpack_filename: pathlib.Path,
+) -> None:
+    output = genesis4.run(raise_on_error=True)
+    assert output.run.success
+
+    genesis4.load_output()
+    orig_input = genesis4.input
+    orig_output = genesis4.output
+    assert orig_output is not None
+
+    t0 = time.monotonic()
+    genesis4.archive(msgpack_filename, format="msgpack")
+
+    t1 = time.monotonic()
+    genesis4.load_archive(msgpack_filename)
+
+    t2 = time.monotonic()
+    print("Took", t1 - t0, "s to archive")
+    print("Took", t2 - t1, "s to restore")
+    assert genesis4.output is not None
+
+    with open(test_artifacts / "msgpack_orig_input.json", "wt") as fp:
+        print(json_for_comparison(orig_input), file=fp)
+    with open(test_artifacts / "msgpack_restored_input.json", "wt") as fp:
+        print(json_for_comparison(genesis4.input), file=fp)
+    with open(test_artifacts / "msgpack_orig_output.json", "wt") as fp:
+        print(json_for_comparison(orig_output), file=fp)
+    with open(test_artifacts / "msgpack_restored_output.json", "wt") as fp:
+        print(json_for_comparison(genesis4.output), file=fp)
+
+    if orig_input != genesis4.input:
+        util.compare(orig_input, genesis4.input)
+        assert False, "Verbose comparison should have failed?"
+    if orig_output != genesis4.output:
+        util.compare(orig_output, genesis4.output)
+        assert False, "Verbose comparison should have failed?"
+
+    # assert orig_input.model_dump_json(indent=True) == genesis4.input.model_dump_json(indent=True)
+    # assert orig_output.model_dump_json(indent=True) == genesis4.output.model_dump_json(indent=True)
+    orig_input_repr = repr(orig_input)
+    restored_input_repr = repr(genesis4.input)
+    assert orig_input_repr == restored_input_repr
+
+    orig_output_repr = repr(orig_output)
+    restored_output_repr = repr(genesis4.output)
+    assert orig_output_repr == restored_output_repr
+
+    assert json_for_comparison(orig_input) == json_for_comparison(genesis4.input)
+    assert json_for_comparison(orig_output) == json_for_comparison(genesis4.output)
+
+
+def test_msgpack_archive_particles(
+    genesis4: Genesis4,
+    msgpack_filename: pathlib.Path,
+) -> None:
+    genesis4.input.main.namelists.append(Write(beam="end"))
+    orig_output = genesis4.run(raise_on_error=True)
+    assert orig_output.run.success
+
+    orig_output.load_particles()
+
+    orig_particles = orig_output.particles
+    assert len(orig_output.particles)
+
+    t0 = time.monotonic()
+    genesis4.archive(msgpack_filename, format="msgpack")
+
+    t1 = time.monotonic()
+    genesis4.load_archive(msgpack_filename)
+    new_output = genesis4.output
+
+    t2 = time.monotonic()
+    print("Took", t1 - t0, "s to archive")
+    print("Took", t2 - t1, "s to restore")
+    assert new_output is not None
+    assert list(new_output.particles) == list(orig_particles)
+
+    for key in new_output.particles:
+        particles = orig_particles[key]
+        print("Checking particles", particles)
+        assert particles == new_output.particles[key]

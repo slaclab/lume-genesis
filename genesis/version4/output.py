@@ -26,8 +26,8 @@ import matplotlib.figure
 import matplotlib.pyplot as plt
 import numpy as np
 import pydantic
-from pmd_beamphysics import ParticleGroup
-from pmd_beamphysics.units import c_light, pmd_unit
+from beamphysics import ParticleGroup
+from beamphysics.units import c_light, pmd_unit
 from typing_extensions import override
 
 from .. import tools
@@ -43,6 +43,7 @@ from .types import (
     FileKey,
     NDArray,
     OutputDataType,
+    PydanticParticleGroup,
     PydanticPmdUnit,
 )
 
@@ -108,8 +109,30 @@ class RunInfo(BaseModel):
         return not self.error
 
 
+_zeros = np.zeros(0)
+
+
+class _EmptyEqualityCheckNDArray(np.ndarray):
+    def __repr__(self):
+        return repr(_zeros)
+
+    def __str__(self):
+        return str(_zeros)
+
+    def __eq__(self, other):
+        # NOTE: this is strictly for equality checks when 'exclude_defaults" is
+        # set for pydantic.
+        if isinstance(other, np.ndarray):
+            if other.size == 0 and self.size == 0:
+                return True
+            return False
+        if np.isscalar(other):
+            return False
+        return len(other) == 0
+
+
 def _empty_ndarray():
-    return np.zeros(0)
+    return np.zeros(0).view(_EmptyEqualityCheckNDArray)
 
 
 class _OutputBase(BaseModel):
@@ -1384,7 +1407,7 @@ class Genesis4Output(Mapping, BaseModel, arbitrary_types_allowed=True):
         exclude=True,
         description="Loaded field data, keyed by filename base (e.g., 'end' of 'end.fld.h5').",
     )
-    particles: Dict[FileKey, ParticleGroup] = pydantic.Field(
+    particles: Dict[FileKey, PydanticParticleGroup] = pydantic.Field(
         default_factory=dict,
         description="Loaded particle data, keyed by integration step number or filename base.",
     )
@@ -1770,34 +1793,49 @@ class Genesis4Output(Mapping, BaseModel, arbitrary_types_allowed=True):
         """
         return self[key]
 
-    def archive(self, h5: h5py.Group) -> None:
+    def archive(
+        self,
+        dest: h5py.Group | str | pathlib.Path,
+        *,
+        format: _archive.ArchiveFormat = "hdf5",
+    ) -> None:
         """
-        Dump outputs into the given HDF5 group.
+        Dump output data into the given file or HDF5 group.
 
         Parameters
         ----------
-        h5 : h5py.Group
+        dest : h5py.Group
             The HDF5 file in which to write the information.
         """
-        _archive.store_in_hdf5_file(h5, self)
+        if format == "hdf5":
+            if isinstance(dest, (str, pathlib.Path)):
+                with h5py.File(dest, "w") as fp:
+                    _archive.store_in_hdf5_file(fp, self)
+            else:
+                _archive.store_in_hdf5_file(dest, self)
+
+        else:
+            if isinstance(dest, h5py.Group):
+                raise ValueError(f"Unable to store HDF5 data into format {format}")
+
+            _archive.dump_model(dest, self)
 
     @classmethod
-    def from_archive(cls, h5: h5py.Group) -> Genesis4Output:
+    def from_archive(
+        cls,
+        arch: h5py.Group | pathlib.Path | str,
+        *,
+        format: _archive.ArchiveFormat | None = None,
+    ) -> Genesis4Output:
         """
-        Loads output from the given HDF5 group.
+        Loads output from archived file.
 
         Parameters
         ----------
-        h5 : str or h5py.File
-            The key to use when restoring the data.
+        arch : str, pathlib.Path or h5py.File
+            The filename or handle on h5py.File from which to load data.
         """
-        loaded = _archive.restore_from_hdf5_file(h5)
-        if not isinstance(loaded, Genesis4Output):
-            raise ValueError(
-                f"Loaded {loaded.__class__.__name__} instead of a "
-                f"Genesis4Output instance.  Was the HDF group correct?"
-            )
-        return loaded
+        return _archive.load_model(arch, cls, format=format)
 
     def plot(
         self,
@@ -1938,11 +1976,21 @@ class Genesis4Output(Mapping, BaseModel, arbitrary_types_allowed=True):
             shape=shape,
         )
 
-    def info(self):
+    def info(self, limit: int | None = None):
         """
         Get information about available string keys for the output.
+
+        Parameters
+        ----------
+        limit : int or None, optional
+            Limit the number of items shown.
         """
-        array_info = {key: self._get_array_info(key) for key in sorted(self.keys())}
+
+        keys = sorted(self.keys())
+        if limit:
+            keys = keys[:limit]
+
+        array_info = {key: self._get_array_info(key) for key in keys}
         shapes = {
             key: str(array_info.shape or "") for key, array_info in array_info.items()
         }

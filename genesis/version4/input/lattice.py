@@ -25,7 +25,7 @@ import matplotlib.axes
 import matplotlib.pyplot as plt
 import pydantic
 import pydantic.alias_generators
-from pmd_beamphysics.units import nice_array
+from beamphysics.units import nice_array
 from typing_extensions import override
 
 from ...errors import (
