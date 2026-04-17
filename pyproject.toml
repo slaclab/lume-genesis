@@ -21,7 +21,7 @@ dependencies = [
   "ormsgpack",
   "prettytable",
   "psutil",
-  "pydantic >2",
+  "pydantic >=2.12.0",
   "pydantic-settings",
   "scipy>=1.0.0",
   "typing-extensions",
