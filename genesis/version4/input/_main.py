@@ -808,6 +808,7 @@ class ProfilePolynom(types.NameList):
 
 class ProfileFile(types.NameList):
     r"""
+    Reading look-up tables from an HDF5 file.
 
     ProfileFile corresponds to Genesis 4 namelist `profile_file`.
 
@@ -828,7 +829,8 @@ class ProfileFile(types.NameList):
         if true the order in the look-up table is reverse. This is sometimes needed
         because time and spatial coordinates differ sometimes by a minus sign.
     autoassign : bool, default=False
-        use the HDF5 file from `xdata` (TODO more details).
+        use the dataset name of `ydata` as the label. I does not overwrite the label if
+        it is explicitly defined in the namelist
     """
 
     type: Literal["profile_file"] = "profile_file"
@@ -865,7 +867,76 @@ class ProfileFile(types.NameList):
     )
     autoassign: bool = pydantic.Field(
         default=False,
-        description="use the HDF5 file from `xdata` (TODO more details).",
+        description=(
+            "use the dataset name of `ydata` as the label. I does not overwrite the "
+            "label if it is explicitly defined in the namelist"
+        ),
+    )
+
+
+class ProfileFileMulti(types.NameList):
+    r"""
+    Generates profile objects `<label_prefix>.gamma`, `<label_prefix>.delgam`,
+    `<label_prefix>.current`, etc., each one corresponding to one `&profile_file`.
+
+    ProfileFileMulti corresponds to Genesis 4 namelist `profile_file_multi`.
+
+    Attributes
+    ----------
+    file : str, default=""
+        HDF5 filename.
+    label_prefix : str, default=""
+        prefix for each object.
+    xdata : str, default=""
+        Points to a dataset in an HDF5 file to define the `s`-position for the look-up
+        table. The format is `filename/group1/.../groupn/datasetname`, where the naming
+        of groups is not required if the dataset is at root level of the HDF file
+    ydata : str, default=""
+        Same as y data but for the function values of the look-up table.
+    isTime : bool, default=False
+        If true the `s`-position is a time variable and therefore multiplied with the
+        speed of light `c` to get the position in meters.
+    reverse : bool, default=False
+        if true the order in the look-up table is reverse. This is sometimes needed
+        because time and spatial coordinates differ sometimes by a minus sign.
+    """
+
+    type: Literal["profile_file_multi"] = "profile_file_multi"
+    file: str = pydantic.Field(
+        default="",
+        description="HDF5 filename.",
+    )
+    label_prefix: str = pydantic.Field(
+        default="",
+        description="prefix for each object.",
+    )
+    xdata: str = pydantic.Field(
+        default="",
+        description=(
+            "Points to a dataset in an HDF5 file to define the `s`-position for the "
+            "look-up table. The format is `filename/group1/.../groupn/datasetname`, "
+            "where the naming of groups is not required if the dataset is at root level "
+            "of the HDF file"
+        ),
+    )
+    ydata: str = pydantic.Field(
+        default="",
+        description="Same as y data but for the function values of the look-up table.",
+    )
+    isTime: bool = pydantic.Field(
+        default=False,
+        description=(
+            "If true the `s`-position is a time variable and therefore multiplied with "
+            "the speed of light `c` to get the position in meters."
+        ),
+    )
+    reverse: bool = pydantic.Field(
+        default=False,
+        description=(
+            "if true the order in the look-up table is reverse. This is sometimes "
+            "needed because time and spatial coordinates differ sometimes by a minus "
+            "sign."
+        ),
     )
 
 
@@ -1608,7 +1679,8 @@ class ImportField(types.NameList):
         apply an on-the-flight scaling factor to the field to be imported, without the
         need of modifying the original field file.
     offset : float, default=0.0
-        currently unused.
+        Additional offset of the field with respect to the time frame. It should be an
+        integer of the slice length as defined in the field dump file
     """
 
     type: Literal["importfield"] = "importfield"
@@ -1640,7 +1712,10 @@ class ImportField(types.NameList):
     )
     offset: float = pydantic.Field(
         default=0.0,
-        description="currently unused.",
+        description=(
+            "Additional offset of the field with respect to the time frame. It should "
+            "be an integer of the slice length as defined in the field dump file"
+        ),
     )
 
 
@@ -2053,6 +2128,16 @@ class Track(types.NameList):
     writing out the results. Normally all parameter should be defined before or
     defined in the lattice but the namelist allows some ’last minute’ change of the
     behavior of the code
+    It allows also to chose the type of field solver. The default behaviour is the
+    alternate direction implicit solver, which works for the majority of the cases.
+    Some improvement in the field propagation of strongly divergent fields are
+    better described by an FFT based solver. However it takes more computational
+    time
+    The fft methods allows also to filter the source term to exclude unphysical
+    strongly divergent modes, which can bounce of the grid edge, resulting in model
+    pattern of the wavefront. However a very agressive filtering can also
+    affect the actual FEL process. It is recommended to not use it unless you are
+    very familiar with the code and its affect.
 
     Track corresponds to Genesis 4 namelist `track`.
 
@@ -2087,6 +2172,24 @@ class Track(types.NameList):
     exclusive_harmonics : bool, default=False
         If set to true than only the requested bunching harmonic is included in output.
         Otherwise all harmonic sup and including the specified harmonics are included.
+    fft_fieldsolver : bool, default=False
+        Selects an FFT based field solver to propagate the field instead of the
+        Alternating Direction Implicit (ADI) method. The methods is more accurate for
+        stronger divergent modes but increases the calculation time. The core routine
+        to advance the field takes about a factor 3 more time
+    source_filter : bool, default=False
+        Allows to filter the source term  in the field equation with a 2D sigmoid
+        function to supress strongly diffracting modes, e.g. in the case of a very
+        granual electron distribution. This option is only supported for the FFT based
+        field solver
+    xcut : float, default=1.0
+        relative cut in the spatial frequency components in the x-direction. A value of
+        1 aligns the edge of the sigmoid filter to half of the maximum resolvable
+        frequency
+    ycut : float, default=1.0
+        same for the y direction
+    sigmoid : float, default=1.0
+        relative steepnes of the sigmoid filter.
     """
 
     type: Literal["track"] = "track"
@@ -2154,6 +2257,40 @@ class Track(types.NameList):
             "are included."
         ),
     )
+    fft_fieldsolver: bool = pydantic.Field(
+        default=False,
+        description=(
+            "Selects an FFT based field solver to propagate the field instead of the "
+            "Alternating Direction Implicit (ADI) method. The methods is more accurate "
+            "for stronger divergent modes but increases the calculation time. The core "
+            "routine to advance the field takes about a factor 3 more time"
+        ),
+    )
+    source_filter: bool = pydantic.Field(
+        default=False,
+        description=(
+            "Allows to filter the source term  in the field equation with a 2D sigmoid "
+            "function to supress strongly diffracting modes, e.g. in the case of a very "
+            "granual electron distribution. This option is only supported for the FFT "
+            "based field solver"
+        ),
+    )
+    xcut: float = pydantic.Field(
+        default=1.0,
+        description=(
+            "relative cut in the spatial frequency components in the x-direction. A "
+            "value of 1 aligns the edge of the sigmoid filter to half of the maximum "
+            "resolvable frequency"
+        ),
+    )
+    ycut: float = pydantic.Field(
+        default=1.0,
+        description="same for the y direction",
+    )
+    sigmoid: float = pydantic.Field(
+        default=1.0,
+        description="relative steepnes of the sigmoid filter.",
+    )
 
 
 class AlterField(types.NameList):
@@ -2199,72 +2336,6 @@ class AlterField(types.NameList):
     spp_phi0: float = pydantic.Field(
         default=0.0,
         description="TODO",
-    )
-
-
-class ProfileFileMulti(types.NameList):
-    r"""
-    Generates profile objects `<label_prefix>.gamma`, `<label_prefix>.delgam`,
-    `<label_prefix>.current`, etc., each one corresponding to one `&profile_file`.
-
-    ProfileFileMulti corresponds to Genesis 4 namelist `profile_file_multi`.
-
-    Attributes
-    ----------
-    file : str, default=""
-        HDF5 filename.
-    label_prefix : str, default=""
-        prefix for each object.
-    xdata : str, default=""
-        Points to a dataset in an HDF5 file to define the `s`-position for the look-up
-        table. The format is `filename/group1/.../groupn/datasetname`, where the naming
-        of groups is not required if the dataset is at root level of the HDF file
-    ydata : str, default=""
-        Same as y data but for the function values of the look-up table.
-    isTime : bool, default=False
-        If true the `s`-position is a time variable and therefore multiplied with the
-        speed of light `c` to get the position in meters.
-    reverse : bool, default=False
-        if true the order in the look-up table is reverse. This is sometimes needed
-        because time and spatial coordinates differ sometimes by a minus sign.
-    """
-
-    type: Literal["profile_file_multi"] = "profile_file_multi"
-    file: str = pydantic.Field(
-        default="",
-        description="HDF5 filename.",
-    )
-    label_prefix: str = pydantic.Field(
-        default="",
-        description="prefix for each object.",
-    )
-    xdata: str = pydantic.Field(
-        default="",
-        description=(
-            "Points to a dataset in an HDF5 file to define the `s`-position for the "
-            "look-up table. The format is `filename/group1/.../groupn/datasetname`, "
-            "where the naming of groups is not required if the dataset is at root level "
-            "of the HDF file"
-        ),
-    )
-    ydata: str = pydantic.Field(
-        default="",
-        description="Same as y data but for the function values of the look-up table.",
-    )
-    isTime: bool = pydantic.Field(
-        default=False,
-        description=(
-            "If true the `s`-position is a time variable and therefore multiplied with "
-            "the speed of light `c` to get the position in meters."
-        ),
-    )
-    reverse: bool = pydantic.Field(
-        default=False,
-        description=(
-            "if true the order in the look-up table is reverse. This is sometimes "
-            "needed because time and spatial coordinates differ sometimes by a minus "
-            "sign."
-        ),
     )
 
 
@@ -2332,6 +2403,7 @@ AutogeneratedNameList = Union[
     ProfileStep,
     ProfilePolynom,
     ProfileFile,
+    ProfileFileMulti,
     SequenceConst,
     SequencePolynom,
     SequencePower,
@@ -2349,7 +2421,6 @@ AutogeneratedNameList = Union[
     Write,
     Track,
     AlterField,
-    ProfileFileMulti,
     SequenceList,
     SequenceFilelist,
 ]
