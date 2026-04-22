@@ -1,12 +1,17 @@
+from __future__ import annotations
+
 import json
+import operator
 import pathlib
 import time
 from typing import Union
 
 import h5py
+import numpy as np
 import pytest
-from beamphysics import ParticleGroup
-from pydantic import BaseModel
+from beamphysics import ParticleGroup, single_particle
+from beamphysics.units import pmd_unit
+from pydantic import BaseModel, TypeAdapter
 
 from ...version4 import (
     AlterBeam,
@@ -47,11 +52,17 @@ from ...version4 import (
     Write,
 )
 from ...version4.archive import (
-    store_in_hdf5_file,
-    restore_from_hdf5_file,
     pick_from_archive,
+    restore_from_hdf5_file,
+    store_in_hdf5_file,
 )
-from ...version4.types import BeamlineElement, NameList
+from ...version4.types import (
+    BeamlineElement,
+    NameList,
+    NDArray,
+    PydanticParticleGroup,
+    PydanticPmdUnit,
+)
 from ..conftest import test_artifacts
 from . import util
 
@@ -396,3 +407,32 @@ def test_msgpack_archive_particles(
         particles = orig_particles[key]
         print("Checking particles", particles)
         assert particles == new_output.particles[key]
+
+
+@pytest.mark.parametrize(
+    "type_annotation, obj, comparator",
+    [
+        pytest.param(
+            PydanticPmdUnit,
+            pmd_unit.from_symbol("m"),
+            operator.eq,
+            id="pmd_unit",
+        ),
+        pytest.param(
+            PydanticParticleGroup,
+            single_particle(),
+            operator.eq,
+            id="particlegroup",
+        ),
+        pytest.param(
+            NDArray,
+            np.array([[1, 2, 3], [4, 5, 6]]),
+            np.array_equal,
+            id="ndarray",
+        ),
+    ],
+)
+def test_json_serialization(type_annotation, obj, comparator):
+    adapter = TypeAdapter(type_annotation)
+    assert comparator(adapter.validate_python(adapter.dump_python(obj)), obj)
+    assert comparator(adapter.validate_json(adapter.dump_json(obj)), obj)
